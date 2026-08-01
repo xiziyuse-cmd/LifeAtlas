@@ -2,6 +2,25 @@
 
 本文件记录 LifeAtlas 各版本发生的修改。版本记录只允许追加或补充，不得删除已有历史。
 
+## [1.0.3] - 2026-08-01
+
+### Added
+
+- 增加 GitHub Actions PR 来源分支校验，只允许 `develop` 或 `feature/*` 向 `main` 合并。
+
+### Changed
+
+- 将 GitHub 仓库改为公开，以启用 GitHub 免费分支保护。
+- 为 `main` 启用必须通过 Pull Request、必需状态检查、禁止直接推送、强制推送和删除的保护规则。
+
+### Fixed
+
+- 无。
+
+### Removed
+
+- 无。
+
 ## [1.0.2] - 2026-08-01
 
 ### Added

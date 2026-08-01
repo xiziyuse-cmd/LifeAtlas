@@ -463,9 +463,16 @@ feat: 完成首页天气模块
 
 `main`
 
+- `main` 是受保护分支，禁止直接提交或推送。
+- 禁止强制推送和删除 `main`。
+- 任何修改都必须通过 Pull Request 合并到 `main`。
+- `validate-pr-source` 必需检查通过后才能合并。
+
 开发分支：
 
 `develop`
+
+- 常规迭代可以在 `develop` 完成后向 `main` 创建 Pull Request。
 
 大型功能：
 
@@ -474,6 +481,10 @@ feat: 完成首页天气模块
 例如：
 
 `feature/weather`
+
+- 独立功能使用 `feature/*` 分支，并向 `main` 创建 Pull Request。
+- Pull Request 来源只允许 `develop` 或 `feature/*`。
+- 不允许从其他命名分支直接向 `main` 合并。
 
 ---
 

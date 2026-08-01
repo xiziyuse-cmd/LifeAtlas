@@ -1,0 +1,27 @@
+name: Validate main pull request source
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pr-source:
+    name: validate-pr-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Allow only develop or feature branches
+        shell: bash
+        env:
+          SOURCE_BRANCH: ${{ github.head_ref }}
+        run: |
+          if [[ "$SOURCE_BRANCH" == "develop" || "$SOURCE_BRANCH" == feature/* ]]; then
+            echo "Allowed pull request source: $SOURCE_BRANCH"
+            exit 0
+          fi
+
+          echo "::error::Pull requests to main must come from develop or feature/*."
+          exit 1
