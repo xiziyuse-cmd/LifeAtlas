@@ -15,6 +15,7 @@
 - 本次仅更新开发流程文档，未修改应用版本号和构建号。
 - 初始化 LifeAtlas Git 仓库，建立 `main` 和 `develop` 分支。
 - 将当前项目状态作为 `1.0.2` 项目基线提交。
+- 创建私有 GitHub 仓库 `xiziyuse-cmd/LifeAtlas`，配置 `origin` 并推送 `main`、`develop` 分支。
 
 ### Fixed
 
