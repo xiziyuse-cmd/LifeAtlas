@@ -6,7 +6,7 @@ import 'package:lifeatlas/core/settings/app_settings.dart';
 import 'package:lifeatlas/core/settings/app_settings_repository.dart';
 
 void main() {
-  testWidgets('outfit module switch controls the dynamic bottom tab', (
+  testWidgets('profile module entry controls the dynamic bottom tab', (
     tester,
   ) async {
     final repository = _MemoryAppSettingsRepository();
@@ -16,19 +16,31 @@ void main() {
     await tester.pumpWidget(LifeAtlasApp(controller: controller));
     await tester.pumpAndSettle();
 
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.byType(NavigationDestination), findsNWidgets(2));
+    expect(find.text('板块'), findsNothing);
 
-    await tester.tap(find.text('板块'));
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('profile-outfit-switch')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('profile-modules-entry')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('modules-outfit-switch')));
     await tester.pumpAndSettle();
 
     expect(controller.outfitModuleEnabled, isTrue);
     expect(repository.settings.outfitModuleEnabled, isTrue);
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
   });
 
-  testWidgets('profile page changes the theme mode', (tester) async {
+  testWidgets('profile theme icon changes the theme mode', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
     final repository = _MemoryAppSettingsRepository();
     final controller = AppController(repository);
     await controller.initialize();
@@ -38,7 +50,9 @@ void main() {
 
     await tester.tap(find.text('我的'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('夜间'));
+
+    expect(find.byKey(const ValueKey('theme-mode-selector')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('theme-mode-toggle')));
     await tester.pumpAndSettle();
 
     expect(controller.themePreference, AppThemePreference.dark);
@@ -47,6 +61,24 @@ void main() {
       Theme.of(tester.element(find.byType(Scaffold).first)).brightness,
       Brightness.dark,
     );
+  });
+
+  testWidgets('bottom tab pages do not show a common app bar title', (
+    tester,
+  ) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    await controller.initialize();
+
+    await tester.pumpWidget(LifeAtlasApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppBar), findsNothing);
+
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppBar), findsNothing);
   });
 }
 
