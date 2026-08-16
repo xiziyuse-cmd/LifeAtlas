@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_controller.dart';
 import '../../home/presentation/home_page.dart';
-import '../../modules/presentation/modules_page.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../wardrobe/presentation/outfit_page.dart';
 
@@ -27,16 +26,6 @@ class _AppShellState extends State<AppShell> {
         icon: Icons.home_outlined,
         selectedIcon: Icons.home,
         page: HomePage(key: PageStorageKey('home')),
-      ),
-      _AppDestination(
-        id: 'modules',
-        label: '板块',
-        icon: Icons.dashboard_outlined,
-        selectedIcon: Icons.dashboard,
-        page: ModulesPage(
-          key: const PageStorageKey('modules'),
-          controller: widget.controller,
-        ),
       ),
       if (widget.controller.outfitModuleEnabled)
         const _AppDestination(
@@ -67,10 +56,11 @@ class _AppShellState extends State<AppShell> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(destinations[selectedIndex].label)),
-      body: IndexedStack(
-        index: selectedIndex,
-        children: [for (final destination in destinations) destination.page],
+      body: SafeArea(
+        child: IndexedStack(
+          index: selectedIndex,
+          children: [for (final destination in destinations) destination.page],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,

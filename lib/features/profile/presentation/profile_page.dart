@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_controller.dart';
 import '../../../core/settings/app_settings.dart';
+import '../../modules/presentation/modules_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key, required this.controller});
@@ -10,9 +11,27 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            key: const ValueKey('theme-mode-toggle'),
+            tooltip: isDarkMode ? '切换至日间模式' : '切换至夜间模式',
+            onPressed: () {
+              controller.setThemePreference(
+                isDarkMode ? AppThemePreference.light : AppThemePreference.dark,
+              );
+            },
+            icon: Icon(
+              isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -47,59 +66,25 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('板块开关', style: Theme.of(context).textTheme.titleMedium),
+        Text('功能', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Card(
-          child: SwitchListTile(
-            key: const ValueKey('profile-outfit-switch'),
-            secondary: const Icon(Icons.checkroom_outlined),
-            title: const Text('穿搭'),
-            subtitle: const Text('在底部导航中显示穿搭入口'),
-            value: controller.outfitModuleEnabled,
-            onChanged: controller.setOutfitModuleEnabled,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text('外观', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('主题模式'),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<AppThemePreference>(
-                    key: const ValueKey('theme-mode-selector'),
-                    segments: const [
-                      ButtonSegment(
-                        value: AppThemePreference.light,
-                        icon: Icon(Icons.light_mode_outlined),
-                        label: Text('日间'),
-                      ),
-                      ButtonSegment(
-                        value: AppThemePreference.dark,
-                        icon: Icon(Icons.dark_mode_outlined),
-                        label: Text('夜间'),
-                      ),
-                      ButtonSegment(
-                        value: AppThemePreference.system,
-                        icon: Icon(Icons.settings_brightness_outlined),
-                        label: Text('跟随系统'),
-                      ),
-                    ],
-                    selected: {controller.themePreference},
-                    onSelectionChanged: (selection) {
-                      controller.setThemePreference(selection.first);
-                    },
-                    showSelectedIcon: false,
+          child: ListTile(
+            key: const ValueKey('profile-modules-entry'),
+            leading: const Icon(Icons.dashboard_outlined),
+            title: const Text('板块管理'),
+            subtitle: const Text('管理功能板块与底部导航入口'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => Scaffold(
+                    appBar: AppBar(title: const Text('板块管理')),
+                    body: ModulesPage(controller: controller),
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
         const SizedBox(height: 20),
