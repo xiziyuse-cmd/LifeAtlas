@@ -366,7 +366,25 @@ class _SelectedDaySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final summaryParts = <String>[
+      if (data.hasWeatherRecord)
+        [
+          if (data.weatherType != null && data.weatherType!.isNotEmpty)
+            data.weatherType!,
+          if (data.minTemperature != null && data.maxTemperature != null)
+            '${_temperature(data.minTemperature!)}～'
+                '${_temperature(data.maxTemperature!)}℃',
+        ].join(' '),
+      if (data.outfitItems.isNotEmpty)
+        '穿搭 ${data.outfitItems.map((item) => item.name).join(' / ')}'
+      else if (data.hasOutfitRecord)
+        '已记录穿搭',
+      if (data.textEntries.isNotEmpty) 'AI ${data.textEntries.last}',
+      if (data.imagePaths.isNotEmpty) '${data.imagePaths.length} 张图片',
+    ].where((part) => part.isNotEmpty).toList(growable: false);
+
     return Container(
+      key: const ValueKey('home-selected-day-summary'),
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -387,9 +405,9 @@ class _SelectedDaySummary extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                '模拟当天信息',
-                style: TextStyle(
+              Text(
+                data.hasAnyRecord ? '当天记录' : '暂无记录',
+                style: const TextStyle(
                   color: HomeCalendarPanel._secondaryText,
                   fontSize: 10,
                 ),
@@ -398,8 +416,9 @@ class _SelectedDaySummary extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '多云 26℃ · 轻薄上衣 / 长裤 · '
-            'AI ${data.textEntries.isEmpty ? '暂无' : data.textEntries.last}',
+            summaryParts.isEmpty
+                ? '这一天还没有天气、穿搭或 AI 记录'
+                : summaryParts.join(' · '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -410,5 +429,11 @@ class _SelectedDaySummary extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _temperature(double value) {
+    return value == value.roundToDouble()
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
   }
 }

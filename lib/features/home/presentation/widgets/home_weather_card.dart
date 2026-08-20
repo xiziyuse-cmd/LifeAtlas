@@ -7,10 +7,12 @@ class HomeWeatherCard extends StatelessWidget {
     super.key,
     required this.weather,
     required this.isLoading,
+    this.recommendationNames = const [],
   });
 
   final WeatherModel weather;
   final bool isLoading;
+  final List<String> recommendationNames;
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +82,15 @@ class HomeWeatherCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${_temperature(weather.minTemperature)}℃ - '
-                    '${_temperature(weather.maxTemperature)}℃',
+                    [
+                      '${_temperature(weather.minTemperature)}℃ - '
+                          '${_temperature(weather.maxTemperature)}℃',
+                      if (recommendationNames.isNotEmpty)
+                        '推荐 ${recommendationNames.take(2).join('、')}',
+                    ].join(' · '),
+                    key: const ValueKey('home-weather-recommendations'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

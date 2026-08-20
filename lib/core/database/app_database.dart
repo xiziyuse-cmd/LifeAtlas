@@ -1,10 +1,22 @@
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+import 'wardrobe_schema.dart';
+
 class AppDatabase {
   static const _databaseName = 'life_atlas.db';
-  static const _databaseVersion = 1;
+  static const databaseVersion = 2;
 
+  AppDatabase({DatabaseFactory? factory, this.databasePath})
+    : _databaseFactory = factory;
+
+  AppDatabase.forTesting(Database database)
+    : _databaseFactory = null,
+      databasePath = null,
+      _instance = database;
+
+  final DatabaseFactory? _databaseFactory;
+  final String? databasePath;
   Database? _instance;
 
   Future<Database> get database async {
@@ -12,16 +24,27 @@ class AppDatabase {
   }
 
   Future<Database> _open() async {
-    final databaseDirectory = await getDatabasesPath();
-    final databasePath = p.join(databaseDirectory, _databaseName);
+    final resolvedPath =
+        databasePath ?? p.join(await getDatabasesPath(), _databaseName);
 
-    return openDatabase(
-      databasePath,
-      version: _databaseVersion,
+    final options = OpenDatabaseOptions(
+      version: databaseVersion,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: _createSchema,
+      onUpgrade: _upgradeSchema,
+    );
+    final factory = _databaseFactory;
+    if (factory != null) {
+      return factory.openDatabase(resolvedPath, options: options);
+    }
+    return openDatabase(
+      resolvedPath,
+      version: options.version,
+      onConfigure: options.onConfigure,
+      onCreate: options.onCreate,
+      onUpgrade: options.onUpgrade,
     );
   }
 
@@ -136,6 +159,17 @@ class AppDatabase {
       ''');
 
     await batch.commit(noResult: true);
+    await upgradeWardrobeSchemaToV2(database);
+  }
+
+  Future<void> _upgradeSchema(
+    Database database,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await upgradeWardrobeSchemaToV2(database);
+    }
   }
 
   Future<void> close() async {

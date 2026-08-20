@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../features/home/data/home_repository.dart';
 import '../features/navigation/presentation/app_shell.dart';
+import '../features/wardrobe/data/wardrobe_image_service.dart';
+import '../features/wardrobe/data/wardrobe_repository.dart';
 import 'app_controller.dart';
 
 class LifeAtlasApp extends StatelessWidget {
-  const LifeAtlasApp({super.key, required this.controller});
+  const LifeAtlasApp({
+    super.key,
+    required this.controller,
+    this.homeRepository,
+    this.wardrobeRepository,
+    this.wardrobeImageService,
+  });
 
   final AppController controller;
+  final HomeRepository? homeRepository;
+  final WardrobeRepository? wardrobeRepository;
+  final WardrobeImageService? wardrobeImageService;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +32,12 @@ class LifeAtlasApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: controller.themePreference.themeMode,
-          home: AppShell(controller: controller),
+          home: AppShell(
+            controller: controller,
+            homeRepository: homeRepository,
+            wardrobeRepository: wardrobeRepository,
+            wardrobeImageService: wardrobeImageService,
+          ),
         );
       },
     );

@@ -1,14 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../data/weather_service.dart';
+import '../data/home_repository.dart';
 import '../domain/home_day_data.dart';
 import '../domain/weather_model.dart';
+import '../../wardrobe/data/wardrobe_repository.dart';
+import '../../wardrobe/domain/models/clothing_recommendation.dart';
+import '../../wardrobe/presentation/widgets/local_clothing_image.dart';
 import 'widgets/home_calendar_panel.dart';
 import 'widgets/home_weather_card.dart';
 import 'widgets/quick_record_bar.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    this.homeRepository,
+    this.wardrobeRepository,
+    this.onQuickAddPreorder,
+    this.dataRevision = 0,
+  });
+
+  final HomeRepository? homeRepository;
+  final WardrobeRepository? wardrobeRepository;
+  final VoidCallback? onQuickAddPreorder;
+  final int dataRevision;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -28,6 +43,7 @@ class _HomePageState extends State<HomePage> {
     isSimulated: true,
   );
   Map<DateTime, HomeDayData> _days = const {};
+  List<ClothingRecommendation> _recommendations = const [];
   bool _isWeatherLoading = true;
 
   @override
@@ -37,7 +53,38 @@ class _HomePageState extends State<HomePage> {
     _focusedMonth = DateTime(today.year, today.month);
     _selectedDate = today;
     _days = _mockDaysForMonth(_focusedMonth);
+    _loadMonth();
     _loadWeather();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dataRevision != widget.dataRevision) {
+      _loadMonth();
+      _loadRecommendations();
+    }
+  }
+
+  Future<void> _loadMonth() async {
+    final repository = widget.homeRepository;
+    if (repository == null) {
+      return;
+    }
+    try {
+      final days = await repository.loadMonth(_focusedMonth);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _days = days);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('日历记录加载失败，请稍后重试')));
+    }
   }
 
   Future<void> _loadWeather() async {
@@ -50,11 +97,34 @@ class _HomePageState extends State<HomePage> {
         _weather = weather;
         _isWeatherLoading = false;
       });
+      await _loadRecommendations();
     } on Object {
       if (!mounted) {
         return;
       }
       setState(() => _isWeatherLoading = false);
+    }
+  }
+
+  Future<void> _loadRecommendations() async {
+    final repository = widget.wardrobeRepository;
+    if (repository == null) {
+      return;
+    }
+    try {
+      final recommendations = await repository.recommendForTemperature(
+        minTemperature: _weather.minTemperature,
+        maxTemperature: _weather.maxTemperature,
+        limit: 4,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _recommendations = recommendations);
+    } on Object {
+      if (mounted) {
+        setState(() => _recommendations = const []);
+      }
     }
   }
 
@@ -66,8 +136,11 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _focusedMonth = nextMonth;
       _selectedDate = DateTime(nextMonth.year, nextMonth.month);
-      _days = _mockDaysForMonth(nextMonth);
+      if (widget.homeRepository == null) {
+        _days = _mockDaysForMonth(nextMonth);
+      }
     });
+    _loadMonth();
   }
 
   void _returnToToday() {
@@ -75,11 +148,19 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _focusedMonth = DateTime(today.year, today.month);
       _selectedDate = today;
-      _days = _mockDaysForMonth(_focusedMonth);
+      if (widget.homeRepository == null) {
+        _days = _mockDaysForMonth(_focusedMonth);
+      }
     });
+    _loadMonth();
   }
 
   void _showImagePlaceholder() {
+    final onQuickAddPreorder = widget.onQuickAddPreorder;
+    if (onQuickAddPreorder != null) {
+      onQuickAddPreorder();
+      return;
+    }
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('图片上传接口已预留，当前版本仅展示 UI')));
@@ -99,7 +180,13 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
         children: [
-          HomeWeatherCard(weather: _weather, isLoading: _isWeatherLoading),
+          HomeWeatherCard(
+            weather: _weather,
+            isLoading: _isWeatherLoading,
+            recommendationNames: _recommendations
+                .map((recommendation) => recommendation.item.name)
+                .toList(growable: false),
+          ),
           const SizedBox(height: 8),
           Expanded(
             child: HomeCalendarPanel(
@@ -111,6 +198,11 @@ class _HomePageState extends State<HomePage> {
               onToday: _returnToToday,
               onDateSelected: (date) {
                 setState(() => _selectedDate = date);
+                final selectedData =
+                    _days[_dateOnly(date)] ?? HomeDayData.empty(date);
+                if (selectedData.outfitItems.isNotEmpty) {
+                  _showDailyOutfit(selectedData);
+                }
               },
             ),
           ),
@@ -118,9 +210,49 @@ class _HomePageState extends State<HomePage> {
           QuickRecordBar(
             onImagePressed: _showImagePlaceholder,
             onSend: _showAiPlaceholder,
+            imageTooltip: '添加心仪衣服',
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showDailyOutfit(HomeDayData data) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${data.date.month}月${data.date.day}日穿搭',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                for (final item in data.outfitItems)
+                  ListTile(
+                    key: ValueKey('home-selected-outfit-${item.id}'),
+                    contentPadding: EdgeInsets.zero,
+                    leading: LocalClothingImage(
+                      imagePath: item.imagePath,
+                      width: 48,
+                      height: 48,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    title: Text(item.name),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
