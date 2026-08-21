@@ -9,6 +9,8 @@ abstract final class WardrobeKeys {
   static const seasonFilter = ValueKey('wardrobe-filter-season');
   static const categoryFilter = ValueKey('wardrobe-filter-category');
   static const brandFilter = ValueKey('wardrobe-filter-brand');
+  static const filterToggle = ValueKey('wardrobe-filter-toggle');
+  static const filterOptions = ValueKey('wardrobe-filter-options');
   static const clearFilters = ValueKey('wardrobe-clear-filters');
 
   static const addClothing = ValueKey('wardrobe-add-clothing');
@@ -20,9 +22,26 @@ abstract final class WardrobeKeys {
 
   static const clothingForm = ValueKey('clothing-form');
   static const clothingImagePicker = ValueKey('clothing-image-picker');
+  static const clothingImageAnalyze = ValueKey('clothing-image-analyze');
+  static const clothingImageAnalysisStatus = ValueKey(
+    'clothing-image-analysis-status',
+  );
   static const clothingNameField = ValueKey('clothing-name-field');
   static const clothingCategoryField = ValueKey('clothing-category-field');
   static const clothingBrandField = ValueKey('clothing-brand-field');
+  static const clothingLengthField = ValueKey('clothing-length-field');
+  static const clothingShoulderWidthField = ValueKey(
+    'clothing-shoulder-width-field',
+  );
+  static const clothingChestField = ValueKey('clothing-chest-field');
+  static const clothingSleeveLengthField = ValueKey(
+    'clothing-sleeve-length-field',
+  );
+  static const clothingWaistField = ValueKey('clothing-waist-field');
+  static const clothingHipField = ValueKey('clothing-hip-field');
+  static const clothingTrouserLengthField = ValueKey(
+    'clothing-trouser-length-field',
+  );
   static const clothingSubmit = ValueKey('clothing-submit');
   static const clothingEdit = ValueKey('clothing-edit');
   static const clothingDelete = ValueKey('clothing-delete');

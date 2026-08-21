@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../data/clothing_image_parameter_service.dart';
 import '../../data/wardrobe_image_service.dart';
+import '../../domain/models/clothing_image_parameters.dart';
 import '../../domain/models/clothing_item.dart';
+import '../../domain/models/clothing_parameter_profile.dart';
 import '../wardrobe_keys.dart';
 import '../widgets/local_clothing_image.dart';
 
@@ -9,6 +12,8 @@ class ClothingFormPage extends StatefulWidget {
   const ClothingFormPage({
     super.key,
     required this.imageService,
+    this.imageParameterService =
+        const UnconfiguredClothingImageParameterService(),
     this.initialItem,
     this.categories = const [],
     this.brands = const [],
@@ -16,6 +21,7 @@ class ClothingFormPage extends StatefulWidget {
   });
 
   final WardrobeImageService imageService;
+  final ClothingImageParameterService imageParameterService;
   final ClothingItem? initialItem;
   final List<String> categories;
   final List<String> brands;
@@ -49,6 +55,8 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   String? _imagePath;
   DateTime? _purchaseDate;
   bool _isPickingImage = false;
+  bool _isAnalyzingImage = false;
+  String? _imageAnalysisStatus;
 
   @override
   void initState() {
@@ -72,11 +80,13 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _selectedSeasons = {...?item?.seasonTags};
     _imagePath = item?.imagePath;
     _purchaseDate = item?.purchaseDate;
+    _categoryController.addListener(_onCategoryChanged);
     _recoverLostImage();
   }
 
   @override
   void dispose() {
+    _categoryController.removeListener(_onCategoryChanged);
     for (final controller in [
       _nameController,
       _brandController,
@@ -105,7 +115,9 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       if (!mounted || recovered.isEmpty) {
         return;
       }
-      setState(() => _imagePath = recovered.last);
+      final imagePath = recovered.last;
+      setState(() => _imagePath = imagePath);
+      await _analyzeImage(imagePath);
     } on Object {
       // A failed recovery must not prevent manual editing or another pick.
     }
@@ -113,10 +125,14 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
 
   Future<void> _pickImage() async {
     setState(() => _isPickingImage = true);
+    String? selectedImagePath;
     try {
-      final imagePath = await widget.imageService.pickSingleFromGallery();
-      if (mounted && imagePath != null) {
-        setState(() => _imagePath = imagePath);
+      selectedImagePath = await widget.imageService.pickSingleFromGallery();
+      if (mounted && selectedImagePath != null) {
+        setState(() {
+          _imagePath = selectedImagePath;
+          _imageAnalysisStatus = null;
+        });
       }
     } on Object {
       if (mounted) {
@@ -128,6 +144,87 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       if (mounted) {
         setState(() => _isPickingImage = false);
       }
+    }
+    if (selectedImagePath != null && mounted) {
+      await _analyzeImage(selectedImagePath);
+    }
+  }
+
+  void _onCategoryChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _analyzeImage(String imagePath) async {
+    if (!widget.imageParameterService.isConfigured) {
+      if (mounted) {
+        setState(() {
+          _imageAnalysisStatus = '图片参数识别服务尚未配置，可先手动填写';
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      _isAnalyzingImage = true;
+      _imageAnalysisStatus = '正在读取图片参数…';
+    });
+    try {
+      final parameters = await widget.imageParameterService.analyze(imagePath);
+      if (!mounted || _imagePath != imagePath) {
+        return;
+      }
+      _applyImageParameters(parameters);
+      setState(() => _imageAnalysisStatus = '已读取图片参数，请核对后保存');
+    } on Object {
+      if (mounted) {
+        setState(() => _imageAnalysisStatus = '图片参数读取失败，可再次尝试或手动填写');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAnalyzingImage = false);
+      }
+    }
+  }
+
+  void _applyImageParameters(ClothingImageParameters parameters) {
+    _fillTextIfEmpty(_nameController, parameters.name);
+    _fillTextIfEmpty(_categoryController, parameters.category);
+    _fillTextIfEmpty(_brandController, parameters.brand);
+    _fillTextIfEmpty(_colorController, parameters.color);
+    _fillTextIfEmpty(_materialController, parameters.material);
+    _fillTextIfEmpty(_sizeController, parameters.size);
+    _fillNumberIfEmpty(_clothingLengthController, parameters.clothingLength);
+    _fillNumberIfEmpty(_shoulderWidthController, parameters.shoulderWidth);
+    _fillNumberIfEmpty(_chestController, parameters.chestCircumference);
+    _fillNumberIfEmpty(_sleeveLengthController, parameters.sleeveLength);
+    _fillNumberIfEmpty(_waistController, parameters.waistCircumference);
+    _fillNumberIfEmpty(_hipController, parameters.hipCircumference);
+    _fillNumberIfEmpty(_trouserLengthController, parameters.trouserLength);
+    if (_selectedSeasons.isEmpty && parameters.seasonTags.isNotEmpty) {
+      _selectedSeasons.addAll(parameters.seasonTags);
+    }
+  }
+
+  static void _fillTextIfEmpty(
+    TextEditingController controller,
+    String? value,
+  ) {
+    final normalized = value?.trim() ?? '';
+    if (controller.text.trim().isEmpty && normalized.isNotEmpty) {
+      controller.text = normalized;
+    }
+  }
+
+  static void _fillNumberIfEmpty(
+    TextEditingController controller,
+    double? value,
+  ) {
+    if (controller.text.trim().isEmpty && value != null) {
+      controller.text = value == value.roundToDouble()
+          ? value.toStringAsFixed(0)
+          : value.toString();
     }
   }
 
@@ -174,6 +271,9 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
 
     final initialItem = widget.initialItem;
     final now = (widget.now ?? DateTime.now)();
+    final parameterProfile = ClothingParameterProfile.forCategory(
+      _categoryController.text,
+    );
     final item = ClothingItem(
       id: initialItem?.id,
       name: _nameController.text.trim(),
@@ -187,13 +287,34 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       color: _optionalText(_colorController),
       material: _optionalText(_materialController),
       size: _optionalText(_sizeController),
-      clothingLength: _number(_clothingLengthController),
-      shoulderWidth: _number(_shoulderWidthController),
-      chestCircumference: _number(_chestController),
-      sleeveLength: _number(_sleeveLengthController),
-      waistCircumference: _number(_waistController),
-      hipCircumference: _number(_hipController),
-      trouserLength: _number(_trouserLengthController),
+      clothingLength:
+          parameterProfile.includes(ClothingMeasurementField.clothingLength)
+          ? _number(_clothingLengthController)
+          : null,
+      shoulderWidth:
+          parameterProfile.includes(ClothingMeasurementField.shoulderWidth)
+          ? _number(_shoulderWidthController)
+          : null,
+      chestCircumference:
+          parameterProfile.includes(ClothingMeasurementField.chestCircumference)
+          ? _number(_chestController)
+          : null,
+      sleeveLength:
+          parameterProfile.includes(ClothingMeasurementField.sleeveLength)
+          ? _number(_sleeveLengthController)
+          : null,
+      waistCircumference:
+          parameterProfile.includes(ClothingMeasurementField.waistCircumference)
+          ? _number(_waistController)
+          : null,
+      hipCircumference:
+          parameterProfile.includes(ClothingMeasurementField.hipCircumference)
+          ? _number(_hipController)
+          : null,
+      trouserLength:
+          parameterProfile.includes(ClothingMeasurementField.trouserLength)
+          ? _number(_trouserLengthController)
+          : null,
       purchasePrice: _number(_priceController),
       purchaseDate: _purchaseDate,
       notes: _optionalText(_notesController),
@@ -210,6 +331,9 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialItem != null;
+    final parameterProfile = ClothingParameterProfile.forCategory(
+      _categoryController.text,
+    );
     return Scaffold(
       key: WardrobeKeys.clothingForm,
       appBar: AppBar(title: Text(isEditing ? '编辑衣服' : '新增衣服')),
@@ -270,6 +394,36 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                 ],
               ),
             ),
+            if (_imagePath != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: WardrobeKeys.clothingImageAnalyze,
+                  onPressed: _isAnalyzingImage
+                      ? null
+                      : () => _analyzeImage(_imagePath!),
+                  icon: _isAnalyzingImage
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.document_scanner_outlined),
+                  label: Text(_isAnalyzingImage ? '读取中…' : '读取图片参数'),
+                ),
+              ),
+              if (_imageAnalysisStatus case final status?)
+                Padding(
+                  key: WardrobeKeys.clothingImageAnalysisStatus,
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    status,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
             const SizedBox(height: 18),
             TextFormField(
               key: WardrobeKeys.clothingNameField,
@@ -320,22 +474,70 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                 _TextField(controller: _sizeController, label: '尺码'),
               ],
             ),
-            const SizedBox(height: 12),
-            _SectionCard(
-              title: '尺寸（厘米）',
-              children: [
-                _NumberField(
-                  controller: _clothingLengthController,
-                  label: '衣长',
-                ),
-                _NumberField(controller: _shoulderWidthController, label: '肩宽'),
-                _NumberField(controller: _chestController, label: '胸围'),
-                _NumberField(controller: _sleeveLengthController, label: '袖长'),
-                _NumberField(controller: _waistController, label: '腰围'),
-                _NumberField(controller: _hipController, label: '臀围'),
-                _NumberField(controller: _trouserLengthController, label: '裤长'),
-              ],
-            ),
+            if (parameterProfile.fields.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _SectionCard(
+                title: '尺寸（厘米）',
+                children: [
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.clothingLength,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingLengthField,
+                      controller: _clothingLengthController,
+                      label: '衣长',
+                    ),
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.shoulderWidth,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingShoulderWidthField,
+                      controller: _shoulderWidthController,
+                      label: '肩宽',
+                    ),
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.chestCircumference,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingChestField,
+                      controller: _chestController,
+                      label: '胸围',
+                    ),
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.sleeveLength,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingSleeveLengthField,
+                      controller: _sleeveLengthController,
+                      label: '袖长',
+                    ),
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.waistCircumference,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingWaistField,
+                      controller: _waistController,
+                      label: '腰围',
+                    ),
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.hipCircumference,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingHipField,
+                      controller: _hipController,
+                      label: '臀围',
+                    ),
+                  if (parameterProfile.includes(
+                    ClothingMeasurementField.trouserLength,
+                  ))
+                    _NumberField(
+                      key: WardrobeKeys.clothingTrouserLengthField,
+                      controller: _trouserLengthController,
+                      label: '裤长',
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             _SectionCard(
               title: '购买信息',
@@ -481,7 +683,11 @@ class _TextField extends StatelessWidget {
 }
 
 class _NumberField extends StatelessWidget {
-  const _NumberField({required this.controller, required this.label});
+  const _NumberField({
+    super.key,
+    required this.controller,
+    required this.label,
+  });
 
   final TextEditingController controller;
   final String label;

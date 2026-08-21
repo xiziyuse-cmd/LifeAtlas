@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/clothing_image_parameter_service.dart';
 import '../data/preorder_analysis_service.dart';
 import '../data/wardrobe_image_service.dart';
 import '../data/wardrobe_repository.dart';
@@ -20,6 +21,8 @@ class OutfitPage extends StatefulWidget {
     super.key,
     this.repository,
     this.imageService,
+    this.imageParameterService =
+        const UnconfiguredClothingImageParameterService(),
     this.preorderAnalysisService = const UnconfiguredPreorderAnalysisService(),
     this.onDataChanged,
     this.onDailyOutfitSaved,
@@ -27,6 +30,7 @@ class OutfitPage extends StatefulWidget {
 
   final WardrobeRepository? repository;
   final WardrobeImageService? imageService;
+  final ClothingImageParameterService imageParameterService;
   final PreorderAnalysisService preorderAnalysisService;
   final VoidCallback? onDataChanged;
   final Future<void> Function()? onDailyOutfitSaved;
@@ -102,6 +106,7 @@ class _OutfitPageState extends State<OutfitPage> {
       MaterialPageRoute(
         builder: (context) => ClothingFormPage(
           imageService: _imageService,
+          imageParameterService: widget.imageParameterService,
           categories: _categories.map((category) => category.name).toList(),
           brands: _brands.map((brand) => brand.name).toList(),
         ),
@@ -128,6 +133,7 @@ class _OutfitPageState extends State<OutfitPage> {
       MaterialPageRoute(
         builder: (context) => ClothingFormPage(
           imageService: _imageService,
+          imageParameterService: widget.imageParameterService,
           initialItem: item,
           categories: _categories.map((category) => category.name).toList(),
           brands: _brands.map((brand) => brand.name).toList(),

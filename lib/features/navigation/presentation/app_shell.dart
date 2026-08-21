@@ -5,6 +5,7 @@ import '../../home/data/home_repository.dart';
 import '../../home/data/weather_service.dart';
 import '../../home/presentation/home_page.dart';
 import '../../profile/presentation/profile_page.dart';
+import '../../wardrobe/data/clothing_image_parameter_service.dart';
 import '../../wardrobe/data/wardrobe_image_service.dart';
 import '../../wardrobe/data/wardrobe_repository.dart';
 import '../../wardrobe/domain/models/preorder_item.dart';
@@ -18,12 +19,15 @@ class AppShell extends StatefulWidget {
     this.homeRepository,
     this.wardrobeRepository,
     this.wardrobeImageService,
+    this.clothingImageParameterService =
+        const UnconfiguredClothingImageParameterService(),
   });
 
   final AppController controller;
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final WardrobeImageService? wardrobeImageService;
+  final ClothingImageParameterService clothingImageParameterService;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -99,6 +103,7 @@ class _AppShellState extends State<AppShell> {
             key: const PageStorageKey('outfit'),
             repository: _wardrobeRepository,
             imageService: _wardrobeImageService,
+            imageParameterService: widget.clothingImageParameterService,
             onDataChanged: _notifyWardrobeChanged,
             onDailyOutfitSaved: _applyTodayWeatherToOutfit,
           ),

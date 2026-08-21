@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../wardrobe_keys.dart';
 
-class WardrobeFilterBar extends StatelessWidget {
+class WardrobeFilterBar extends StatefulWidget {
   const WardrobeFilterBar({
     super.key,
     required this.seasons,
@@ -28,56 +28,103 @@ class WardrobeFilterBar extends StatelessWidget {
   final ValueChanged<String?> onBrandChanged;
   final VoidCallback onClear;
 
-  bool get _hasActiveFilter =>
-      selectedSeason != null ||
-      selectedCategory != null ||
-      selectedBrand != null;
+  @override
+  State<WardrobeFilterBar> createState() => _WardrobeFilterBarState();
+}
+
+class _WardrobeFilterBarState extends State<WardrobeFilterBar> {
+  bool _isExpanded = false;
+
+  int get _activeFilterCount => [
+    widget.selectedSeason,
+    widget.selectedCategory,
+    widget.selectedBrand,
+  ].whereType<String>().length;
 
   @override
   Widget build(BuildContext context) {
+    final activeFilterCount = _activeFilterCount;
     return Material(
       color: Theme.of(context).colorScheme.surface,
-      child: SizedBox(
-        height: 52,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          scrollDirection: Axis.horizontal,
-          children: [
-            _FilterMenu(
-              key: WardrobeKeys.seasonFilter,
-              label: '季节',
-              value: selectedSeason,
-              options: seasons,
-              onChanged: onSeasonChanged,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: WardrobeKeys.filterToggle,
+                    onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                    icon: Icon(
+                      activeFilterCount == 0
+                          ? Icons.filter_alt_outlined
+                          : Icons.filter_alt,
+                    ),
+                    label: Text(
+                      activeFilterCount == 0 ? '筛选' : '筛选（$activeFilterCount）',
+                    ),
+                  ),
+                ),
+                if (activeFilterCount > 0) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    key: WardrobeKeys.clearFilters,
+                    tooltip: '清除筛选',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: widget.onClear,
+                    icon: const Icon(Icons.filter_alt_off_outlined),
+                  ),
+                ],
+                Icon(
+                  _isExpanded ? Icons.expand_less : Icons.expand_more,
+                  semanticLabel: _isExpanded ? '收起筛选条件' : '展开筛选条件',
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            _FilterMenu(
-              key: WardrobeKeys.categoryFilter,
-              label: '品类',
-              value: selectedCategory,
-              options: categories,
-              onChanged: onCategoryChanged,
-            ),
-            const SizedBox(width: 8),
-            _FilterMenu(
-              key: WardrobeKeys.brandFilter,
-              label: '品牌',
-              value: selectedBrand,
-              options: brands,
-              onChanged: onBrandChanged,
-            ),
-            if (_hasActiveFilter) ...[
-              const SizedBox(width: 4),
-              IconButton(
-                key: WardrobeKeys.clearFilters,
-                tooltip: '清除筛选',
-                visualDensity: VisualDensity.compact,
-                onPressed: onClear,
-                icon: const Icon(Icons.filter_alt_off_outlined),
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 180),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: SizedBox(
+              key: WardrobeKeys.filterOptions,
+              height: 48,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _FilterMenu(
+                    key: WardrobeKeys.seasonFilter,
+                    label: '季节',
+                    value: widget.selectedSeason,
+                    options: widget.seasons,
+                    onChanged: widget.onSeasonChanged,
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterMenu(
+                    key: WardrobeKeys.categoryFilter,
+                    label: '品类',
+                    value: widget.selectedCategory,
+                    options: widget.categories,
+                    onChanged: widget.onCategoryChanged,
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterMenu(
+                    key: WardrobeKeys.brandFilter,
+                    label: '品牌',
+                    value: widget.selectedBrand,
+                    options: widget.brands,
+                    onChanged: widget.onBrandChanged,
+                  ),
+                ],
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
