@@ -177,6 +177,14 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       }
       _applyImageParameters(parameters);
       setState(() => _imageAnalysisStatus = '已读取图片参数，请核对后保存');
+    } on ClothingImageParameterRequestException catch (error) {
+      if (mounted) {
+        setState(() => _imageAnalysisStatus = error.message);
+      }
+    } on ClothingImageParameterUnavailableException catch (error) {
+      if (mounted) {
+        setState(() => _imageAnalysisStatus = error.message);
+      }
     } on Object {
       if (mounted) {
         setState(() => _imageAnalysisStatus = '图片参数读取失败，可再次尝试或手动填写');
