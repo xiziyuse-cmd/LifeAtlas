@@ -7,6 +7,10 @@ abstract final class AiServiceConfig {
     'LIFEATLAS_AI_PROXY_URL',
   );
 
+  static const preorderAnalysisProxyUrl = String.fromEnvironment(
+    'LIFEATLAS_TEXT_AI_PROXY_URL',
+  );
+
   /// Optional token understood by the LifeAtlas proxy, not the Ark API key.
   static const proxyAccessToken = String.fromEnvironment(
     'LIFEATLAS_AI_PROXY_TOKEN',

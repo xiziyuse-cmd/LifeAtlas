@@ -1,6 +1,6 @@
-# LifeAtlas Doubao 图片识别代理
+# LifeAtlas Doubao AI 代理
 
-该代理用于把 Flutter 选择的衣服图片发送给火山方舟 `Doubao-Seed-2.1-pro`。供应商 API Key 只存在于代理进程环境变量中，不进入 App 或 Git。
+该代理使用 `Doubao-Seed-2.1-pro` 读取衣服图片，使用 `Doubao-Seed-2.1-turbo` 分析预购衣服。供应商 API Key 只存在于代理进程环境变量中，不进入 App 或 Git。
 
 “保存在代理服务器环境变量中”是指：代码只读取名为 `ARK_API_KEY` 的运行时配置，真实 Key 由启动代理的电脑或云服务器在进程启动时注入，停止进程或清除环境变量后代码目录中没有 Key 文件。私有 Git 仓库可以降低源码泄露风险，但如果把 Key 写进 Flutter 代码，编译后的 APK 仍可能被反编译或在运行时抓取，因此私有仓库不能替代代理隔离。
 
@@ -34,10 +34,10 @@ http://127.0.0.1:8787/health
 ```powershell
 Set-Location D:\Projects\LifeAtlas\lifeatlas
 $env:LIFEATLAS_PROXY_TOKEN = Read-Host '输入代理 Token'
-flutter run --dart-define=LIFEATLAS_AI_PROXY_URL=http://10.0.2.2:8787/v1/wardrobe/analyze --dart-define=LIFEATLAS_AI_PROXY_TOKEN=$env:LIFEATLAS_PROXY_TOKEN
+flutter run --dart-define=LIFEATLAS_AI_PROXY_URL=http://10.0.2.2:8787/v1/wardrobe/analyze --dart-define=LIFEATLAS_TEXT_AI_PROXY_URL=http://10.0.2.2:8787/v1/wardrobe/preorder-analysis --dart-define=LIFEATLAS_AI_PROXY_TOKEN=$env:LIFEATLAS_PROXY_TOKEN
 ```
 
-未传 `LIFEATLAS_AI_PROXY_URL` 时，App 保持“图片参数识别服务尚未配置”状态。
+未传对应代理 URL 时，App 保持“图片参数识别服务尚未配置”或“AI 分析服务尚未配置”状态。
 
 ## 真机与生产环境
 
@@ -46,3 +46,4 @@ flutter run --dart-define=LIFEATLAS_AI_PROXY_URL=http://10.0.2.2:8787/v1/wardrob
 - `LIFEATLAS_PROXY_TOKEN` 只是一层开发期共享校验，不能替代正式用户鉴权。
 - 代理不会主动保存图片、API Key 或模型响应；运行平台仍需关闭含请求正文的访问日志。
 - 可通过服务器环境变量 `ARK_MODEL` 覆盖默认的 `doubao-seed-2-1-pro-260628`。
+- 可通过服务器环境变量 `ARK_TEXT_MODEL` 覆盖默认的 `doubao-seed-2-1-turbo-260628`。

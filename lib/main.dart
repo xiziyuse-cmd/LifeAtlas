@@ -9,6 +9,7 @@ import 'core/settings/sqlite_app_settings_repository.dart';
 import 'features/home/data/home_repository.dart';
 import 'features/wardrobe/application/outfit_memory_scheduler.dart';
 import 'features/wardrobe/data/clothing_image_parameter_service.dart';
+import 'features/wardrobe/data/preorder_analysis_service.dart';
 import 'features/wardrobe/data/wardrobe_image_service.dart';
 import 'features/wardrobe/data/wardrobe_repository.dart';
 
@@ -26,6 +27,12 @@ Future<void> main() async {
         proxyAccessToken: AiServiceConfig.proxyAccessToken,
         allowInsecureHttp: kDebugMode,
       );
+  final preorderAnalysisService = DoubaoProxyPreorderAnalysisService(
+    proxyUrl: AiServiceConfig.preorderAnalysisProxyUrl,
+    proxyAccessToken: AiServiceConfig.proxyAccessToken,
+    wardrobeRepository: wardrobeRepository,
+    allowInsecureHttp: kDebugMode,
+  );
   final controller = AppController(settingsRepository);
   await controller.initialize();
   final outfitMemoryScheduler = OutfitMemoryScheduler(wardrobeRepository);
@@ -38,6 +45,7 @@ Future<void> main() async {
       wardrobeRepository: wardrobeRepository,
       wardrobeImageService: wardrobeImageService,
       clothingImageParameterService: clothingImageParameterService,
+      preorderAnalysisService: preorderAnalysisService,
     ),
   );
 }
