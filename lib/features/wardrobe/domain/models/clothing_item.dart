@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'season_tags.dart';
+import 'clothing_parameter.dart';
 
 class ClothingItem {
   ClothingItem({
@@ -22,6 +23,7 @@ class ClothingItem {
     this.waistCircumference,
     this.hipCircumference,
     this.trouserLength,
+    Map<String, ClothingParameterValue> parameterValues = const {},
     this.purchasePrice,
     this.purchaseDate,
     this.notes,
@@ -31,7 +33,8 @@ class ClothingItem {
     this.maxWornTemperature,
     required this.createdAt,
     required this.updatedAt,
-  }) : seasonTags = WardrobeSeasonTags.normalize(seasonTags);
+  }) : seasonTags = WardrobeSeasonTags.normalize(seasonTags),
+       parameterValues = Map.unmodifiable(parameterValues);
 
   final int? id;
   final String name;
@@ -51,6 +54,7 @@ class ClothingItem {
   final double? waistCircumference;
   final double? hipCircumference;
   final double? trouserLength;
+  final Map<String, ClothingParameterValue> parameterValues;
   final double? purchasePrice;
   final DateTime? purchaseDate;
   final String? notes;
@@ -93,7 +97,10 @@ class ClothingItem {
     };
   }
 
-  factory ClothingItem.fromMap(Map<String, Object?> map) {
+  factory ClothingItem.fromMap(
+    Map<String, Object?> map, {
+    Map<String, ClothingParameterValue> parameterValues = const {},
+  }) {
     return ClothingItem(
       id: map['id'] as int?,
       name: map['name'] as String,
@@ -113,6 +120,7 @@ class ClothingItem {
       waistCircumference: (map['waist_circumference'] as num?)?.toDouble(),
       hipCircumference: (map['hip_circumference'] as num?)?.toDouble(),
       trouserLength: (map['trouser_length'] as num?)?.toDouble(),
+      parameterValues: parameterValues,
       purchasePrice: (map['purchase_price'] as num?)?.toDouble(),
       purchaseDate: _dateTimeOrNull(map['purchase_date']),
       notes: map['notes'] as String?,
@@ -151,6 +159,7 @@ class ClothingItem {
     double? waistCircumference,
     double? hipCircumference,
     double? trouserLength,
+    Map<String, ClothingParameterValue>? parameterValues,
     double? purchasePrice,
     DateTime? purchaseDate,
     String? notes,
@@ -180,6 +189,7 @@ class ClothingItem {
       waistCircumference: waistCircumference ?? this.waistCircumference,
       hipCircumference: hipCircumference ?? this.hipCircumference,
       trouserLength: trouserLength ?? this.trouserLength,
+      parameterValues: parameterValues ?? this.parameterValues,
       purchasePrice: purchasePrice ?? this.purchasePrice,
       purchaseDate: purchaseDate ?? this.purchaseDate,
       notes: notes ?? this.notes,

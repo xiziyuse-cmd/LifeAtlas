@@ -4,24 +4,27 @@ import 'package:lifeatlas/features/wardrobe/data/clothing_image_parameter_servic
 import 'package:lifeatlas/features/wardrobe/data/wardrobe_image_service.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_image_parameters.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_item.dart';
-import 'package:lifeatlas/features/wardrobe/domain/models/clothing_parameter_profile.dart';
+import 'package:lifeatlas/features/wardrobe/domain/models/clothing_parameter.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/pages/clothing_form_page.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/wardrobe_keys.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/widgets/wardrobe_filter_bar.dart';
 
 void main() {
   test('default categories expose only relevant measurement fields', () {
-    final top = ClothingParameterProfile.forCategory('上衣');
-    final trousers = ClothingParameterProfile.forCategory('长裤');
-    final accessory = ClothingParameterProfile.forCategory('饰品');
-    final custom = ClothingParameterProfile.forCategory('自定义品类');
+    Set<String> keys(String category) => ClothingParameterCatalog.forCategory(
+      category,
+    ).map((definition) => definition.key).toSet();
+    final top = keys('上衣');
+    final coat = keys('羽绒外套');
+    final trousers = keys('长裤');
+    final glasses = keys('眼镜');
 
-    expect(top.includes(ClothingMeasurementField.clothingLength), isTrue);
-    expect(top.includes(ClothingMeasurementField.trouserLength), isFalse);
-    expect(trousers.includes(ClothingMeasurementField.trouserLength), isTrue);
-    expect(trousers.includes(ClothingMeasurementField.shoulderWidth), isFalse);
-    expect(accessory.fields, isEmpty);
-    expect(custom.fields, ClothingParameterProfile.all.fields);
+    expect(top, containsAll(['clothing_length', 'chest_circumference']));
+    expect(top, isNot(contains('trouser_length')));
+    expect(coat, containsAll(['chest_circumference', 'fill_weight']));
+    expect(trousers, containsAll(['front_rise', 'back_rise', 'inseam_length']));
+    expect(trousers, isNot(contains('shoulder_width')));
+    expect(glasses, containsAll(['frame_width', 'temple_length']));
   });
 
   testWidgets('filter conditions are collapsed behind one button', (
@@ -70,6 +73,7 @@ void main() {
         material: '棉',
         clothingLength: 60,
         trouserLength: 98,
+        parameterValues: const {'front_rise': 30},
       ),
     );
 
@@ -99,6 +103,15 @@ void main() {
     );
     expect(find.byKey(WardrobeKeys.clothingTrouserLengthField), findsOneWidget);
     expect(find.byKey(WardrobeKeys.clothingLengthField), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('前裆长（cm）'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final frontRise = tester.widget<TextFormField>(
+      find.widgetWithText(TextFormField, '前裆长（cm）'),
+    );
+    expect(frontRise.controller?.text, '30');
   });
 
   testWidgets('hidden measurements are cleared from the submitted item', (

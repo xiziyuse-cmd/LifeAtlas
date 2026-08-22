@@ -16,7 +16,9 @@ class ClothingImageParameters {
     this.waistCircumference,
     this.hipCircumference,
     this.trouserLength,
-  }) : seasonTags = WardrobeSeasonTags.normalize(seasonTags);
+    Map<String, Object?> parameterValues = const {},
+  }) : seasonTags = WardrobeSeasonTags.normalize(seasonTags),
+       parameterValues = Map.unmodifiable(parameterValues);
 
   final String? name;
   final String? brand;
@@ -32,9 +34,11 @@ class ClothingImageParameters {
   final double? waistCircumference;
   final double? hipCircumference;
   final double? trouserLength;
+  final Map<String, Object?> parameterValues;
 
   factory ClothingImageParameters.fromJson(Map<String, Object?> json) {
     final measurements = _objectMap(json['measurements']);
+    final parameters = _objectMap(json['parameters']);
     Object? value(String key) => measurements[key] ?? json[key];
 
     return ClothingImageParameters(
@@ -48,24 +52,22 @@ class ClothingImageParameters {
       clothingLength: _number(
         value('clothingLength') ?? value('clothing_length'),
       ),
-      shoulderWidth: _number(
-        value('shoulderWidth') ?? value('shoulder_width'),
-      ),
+      shoulderWidth: _number(value('shoulderWidth') ?? value('shoulder_width')),
       chestCircumference: _number(
         value('chestCircumference') ?? value('chest_circumference'),
       ),
-      sleeveLength: _number(
-        value('sleeveLength') ?? value('sleeve_length'),
-      ),
+      sleeveLength: _number(value('sleeveLength') ?? value('sleeve_length')),
       waistCircumference: _number(
         value('waistCircumference') ?? value('waist_circumference'),
       ),
       hipCircumference: _number(
         value('hipCircumference') ?? value('hip_circumference'),
       ),
-      trouserLength: _number(
-        value('trouserLength') ?? value('trouser_length'),
-      ),
+      trouserLength: _number(value('trouserLength') ?? value('trouser_length')),
+      parameterValues: {
+        for (final entry in parameters.entries)
+          entry.key: ?_parameterValue(entry.value),
+      },
     );
   }
 
@@ -99,5 +101,13 @@ class ClothingImageParameters {
       return double.tryParse(value.trim());
     }
     return null;
+  }
+
+  static Object? _parameterValue(Object? value) {
+    final number = _number(value);
+    if (number != null) {
+      return number;
+    }
+    return _string(value);
   }
 }

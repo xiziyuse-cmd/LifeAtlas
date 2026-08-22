@@ -7,8 +7,21 @@ const defaultClothingCategoryNames = <String>[
   '长裤',
   '短裤',
   '裙装',
+  '连衣裙',
+  '连体裤',
+  '内衣',
+  '家居服',
   '鞋',
   '包',
+  '腰带',
+  '帽子',
+  '围巾',
+  '项链',
+  '戒指',
+  '手链',
+  '手表',
+  '眼镜',
+  '袜子',
   '饰品',
 ];
 
@@ -132,6 +145,64 @@ Future<void> upgradeWardrobeSchemaToV2(Database database) async {
   await _backfillClothingCatalogs(database);
   await _backfillOutfitPositions(database);
   await _createIndexes(database);
+}
+
+Future<void> upgradeWardrobeSchemaToV3(Database database) async {
+  await database.execute('''
+    CREATE TABLE IF NOT EXISTS clothing_parameter_values (
+      clothing_item_id INTEGER NOT NULL,
+      parameter_key TEXT NOT NULL,
+      number_value REAL,
+      text_value TEXT,
+      unit TEXT,
+      source TEXT NOT NULL DEFAULT 'manual',
+      confidence REAL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (clothing_item_id, parameter_key),
+      FOREIGN KEY (clothing_item_id) REFERENCES clothing_items(id)
+        ON DELETE CASCADE
+    )
+  ''');
+  await database.execute('''
+    CREATE INDEX IF NOT EXISTS clothing_parameter_values_item_index
+    ON clothing_parameter_values(clothing_item_id)
+  ''');
+  await _seedDefaultCategories(database);
+  await _backfillLegacyClothingParameters(database);
+}
+
+Future<void> _backfillLegacyClothingParameters(Database database) async {
+  const legacyColumns = <String>[
+    'clothing_length',
+    'shoulder_width',
+    'chest_circumference',
+    'sleeve_length',
+    'waist_circumference',
+    'hip_circumference',
+    'trouser_length',
+  ];
+  final rows = await database.query(
+    'clothing_items',
+    columns: ['id', 'updated_at', ...legacyColumns],
+  );
+  for (final row in rows) {
+    final itemId = row['id'] as int;
+    final updatedAt = row['updated_at'] as String;
+    for (final key in legacyColumns) {
+      final value = (row[key] as num?)?.toDouble();
+      if (value == null) {
+        continue;
+      }
+      await database.insert('clothing_parameter_values', {
+        'clothing_item_id': itemId,
+        'parameter_key': key,
+        'number_value': value,
+        'unit': 'cm',
+        'source': 'legacy_migration',
+        'updated_at': updatedAt,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+  }
 }
 
 Future<void> _addColumnIfMissing(

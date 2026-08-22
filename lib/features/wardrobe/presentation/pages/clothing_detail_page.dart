@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/clothing_item.dart';
+import '../../domain/models/clothing_parameter.dart';
 import '../wardrobe_keys.dart';
 import '../widgets/local_clothing_image.dart';
 
@@ -80,6 +81,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
   @override
   Widget build(BuildContext context) {
     final itemId = _item.id;
+    final parameterGroups = _parameterGroups;
     return Scaffold(
       key: itemId == null ? null : WardrobeKeys.clothingDetail(itemId),
       appBar: AppBar(
@@ -130,19 +132,10 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
               ('购买日期', _date(_item.purchaseDate)),
             ],
           ),
-          const SizedBox(height: 12),
-          _DetailSection(
-            title: '尺寸',
-            rows: [
-              ('衣长', _centimeters(_item.clothingLength)),
-              ('肩宽', _centimeters(_item.shoulderWidth)),
-              ('胸围', _centimeters(_item.chestCircumference)),
-              ('袖长', _centimeters(_item.sleeveLength)),
-              ('腰围', _centimeters(_item.waistCircumference)),
-              ('臀围', _centimeters(_item.hipCircumference)),
-              ('裤长', _centimeters(_item.trouserLength)),
-            ],
-          ),
+          for (final entry in parameterGroups.entries) ...[
+            const SizedBox(height: 12),
+            _DetailSection(title: entry.key, rows: entry.value),
+          ],
           const SizedBox(height: 12),
           _DetailSection(
             title: '穿着记忆',
@@ -181,8 +174,39 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     if (_item.brand case final brand? when brand.isNotEmpty) brand,
   ];
 
-  static String? _centimeters(double? value) =>
-      value == null ? null : '${_number(value)} cm';
+  Map<String, List<(String, String?)>> get _parameterGroups {
+    final groups = <String, List<(String, String?)>>{};
+    for (final definition in ClothingParameterCatalog.forCategory(
+      _item.category,
+    )) {
+      final dynamicValue = _item.parameterValues[definition.key];
+      final legacyValue = _legacyParameterValue(definition.key);
+      final display =
+          dynamicValue?.displayValue(definition) ??
+          (legacyValue == null
+              ? null
+              : '${_number(legacyValue)} ${definition.unit ?? ''}'.trim());
+      if (display == null) {
+        continue;
+      }
+      groups.putIfAbsent(definition.group, () => []).add((
+        definition.label,
+        display,
+      ));
+    }
+    return groups;
+  }
+
+  double? _legacyParameterValue(String key) => switch (key) {
+    'clothing_length' => _item.clothingLength,
+    'shoulder_width' => _item.shoulderWidth,
+    'chest_circumference' => _item.chestCircumference,
+    'sleeve_length' => _item.sleeveLength,
+    'waist_circumference' => _item.waistCircumference,
+    'hip_circumference' => _item.hipCircumference,
+    'trouser_length' => _item.trouserLength,
+    _ => null,
+  };
 
   static String? _price(double? value) =>
       value == null ? null : '¥${_number(value)}';

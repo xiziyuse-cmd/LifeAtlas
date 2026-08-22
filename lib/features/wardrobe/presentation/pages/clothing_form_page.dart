@@ -4,7 +4,7 @@ import '../../data/clothing_image_parameter_service.dart';
 import '../../data/wardrobe_image_service.dart';
 import '../../domain/models/clothing_image_parameters.dart';
 import '../../domain/models/clothing_item.dart';
-import '../../domain/models/clothing_parameter_profile.dart';
+import '../../domain/models/clothing_parameter.dart';
 import '../wardrobe_keys.dart';
 import '../widgets/local_clothing_image.dart';
 
@@ -41,13 +41,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   late final TextEditingController _colorController;
   late final TextEditingController _materialController;
   late final TextEditingController _sizeController;
-  late final TextEditingController _clothingLengthController;
-  late final TextEditingController _shoulderWidthController;
-  late final TextEditingController _chestController;
-  late final TextEditingController _sleeveLengthController;
-  late final TextEditingController _waistController;
-  late final TextEditingController _hipController;
-  late final TextEditingController _trouserLengthController;
+  late final Map<String, TextEditingController> _parameterControllers;
   late final TextEditingController _priceController;
   late final TextEditingController _notesController;
 
@@ -68,13 +62,19 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _colorController = TextEditingController(text: item?.color);
     _materialController = TextEditingController(text: item?.material);
     _sizeController = TextEditingController(text: item?.size);
-    _clothingLengthController = _numberController(item?.clothingLength);
-    _shoulderWidthController = _numberController(item?.shoulderWidth);
-    _chestController = _numberController(item?.chestCircumference);
-    _sleeveLengthController = _numberController(item?.sleeveLength);
-    _waistController = _numberController(item?.waistCircumference);
-    _hipController = _numberController(item?.hipCircumference);
-    _trouserLengthController = _numberController(item?.trouserLength);
+    _parameterControllers = {
+      for (final definition in ClothingParameterCatalog.definitions)
+        definition.key: TextEditingController(
+          text: item?.parameterValues[definition.key]?.editableText,
+        ),
+    };
+    _fillLegacyParameter('clothing_length', item?.clothingLength);
+    _fillLegacyParameter('shoulder_width', item?.shoulderWidth);
+    _fillLegacyParameter('chest_circumference', item?.chestCircumference);
+    _fillLegacyParameter('sleeve_length', item?.sleeveLength);
+    _fillLegacyParameter('waist_circumference', item?.waistCircumference);
+    _fillLegacyParameter('hip_circumference', item?.hipCircumference);
+    _fillLegacyParameter('trouser_length', item?.trouserLength);
     _priceController = _numberController(item?.purchasePrice);
     _notesController = TextEditingController(text: item?.notes);
     _selectedSeasons = {...?item?.seasonTags};
@@ -94,15 +94,9 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       _colorController,
       _materialController,
       _sizeController,
-      _clothingLengthController,
-      _shoulderWidthController,
-      _chestController,
-      _sleeveLengthController,
-      _waistController,
-      _hipController,
-      _trouserLengthController,
       _priceController,
       _notesController,
+      ..._parameterControllers.values,
     ]) {
       controller.dispose();
     }
@@ -156,6 +150,13 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     }
   }
 
+  void _fillLegacyParameter(String key, double? value) {
+    final controller = _parameterControllers[key];
+    if (controller != null) {
+      _fillNumberIfEmpty(controller, value);
+    }
+  }
+
   Future<void> _analyzeImage(String imagePath) async {
     if (!widget.imageParameterService.isConfigured) {
       if (mounted) {
@@ -203,13 +204,49 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _fillTextIfEmpty(_colorController, parameters.color);
     _fillTextIfEmpty(_materialController, parameters.material);
     _fillTextIfEmpty(_sizeController, parameters.size);
-    _fillNumberIfEmpty(_clothingLengthController, parameters.clothingLength);
-    _fillNumberIfEmpty(_shoulderWidthController, parameters.shoulderWidth);
-    _fillNumberIfEmpty(_chestController, parameters.chestCircumference);
-    _fillNumberIfEmpty(_sleeveLengthController, parameters.sleeveLength);
-    _fillNumberIfEmpty(_waistController, parameters.waistCircumference);
-    _fillNumberIfEmpty(_hipController, parameters.hipCircumference);
-    _fillNumberIfEmpty(_trouserLengthController, parameters.trouserLength);
+    _fillNumberIfEmpty(
+      _parameterControllers['clothing_length']!,
+      parameters.clothingLength,
+    );
+    _fillNumberIfEmpty(
+      _parameterControllers['shoulder_width']!,
+      parameters.shoulderWidth,
+    );
+    _fillNumberIfEmpty(
+      _parameterControllers['chest_circumference']!,
+      parameters.chestCircumference,
+    );
+    _fillNumberIfEmpty(
+      _parameterControllers['sleeve_length']!,
+      parameters.sleeveLength,
+    );
+    _fillNumberIfEmpty(
+      _parameterControllers['waist_circumference']!,
+      parameters.waistCircumference,
+    );
+    _fillNumberIfEmpty(
+      _parameterControllers['hip_circumference']!,
+      parameters.hipCircumference,
+    );
+    _fillNumberIfEmpty(
+      _parameterControllers['trouser_length']!,
+      parameters.trouserLength,
+    );
+    for (final entry in parameters.parameterValues.entries) {
+      final definition = ClothingParameterCatalog.byKey[entry.key];
+      final controller = _parameterControllers[entry.key];
+      if (definition == null ||
+          controller == null ||
+          controller.text.trim().isNotEmpty) {
+        continue;
+      }
+      final value = entry.value;
+      if (value is num) {
+        _fillNumberIfEmpty(controller, value.toDouble());
+      } else if (value is String) {
+        _fillTextIfEmpty(controller, value);
+      }
+    }
     if (_selectedSeasons.isEmpty && parameters.seasonTags.isNotEmpty) {
       _selectedSeasons.addAll(parameters.seasonTags);
     }
@@ -279,9 +316,10 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
 
     final initialItem = widget.initialItem;
     final now = (widget.now ?? DateTime.now)();
-    final parameterProfile = ClothingParameterProfile.forCategory(
+    final parameterValues = _parameterValuesForCategory(
       _categoryController.text,
     );
+    double? parameterNumber(String key) => parameterValues[key]?.numberValue;
     final item = ClothingItem(
       id: initialItem?.id,
       name: _nameController.text.trim(),
@@ -295,34 +333,14 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       color: _optionalText(_colorController),
       material: _optionalText(_materialController),
       size: _optionalText(_sizeController),
-      clothingLength:
-          parameterProfile.includes(ClothingMeasurementField.clothingLength)
-          ? _number(_clothingLengthController)
-          : null,
-      shoulderWidth:
-          parameterProfile.includes(ClothingMeasurementField.shoulderWidth)
-          ? _number(_shoulderWidthController)
-          : null,
-      chestCircumference:
-          parameterProfile.includes(ClothingMeasurementField.chestCircumference)
-          ? _number(_chestController)
-          : null,
-      sleeveLength:
-          parameterProfile.includes(ClothingMeasurementField.sleeveLength)
-          ? _number(_sleeveLengthController)
-          : null,
-      waistCircumference:
-          parameterProfile.includes(ClothingMeasurementField.waistCircumference)
-          ? _number(_waistController)
-          : null,
-      hipCircumference:
-          parameterProfile.includes(ClothingMeasurementField.hipCircumference)
-          ? _number(_hipController)
-          : null,
-      trouserLength:
-          parameterProfile.includes(ClothingMeasurementField.trouserLength)
-          ? _number(_trouserLengthController)
-          : null,
+      clothingLength: parameterNumber('clothing_length'),
+      shoulderWidth: parameterNumber('shoulder_width'),
+      chestCircumference: parameterNumber('chest_circumference'),
+      sleeveLength: parameterNumber('sleeve_length'),
+      waistCircumference: parameterNumber('waist_circumference'),
+      hipCircumference: parameterNumber('hip_circumference'),
+      trouserLength: parameterNumber('trouser_length'),
+      parameterValues: parameterValues,
       purchasePrice: _number(_priceController),
       purchaseDate: _purchaseDate,
       notes: _optionalText(_notesController),
@@ -339,9 +357,13 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialItem != null;
-    final parameterProfile = ClothingParameterProfile.forCategory(
+    final parameterDefinitions = ClothingParameterCatalog.forCategory(
       _categoryController.text,
     );
+    final parameterGroups = <String, List<ClothingParameterDefinition>>{};
+    for (final definition in parameterDefinitions) {
+      parameterGroups.putIfAbsent(definition.group, () => []).add(definition);
+    }
     return Scaffold(
       key: WardrobeKeys.clothingForm,
       appBar: AppBar(title: Text(isEditing ? '编辑衣服' : '新增衣服')),
@@ -482,67 +504,23 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                 _TextField(controller: _sizeController, label: '尺码'),
               ],
             ),
-            if (parameterProfile.fields.isNotEmpty) ...[
+            for (final entry in parameterGroups.entries) ...[
               const SizedBox(height: 12),
               _SectionCard(
-                title: '尺寸（厘米）',
+                title: entry.key,
                 children: [
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.clothingLength,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingLengthField,
-                      controller: _clothingLengthController,
-                      label: '衣长',
-                    ),
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.shoulderWidth,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingShoulderWidthField,
-                      controller: _shoulderWidthController,
-                      label: '肩宽',
-                    ),
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.chestCircumference,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingChestField,
-                      controller: _chestController,
-                      label: '胸围',
-                    ),
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.sleeveLength,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingSleeveLengthField,
-                      controller: _sleeveLengthController,
-                      label: '袖长',
-                    ),
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.waistCircumference,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingWaistField,
-                      controller: _waistController,
-                      label: '腰围',
-                    ),
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.hipCircumference,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingHipField,
-                      controller: _hipController,
-                      label: '臀围',
-                    ),
-                  if (parameterProfile.includes(
-                    ClothingMeasurementField.trouserLength,
-                  ))
-                    _NumberField(
-                      key: WardrobeKeys.clothingTrouserLengthField,
-                      controller: _trouserLengthController,
-                      label: '裤长',
-                    ),
+                  for (final definition in entry.value)
+                    if (definition.type == ClothingParameterType.number)
+                      _NumberField(
+                        key: _legacyFieldKey(definition.key),
+                        controller: _parameterControllers[definition.key]!,
+                        label: _parameterLabel(definition),
+                      )
+                    else
+                      _TextField(
+                        controller: _parameterControllers[definition.key]!,
+                        label: definition.label,
+                      ),
                 ],
               ),
             ],
@@ -585,6 +563,48 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       ),
     );
   }
+
+  Map<String, ClothingParameterValue> _parameterValuesForCategory(
+    String category,
+  ) {
+    final values = <String, ClothingParameterValue>{};
+    for (final definition in ClothingParameterCatalog.forCategory(category)) {
+      final text = _parameterControllers[definition.key]!.text.trim();
+      if (text.isEmpty) {
+        continue;
+      }
+      values[definition.key] = definition.type == ClothingParameterType.number
+          ? ClothingParameterValue(
+              key: definition.key,
+              numberValue: double.tryParse(text),
+              unit: definition.unit,
+            )
+          : ClothingParameterValue(
+              key: definition.key,
+              textValue: text,
+              unit: definition.unit,
+            );
+    }
+    return values;
+  }
+
+  static String _parameterLabel(ClothingParameterDefinition definition) {
+    final unit = definition.unit;
+    return unit == null || unit.isEmpty
+        ? definition.label
+        : '${definition.label}（$unit）';
+  }
+
+  static Key? _legacyFieldKey(String key) => switch (key) {
+    'clothing_length' => WardrobeKeys.clothingLengthField,
+    'shoulder_width' => WardrobeKeys.clothingShoulderWidthField,
+    'chest_circumference' => WardrobeKeys.clothingChestField,
+    'sleeve_length' => WardrobeKeys.clothingSleeveLengthField,
+    'waist_circumference' => WardrobeKeys.clothingWaistField,
+    'hip_circumference' => WardrobeKeys.clothingHipField,
+    'trouser_length' => WardrobeKeys.clothingTrouserLengthField,
+    _ => null,
+  };
 
   static TextEditingController _numberController(double? value) {
     if (value == null) {

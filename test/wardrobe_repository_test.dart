@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/core/database/app_database.dart';
 import 'package:lifeatlas/features/wardrobe/data/wardrobe_repository.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_item.dart';
+import 'package:lifeatlas/features/wardrobe/domain/models/clothing_parameter.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/outfit_set.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/preorder_analysis.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/preorder_item.dart';
@@ -23,7 +24,7 @@ void main() {
     });
 
     test('catalogs are seeded and custom names are normalized', () async {
-      expect(await repository.listCategories(), hasLength(9));
+      expect(await repository.listCategories(), hasLength(22));
       final first = await repository.createBrand('  Example   Brand  ');
       final duplicate = await repository.createBrand('example brand');
 
@@ -63,6 +64,43 @@ void main() {
         isNotNull,
       );
     });
+
+    test(
+      'dynamic category parameters persist and empty values are omitted',
+      () async {
+        final id = await repository.createClothing(
+          _clothing(name: '工装裤').copyWith(
+            category: '长裤',
+            trouserLength: 102,
+            parameterValues: const {
+              'trouser_length': ClothingParameterValue(
+                key: 'trouser_length',
+                numberValue: 102,
+                unit: 'cm',
+              ),
+              'front_rise': ClothingParameterValue(
+                key: 'front_rise',
+                numberValue: 31,
+                unit: 'cm',
+              ),
+              'back_rise': ClothingParameterValue(
+                key: 'back_rise',
+                numberValue: 40,
+                unit: 'cm',
+              ),
+              'fit': ClothingParameterValue(key: 'fit', textValue: '宽松'),
+              'sku': ClothingParameterValue(key: 'sku'),
+            },
+          ),
+        );
+
+        final item = await repository.getClothing(id);
+        expect(item!.parameterValues['front_rise']?.numberValue, 31);
+        expect(item.parameterValues['back_rise']?.numberValue, 40);
+        expect(item.parameterValues['fit']?.textValue, '宽松');
+        expect(item.parameterValues, isNot(contains('sku')));
+      },
+    );
 
     test('outfit set keeps member order', () async {
       final first = await repository.createClothing(_clothing(name: '上衣'));

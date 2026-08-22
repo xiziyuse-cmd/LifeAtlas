@@ -7,6 +7,7 @@ import '../../../core/database/date_key_codec.dart';
 import '../../../core/database/wardrobe_schema.dart';
 import '../domain/models/clothing_catalog.dart';
 import '../domain/models/clothing_item.dart';
+import '../domain/models/clothing_parameter.dart';
 import '../domain/models/clothing_recommendation.dart';
 import '../domain/models/daily_outfit_record.dart';
 import '../domain/models/outfit_set.dart';
@@ -92,7 +93,16 @@ class WardrobeRepository {
       whereArgs: arguments,
       orderBy: 'created_at DESC, id DESC',
     );
-    final items = rows.map(ClothingItem.fromMap);
+    final parameters = await _loadClothingParameters(
+      database,
+      rows.map((row) => row['id'] as int),
+    );
+    final items = rows.map(
+      (row) => ClothingItem.fromMap(
+        row,
+        parameterValues: parameters[row['id'] as int] ?? const {},
+      ),
+    );
     if (normalizedSeasons.isEmpty) {
       return items.toList(growable: false);
     }
@@ -112,7 +122,14 @@ class WardrobeRepository {
       whereArgs: [id],
       limit: 1,
     );
-    return rows.isEmpty ? null : ClothingItem.fromMap(rows.first);
+    if (rows.isEmpty) {
+      return null;
+    }
+    final parameters = await _loadClothingParameters(database, [id]);
+    return ClothingItem.fromMap(
+      rows.first,
+      parameterValues: parameters[id] ?? const {},
+    );
   }
 
   Future<int> createClothing(ClothingItem item) async {
@@ -143,7 +160,14 @@ class WardrobeRepository {
         ..['min_worn_temperature'] = null
         ..['max_worn_temperature'] = null
         ..['is_deleted'] = 0;
-      return transaction.insert('clothing_items', values);
+      final id = await transaction.insert('clothing_items', values);
+      await _replaceClothingParameters(
+        transaction,
+        id,
+        item.parameterValues,
+        item.updatedAt,
+      );
+      return id;
     });
   }
 
@@ -195,6 +219,12 @@ class WardrobeRepository {
         values,
         where: 'id = ?',
         whereArgs: [id],
+      );
+      await _replaceClothingParameters(
+        transaction,
+        id,
+        item.parameterValues,
+        item.updatedAt,
       );
     });
   }
@@ -1007,6 +1037,59 @@ class WardrobeRepository {
       ..['category'] = category?.name
       ..['brand_id'] = brand?.id
       ..['brand'] = brand?.name;
+  }
+
+  Future<Map<int, Map<String, ClothingParameterValue>>> _loadClothingParameters(
+    DatabaseExecutor database,
+    Iterable<int> clothingItemIds,
+  ) async {
+    final ids = clothingItemIds.toSet().toList(growable: false);
+    if (ids.isEmpty) {
+      return const {};
+    }
+    final rows = await database.query(
+      'clothing_parameter_values',
+      where: 'clothing_item_id IN (${_placeholders(ids.length)})',
+      whereArgs: ids,
+      orderBy: 'clothing_item_id ASC, parameter_key ASC',
+    );
+    final result = <int, Map<String, ClothingParameterValue>>{};
+    for (final row in rows) {
+      final itemId = row['clothing_item_id'] as int;
+      final value = ClothingParameterValue.fromMap(row);
+      result.putIfAbsent(itemId, () => {})[value.key] = value;
+    }
+    return result;
+  }
+
+  Future<void> _replaceClothingParameters(
+    DatabaseExecutor database,
+    int clothingItemId,
+    Map<String, ClothingParameterValue> values,
+    DateTime updatedAt,
+  ) async {
+    await database.delete(
+      'clothing_parameter_values',
+      where: 'clothing_item_id = ?',
+      whereArgs: [clothingItemId],
+    );
+    final updatedAtText = updatedAt.toUtc().toIso8601String();
+    for (final value in values.values) {
+      if (value.isEmpty ||
+          !ClothingParameterCatalog.byKey.containsKey(value.key)) {
+        continue;
+      }
+      final number = value.numberValue;
+      if (number != null && (!number.isFinite || number < 0)) {
+        throw ArgumentError(
+          '${ClothingParameterCatalog.byKey[value.key]!.label}必须是非负有限数值。',
+        );
+      }
+      await database.insert(
+        'clothing_parameter_values',
+        value.toMap(clothingItemId, updatedAtText),
+      );
+    }
   }
 
   void _validateClothing(ClothingItem item) {

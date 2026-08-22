@@ -25,7 +25,7 @@ const prompt = `你是 LifeAtlas 的衣服图片参数提取器。分析用户�
 {
   "name": string|null,
   "brand": string|null,
-  "category": "外套"|"内搭"|"上衣"|"长裤"|"短裤"|"裙装"|"鞋"|"包"|"饰品"|null,
+  "category": "外套"|"内搭"|"上衣"|"长裤"|"短裤"|"裙装"|"连衣裙"|"连体裤"|"内衣"|"家居服"|"鞋"|"包"|"腰带"|"帽子"|"围巾"|"项链"|"戒指"|"手链"|"手表"|"眼镜"|"袜子"|"饰品"|null,
   "seasonTags": ("春"|"夏"|"秋"|"冬")[],
   "color": string|null,
   "material": string|null,
@@ -38,11 +38,19 @@ const prompt = `你是 LifeAtlas 的衣服图片参数提取器。分析用户�
     "waistCircumference": number|null,
     "hipCircumference": number|null,
     "trouserLength": number|null
-  }
+  },
+  "parameters": { "参数键": number|string }
 }
 
+parameters 只放图片中明确出现的项目，键从下面选择，不要输出 null：
+sku,size_system,pattern,material_composition,lining_material,elasticity,thickness,fit,care_instructions,garment_weight,
+clothing_length,back_length,shoulder_width,chest_circumference,flat_chest_width,upper_bust_circumference,under_bust_circumference,waist_circumference,hip_circumference,hem_circumference,sleeve_length,raglan_sleeve_length,upper_arm_circumference,cuff_circumference,back_width,collar_circumference,collar_height,neck_width,front_neck_drop,back_neck_drop,hood_height,hood_depth,slit_length,filling_material,fill_weight,fill_content_percentage,fill_power,
+trouser_length,inseam_length,front_rise,back_rise,crotch_width,thigh_circumference,knee_circumference,calf_circumference,leg_opening_circumference,waistband_height,elastic_waist_min,elastic_waist_max,suggested_height_min,suggested_height_max,suggested_weight_min,suggested_weight_max,cup_size,strap_length,side_wing_height,
+shoe_inner_length,suitable_foot_length_min,suitable_foot_length_max,suitable_foot_width,last_width,heel_height,platform_height,shaft_height,shaft_circumference,shoe_opening_circumference,single_shoe_weight,
+bag_length,bag_height,bag_depth,handle_drop,strap_length_min,strap_length_max,capacity_liters,bag_weight,compartment_count,device_fit,total_length,usable_length,accessory_width,accessory_height,accessory_weight,buckle_length,buckle_width,hole_range_min,hole_range_max,head_circumference_min,head_circumference_max,brim_width,crown_depth,chain_length,extension_chain_length,pendant_length,pendant_width,ring_size,inner_diameter,inner_circumference,adjustable_length_min,adjustable_length_max,case_diameter,case_thickness,wrist_range_min,wrist_range_max,frame_width,lens_width,lens_height,bridge_width,temple_length,sock_tube_height,sock_opening_circumference。
+
 规则：
-1. 尺寸数字统一为厘米，只提取图片文字明确标注的数值。
+1. 尺寸数字按参数原始口径提取；长度默认统一为厘米，眼镜、戒指、手表等明确使用毫米的参数保留毫米数值；重量为克、容量为升、比例为百分比。
 2. 普通实物照片没有尺子或尺寸表时，禁止猜测衣长、胸围等精确数值。
 3. 区分平铺宽度和围度；只有图片明确写胸围/腰围/臀围时才填对应围度。写“胸宽”时不得直接当作胸围，无法确认换算口径就填 null。
 4. 品牌、材质和尺码优先读取图片文字；无法可靠判断时填 null。
@@ -140,7 +148,7 @@ async function requestArk({ mimeType, imageBase64 }) {
           },
         ],
         temperature: 0.1,
-        max_tokens: 1200,
+        max_tokens: 2200,
         response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
@@ -213,13 +221,37 @@ function normalizeResult(value) {
     '长裤',
     '短裤',
     '裙装',
+    '连衣裙',
+    '连体裤',
+    '内衣',
+    '家居服',
     '鞋',
     '包',
+    '腰带',
+    '帽子',
+    '围巾',
+    '项链',
+    '戒指',
+    '手链',
+    '手表',
+    '眼镜',
+    '袜子',
     '饰品',
   ]);
   const seasons = Array.isArray(source.seasonTags)
     ? [...new Set(source.seasonTags.filter((item) => ['春', '夏', '秋', '冬'].includes(item)))].slice(0, 3)
     : [];
+
+  const parameters = {};
+  if (source.parameters && typeof source.parameters === 'object') {
+    for (const [key, value] of Object.entries(source.parameters)) {
+      if (!allowedParameterKeys.has(key)) continue;
+      const number = normalizeNumber(value);
+      const text = number === null ? normalizeString(value) : null;
+      if (number !== null) parameters[key] = number;
+      else if (text !== null) parameters[key] = text;
+    }
+  }
 
   return {
     name: normalizeString(source.name),
@@ -238,8 +270,17 @@ function normalizeResult(value) {
       hipCircumference: normalizeNumber(measurements.hipCircumference),
       trouserLength: normalizeNumber(measurements.trouserLength),
     },
+    parameters,
   };
 }
+
+const allowedParameterKeys = new Set(`
+sku size_system pattern material_composition lining_material elasticity thickness fit care_instructions garment_weight
+clothing_length back_length shoulder_width chest_circumference flat_chest_width upper_bust_circumference under_bust_circumference waist_circumference hip_circumference hem_circumference sleeve_length raglan_sleeve_length upper_arm_circumference cuff_circumference back_width collar_circumference collar_height neck_width front_neck_drop back_neck_drop hood_height hood_depth slit_length filling_material fill_weight fill_content_percentage fill_power
+trouser_length inseam_length front_rise back_rise crotch_width thigh_circumference knee_circumference calf_circumference leg_opening_circumference waistband_height elastic_waist_min elastic_waist_max suggested_height_min suggested_height_max suggested_weight_min suggested_weight_max cup_size strap_length side_wing_height
+shoe_inner_length suitable_foot_length_min suitable_foot_length_max suitable_foot_width last_width heel_height platform_height shaft_height shaft_circumference shoe_opening_circumference single_shoe_weight
+bag_length bag_height bag_depth handle_drop strap_length_min strap_length_max capacity_liters bag_weight compartment_count device_fit total_length usable_length accessory_width accessory_height accessory_weight buckle_length buckle_width hole_range_min hole_range_max head_circumference_min head_circumference_max brim_width crown_depth chain_length extension_chain_length pendant_length pendant_width ring_size inner_diameter inner_circumference adjustable_length_min adjustable_length_max case_diameter case_thickness wrist_range_min wrist_range_max frame_width lens_width lens_height bridge_width temple_length sock_tube_height sock_opening_circumference
+`.trim().split(/\s+/));
 
 function normalizeString(value) {
   if (typeof value !== 'string') return null;

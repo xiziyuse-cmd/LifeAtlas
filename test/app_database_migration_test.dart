@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  test('v1 wardrobe data migrates additively to v2', () async {
+  test('v1 wardrobe data migrates additively to v3', () async {
     sqfliteFfiInit();
     final directory = await Directory.systemTemp.createTemp(
       'lifeatlas-migration-',
@@ -30,6 +30,7 @@ void main() {
       'brand': 'Legacy Brand',
       'category': '外套',
       'season_tags': '["秋","冬"]',
+      'chest_circumference': 108,
       'created_at': timestamp,
       'updated_at': timestamp,
     });
@@ -103,8 +104,15 @@ void main() {
     expect(positions.map((row) => row['position']), [0, 1]);
     expect(
       await migrated.query('clothing_categories', where: 'is_default = 1'),
-      hasLength(9),
+      hasLength(22),
     );
+    final parameterRows = await migrated.query(
+      'clothing_parameter_values',
+      where: 'clothing_item_id = ? AND parameter_key = ?',
+      whereArgs: [clothingId, 'chest_circumference'],
+    );
+    expect(parameterRows.single['number_value'], 108);
+    expect(parameterRows.single['source'], 'legacy_migration');
     expect(
       await migrated.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' "
