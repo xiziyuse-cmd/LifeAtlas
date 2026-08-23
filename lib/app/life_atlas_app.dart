@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/auth/ai_auth_session.dart';
 import '../core/theme/app_theme.dart';
 import '../features/home/data/home_repository.dart';
 import '../features/navigation/presentation/app_shell.dart';
@@ -13,6 +14,7 @@ class LifeAtlasApp extends StatelessWidget {
   const LifeAtlasApp({
     super.key,
     required this.controller,
+    this.aiAuthSession,
     this.homeRepository,
     this.wardrobeRepository,
     this.wardrobeImageService,
@@ -22,6 +24,7 @@ class LifeAtlasApp extends StatelessWidget {
   });
 
   final AppController controller;
+  final AiAuthSession? aiAuthSession;
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final WardrobeImageService? wardrobeImageService;
@@ -41,6 +44,7 @@ class LifeAtlasApp extends StatelessWidget {
           themeMode: controller.themePreference.themeMode,
           home: AppShell(
             controller: controller,
+            aiAuthSession: aiAuthSession,
             homeRepository: homeRepository,
             wardrobeRepository: wardrobeRepository,
             wardrobeImageService: wardrobeImageService,

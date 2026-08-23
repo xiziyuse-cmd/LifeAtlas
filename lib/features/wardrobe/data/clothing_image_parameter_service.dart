@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../core/auth/ai_auth_session.dart';
 import '../domain/models/clothing_image_parameters.dart';
 
 /// Extracts editable clothing suggestions from a product image or screenshot.
@@ -28,18 +29,17 @@ class DoubaoProxyClothingImageParameterService
     implements ClothingImageParameterService {
   DoubaoProxyClothingImageParameterService({
     required String proxyUrl,
-    String? proxyAccessToken,
+    this.accessTokenProvider,
     bool allowInsecureHttp = false,
     this.timeout = const Duration(seconds: 60),
     HttpClient? httpClient,
   }) : _endpoint = _parseEndpoint(proxyUrl, allowInsecureHttp),
-       _proxyAccessToken = _normalize(proxyAccessToken),
        _httpClient = httpClient ?? HttpClient();
 
   static const _maximumImageBytes = 10 * 1024 * 1024;
 
   final Uri? _endpoint;
-  final String? _proxyAccessToken;
+  final Future<String> Function()? accessTokenProvider;
   final Duration timeout;
   final HttpClient _httpClient;
 
@@ -73,12 +73,18 @@ class DoubaoProxyClothingImageParameterService
     }
 
     try {
+      final tokenProvider = accessTokenProvider;
+      if (tokenProvider == null) {
+        throw const AiAuthenticationException('请先在“我的－AI 服务账号”中登录');
+      }
+      final accessToken = await tokenProvider();
       final request = await _httpClient.postUrl(endpoint).timeout(timeout);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
-      if (_proxyAccessToken case final token?) {
-        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
-      }
+      request.headers.set(
+        HttpHeaders.authorizationHeader,
+        'Bearer $accessToken',
+      );
       request.write(
         jsonEncode({
           'mimeType': mimeType,
@@ -105,6 +111,8 @@ class DoubaoProxyClothingImageParameterService
       return ClothingImageParameters.fromJson(result);
     } on ClothingImageParameterRequestException {
       rethrow;
+    } on AiAuthenticationException catch (error) {
+      throw ClothingImageParameterRequestException(error.message);
     } on TimeoutException {
       throw const ClothingImageParameterRequestException('图片识别超时，请稍后重试');
     } on SocketException {
@@ -126,11 +134,6 @@ class DoubaoProxyClothingImageParameterService
       return null;
     }
     return uri;
-  }
-
-  static String? _normalize(String? value) {
-    final normalized = value?.trim() ?? '';
-    return normalized.isEmpty ? null : normalized;
   }
 
   static String? _mimeTypeForPath(String path) {

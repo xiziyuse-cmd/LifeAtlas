@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import 'app/app_controller.dart';
 import 'app/life_atlas_app.dart';
+import 'core/auth/ai_auth_session.dart';
 import 'core/config/ai_service_config.dart';
 import 'core/database/app_database.dart';
 import 'core/settings/sqlite_app_settings_repository.dart';
@@ -21,15 +22,20 @@ Future<void> main() async {
   final homeRepository = HomeRepository(database: database);
   final wardrobeRepository = WardrobeRepository(database: database);
   final wardrobeImageService = DeviceWardrobeImageService();
+  final aiAuthSession = AiAuthSession(
+    authBaseUrl: AiServiceConfig.authBaseUrl,
+    allowInsecureHttp: kDebugMode,
+  );
+  await aiAuthSession.initialize();
   final clothingImageParameterService =
       DoubaoProxyClothingImageParameterService(
         proxyUrl: AiServiceConfig.clothingAnalysisProxyUrl,
-        proxyAccessToken: AiServiceConfig.proxyAccessToken,
+        accessTokenProvider: aiAuthSession.validAccessToken,
         allowInsecureHttp: kDebugMode,
       );
   final preorderAnalysisService = DoubaoProxyPreorderAnalysisService(
     proxyUrl: AiServiceConfig.preorderAnalysisProxyUrl,
-    proxyAccessToken: AiServiceConfig.proxyAccessToken,
+    accessTokenProvider: aiAuthSession.validAccessToken,
     wardrobeRepository: wardrobeRepository,
     allowInsecureHttp: kDebugMode,
   );
@@ -41,6 +47,7 @@ Future<void> main() async {
   runApp(
     LifeAtlasApp(
       controller: controller,
+      aiAuthSession: aiAuthSession,
       homeRepository: homeRepository,
       wardrobeRepository: wardrobeRepository,
       wardrobeImageService: wardrobeImageService,

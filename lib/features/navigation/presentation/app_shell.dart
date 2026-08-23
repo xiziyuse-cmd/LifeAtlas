@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_controller.dart';
+import '../../../core/auth/ai_auth_session.dart';
 import '../../home/data/home_repository.dart';
 import '../../home/data/weather_service.dart';
 import '../../home/presentation/home_page.dart';
@@ -17,6 +18,7 @@ class AppShell extends StatefulWidget {
   const AppShell({
     super.key,
     required this.controller,
+    this.aiAuthSession,
     this.homeRepository,
     this.wardrobeRepository,
     this.wardrobeImageService,
@@ -26,6 +28,7 @@ class AppShell extends StatefulWidget {
   });
 
   final AppController controller;
+  final AiAuthSession? aiAuthSession;
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final WardrobeImageService? wardrobeImageService;
@@ -120,6 +123,7 @@ class _AppShellState extends State<AppShell> {
         page: ProfilePage(
           key: const PageStorageKey('profile'),
           controller: widget.controller,
+          aiAuthSession: widget.aiAuthSession,
         ),
       ),
     ];

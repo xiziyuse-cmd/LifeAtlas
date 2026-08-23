@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/app/app_controller.dart';
 import 'package:lifeatlas/app/life_atlas_app.dart';
+import 'package:lifeatlas/core/auth/ai_auth_session.dart';
 import 'package:lifeatlas/core/settings/app_settings.dart';
 import 'package:lifeatlas/core/settings/app_settings_repository.dart';
 
@@ -80,6 +81,32 @@ void main() {
 
     expect(find.byType(AppBar), findsNothing);
   });
+
+  testWidgets('profile opens the AI service login page', (tester) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    final session = AiAuthSession(
+      authBaseUrl: 'https://example.test/v1/auth',
+      tokenStore: _MemoryAiTokenStore(),
+    );
+    addTearDown(session.dispose);
+    await controller.initialize();
+    await session.initialize();
+
+    await tester.pumpWidget(
+      LifeAtlasApp(controller: controller, aiAuthSession: session),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-ai-auth-entry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI 服务账号'), findsWidgets);
+    expect(find.byKey(const ValueKey('ai-auth-username')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ai-auth-password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ai-auth-login')), findsOneWidget);
+  });
 }
 
 class _MemoryAppSettingsRepository implements AppSettingsRepository {
@@ -103,4 +130,17 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
       outfitModuleEnabled: settings.outfitModuleEnabled,
     );
   }
+}
+
+class _MemoryAiTokenStore implements AiTokenStore {
+  String? value;
+
+  @override
+  Future<void> clear() async => value = null;
+
+  @override
+  Future<String?> read() async => value;
+
+  @override
+  Future<void> write(String value) async => this.value = value;
 }

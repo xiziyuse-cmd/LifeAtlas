@@ -75,7 +75,7 @@ void main() {
       final service = DoubaoProxyClothingImageParameterService(
         proxyUrl:
             'http://${InternetAddress.loopbackIPv4.address}:${server.port}/v1/wardrobe/analyze',
-        proxyAccessToken: 'test-token',
+        accessTokenProvider: () async => 'test-token',
         allowInsecureHttp: true,
       );
 

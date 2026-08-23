@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../../../core/auth/ai_auth_session.dart';
 import '../domain/models/preorder_analysis.dart';
 import '../domain/models/preorder_item.dart';
 import 'wardrobe_repository.dart';
@@ -76,17 +77,16 @@ class DoubaoProxyPreorderAnalysisService implements PreorderAnalysisService {
   DoubaoProxyPreorderAnalysisService({
     required String proxyUrl,
     required this.wardrobeRepository,
-    String? proxyAccessToken,
+    this.accessTokenProvider,
     bool allowInsecureHttp = false,
     this.timeout = const Duration(seconds: 60),
     HttpClient? httpClient,
   }) : _endpoint = _parseEndpoint(proxyUrl, allowInsecureHttp),
-       _proxyAccessToken = _normalize(proxyAccessToken),
        _httpClient = httpClient ?? HttpClient();
 
   final Uri? _endpoint;
   final WardrobeRepository wardrobeRepository;
-  final String? _proxyAccessToken;
+  final Future<String> Function()? accessTokenProvider;
   final Duration timeout;
   final HttpClient _httpClient;
 
@@ -104,13 +104,19 @@ class DoubaoProxyPreorderAnalysisService implements PreorderAnalysisService {
     }
 
     try {
+      final tokenProvider = accessTokenProvider;
+      if (tokenProvider == null) {
+        throw const AiAuthenticationException('请先在“我的－AI 服务账号”中登录');
+      }
+      final accessToken = await tokenProvider();
       final wardrobe = await wardrobeRepository.listClothing();
       final request = await _httpClient.postUrl(endpoint).timeout(timeout);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
-      if (_proxyAccessToken case final token?) {
-        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
-      }
+      request.headers.set(
+        HttpHeaders.authorizationHeader,
+        'Bearer $accessToken',
+      );
       request.write(
         jsonEncode({
           'item': _preorderSummary(item),
@@ -170,6 +176,8 @@ class DoubaoProxyPreorderAnalysisService implements PreorderAnalysisService {
       );
     } on PreorderAnalysisRequestException {
       rethrow;
+    } on AiAuthenticationException catch (error) {
+      throw PreorderAnalysisRequestException(error.message);
     } on TimeoutException {
       throw const PreorderAnalysisRequestException('AI 分析超时，请稍后重试');
     } on SocketException {

@@ -74,7 +74,7 @@ void main() {
       final service = DoubaoProxyPreorderAnalysisService(
         proxyUrl:
             'http://${InternetAddress.loopbackIPv4.address}:${server.port}/v1/wardrobe/preorder-analysis',
-        proxyAccessToken: 'proxy-token',
+        accessTokenProvider: () async => 'proxy-token',
         wardrobeRepository: repository,
         allowInsecureHttp: true,
       );
