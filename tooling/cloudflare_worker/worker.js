@@ -18,7 +18,7 @@ const IMAGE_PROMPT = `你是 LifeAtlas 的衣服图片参数提取器。分析�
 {
   "name": string|null,
   "brand": string|null,
-  "category": "外套"|"内搭"|"上衣"|"长裤"|"短裤"|"裙装"|"连衣裙"|"连体裤"|"内衣"|"家居服"|"鞋"|"包"|"腰带"|"帽子"|"围巾"|"项链"|"戒指"|"手链"|"手表"|"眼镜"|"袜子"|"饰品"|null,
+  "category": "外套"|"内搭"|"上衣"|"长裤"|"短裤"|"裙装"|"连衣裙"|"内衣"|"家居服"|"鞋"|"包"|"腰带"|"帽子"|"围巾"|"项链"|"戒指"|"手链"|"手表"|"眼镜"|"袜子"|null,
   "seasonTags": ("春"|"夏"|"秋"|"冬")[],
   "color": string|null,
   "material": string|null,
@@ -411,9 +411,9 @@ function normalizeResult(value) {
     ? source.measurements
     : {};
   const categories = new Set([
-    '外套', '内搭', '上衣', '长裤', '短裤', '裙装', '连衣裙', '连体裤',
+    '外套', '内搭', '上衣', '长裤', '短裤', '裙装', '连衣裙',
     '内衣', '家居服', '鞋', '包', '腰带', '帽子', '围巾', '项链',
-    '戒指', '手链', '手表', '眼镜', '袜子', '饰品',
+    '戒指', '手链', '手表', '眼镜', '袜子',
   ]);
   const seasons = Array.isArray(source.seasonTags)
     ? [...new Set(source.seasonTags.filter(

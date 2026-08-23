@@ -5,7 +5,7 @@ import 'wardrobe_schema.dart';
 
 class AppDatabase {
   static const _databaseName = 'life_atlas.db';
-  static const databaseVersion = 3;
+  static const databaseVersion = 4;
 
   AppDatabase({DatabaseFactory? factory, this.databasePath})
     : _databaseFactory = factory;
@@ -161,6 +161,7 @@ class AppDatabase {
     await batch.commit(noResult: true);
     await upgradeWardrobeSchemaToV2(database);
     await upgradeWardrobeSchemaToV3(database);
+    await upgradeWardrobeSchemaToV4(database);
   }
 
   Future<void> _upgradeSchema(
@@ -173,6 +174,9 @@ class AppDatabase {
     }
     if (oldVersion < 3) {
       await upgradeWardrobeSchemaToV3(database);
+    }
+    if (oldVersion < 4) {
+      await upgradeWardrobeSchemaToV4(database);
     }
   }
 

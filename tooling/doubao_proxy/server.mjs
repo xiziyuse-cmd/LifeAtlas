@@ -28,7 +28,7 @@ const prompt = `你是 LifeAtlas 的衣服图片参数提取器。分析用户�
 {
   "name": string|null,
   "brand": string|null,
-  "category": "外套"|"内搭"|"上衣"|"长裤"|"短裤"|"裙装"|"连衣裙"|"连体裤"|"内衣"|"家居服"|"鞋"|"包"|"腰带"|"帽子"|"围巾"|"项链"|"戒指"|"手链"|"手表"|"眼镜"|"袜子"|"饰品"|null,
+  "category": "外套"|"内搭"|"上衣"|"长裤"|"短裤"|"裙装"|"连衣裙"|"内衣"|"家居服"|"鞋"|"包"|"腰带"|"帽子"|"围巾"|"项链"|"戒指"|"手链"|"手表"|"眼镜"|"袜子"|null,
   "seasonTags": ("春"|"夏"|"秋"|"冬")[],
   "color": string|null,
   "material": string|null,
@@ -403,7 +403,6 @@ function normalizeResult(value) {
     '短裤',
     '裙装',
     '连衣裙',
-    '连体裤',
     '内衣',
     '家居服',
     '鞋',
@@ -417,7 +416,6 @@ function normalizeResult(value) {
     '手表',
     '眼镜',
     '袜子',
-    '饰品',
   ]);
   const seasons = Array.isArray(source.seasonTags)
     ? [...new Set(source.seasonTags.filter((item) => ['春', '夏', '秋', '冬'].includes(item)))].slice(0, 3)

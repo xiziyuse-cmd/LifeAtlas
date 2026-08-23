@@ -8,7 +8,6 @@ const defaultClothingCategoryNames = <String>[
   '短裤',
   '裙装',
   '连衣裙',
-  '连体裤',
   '内衣',
   '家居服',
   '鞋',
@@ -22,8 +21,9 @@ const defaultClothingCategoryNames = <String>[
   '手表',
   '眼镜',
   '袜子',
-  '饰品',
 ];
+
+const retiredDefaultClothingCategoryNames = <String>['连体裤', '饰品'];
 
 String normalizeWardrobeCatalogName(String value) {
   return value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
@@ -169,6 +169,19 @@ Future<void> upgradeWardrobeSchemaToV3(Database database) async {
   ''');
   await _seedDefaultCategories(database);
   await _backfillLegacyClothingParameters(database);
+}
+
+Future<void> upgradeWardrobeSchemaToV4(Database database) async {
+  final normalizedNames = retiredDefaultClothingCategoryNames
+      .map(normalizeWardrobeCatalogName)
+      .toList(growable: false);
+  await database.delete(
+    'clothing_categories',
+    where:
+        'normalized_name IN '
+        '(${List.filled(normalizedNames.length, '?').join(', ')})',
+    whereArgs: normalizedNames,
+  );
 }
 
 Future<void> _backfillLegacyClothingParameters(Database database) async {

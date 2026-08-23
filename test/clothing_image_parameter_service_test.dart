@@ -27,6 +27,17 @@ void main() {
     expect(result.trouserLength, isNull);
   });
 
+  test('retired categories returned by an older proxy are ignored', () {
+    expect(
+      ClothingImageParameters.fromJson({'category': '连体裤'}).category,
+      isNull,
+    );
+    expect(
+      ClothingImageParameters.fromJson({'category': '饰品'}).category,
+      isNull,
+    );
+  });
+
   test('invalid proxy URL keeps the service unconfigured', () {
     final service = DoubaoProxyClothingImageParameterService(proxyUrl: '');
 

@@ -1,6 +1,8 @@
 import 'season_tags.dart';
 
 class ClothingImageParameters {
+  static const _retiredCategories = {'连体裤', '饰品'};
+
   ClothingImageParameters({
     this.name,
     this.brand,
@@ -44,7 +46,7 @@ class ClothingImageParameters {
     return ClothingImageParameters(
       name: _string(json['name']),
       brand: _string(json['brand']),
-      category: _string(json['category']),
+      category: _activeCategory(json['category']),
       seasonTags: _stringList(json['seasonTags'] ?? json['season_tags']),
       color: _string(json['color']),
       material: _string(json['material']),
@@ -84,6 +86,11 @@ class ClothingImageParameters {
     }
     final normalized = value.trim();
     return normalized.isEmpty ? null : normalized;
+  }
+
+  static String? _activeCategory(Object? value) {
+    final category = _string(value);
+    return _retiredCategories.contains(category) ? null : category;
   }
 
   static List<String> _stringList(Object? value) {

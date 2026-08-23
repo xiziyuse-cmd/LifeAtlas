@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  test('v1 wardrobe data migrates additively to v3', () async {
+  test('v1 wardrobe data migrates additively to v4', () async {
     sqfliteFfiInit();
     final directory = await Directory.systemTemp.createTemp(
       'lifeatlas-migration-',
@@ -35,9 +35,9 @@ void main() {
       'updated_at': timestamp,
     });
     final secondId = await v1.insert('clothing_items', {
-      'name': '旧长裤',
+      'name': '旧连体裤',
       'image_path': 'images/trousers.jpg',
-      'category': '长裤',
+      'category': '连体裤',
       'season_tags': '["秋"]',
       'created_at': timestamp,
       'updated_at': timestamp,
@@ -104,8 +104,24 @@ void main() {
     expect(positions.map((row) => row['position']), [0, 1]);
     expect(
       await migrated.query('clothing_categories', where: 'is_default = 1'),
-      hasLength(22),
+      hasLength(20),
     );
+    expect(
+      await migrated.query(
+        'clothing_categories',
+        where: 'name IN (?, ?)',
+        whereArgs: ['连体裤', '饰品'],
+      ),
+      isEmpty,
+    );
+    final retiredCategoryClothing = await migrated.query(
+      'clothing_items',
+      where: 'id = ?',
+      whereArgs: [secondId],
+      limit: 1,
+    );
+    expect(retiredCategoryClothing.single['category'], '连体裤');
+    expect(retiredCategoryClothing.single['category_id'], isNull);
     final parameterRows = await migrated.query(
       'clothing_parameter_values',
       where: 'clothing_item_id = ? AND parameter_key = ?',
