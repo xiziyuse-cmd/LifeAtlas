@@ -28,14 +28,22 @@ void main() {
   });
 
   test('retired categories returned by an older proxy are ignored', () {
-    expect(
-      ClothingImageParameters.fromJson({'category': '连体裤'}).category,
-      isNull,
-    );
-    expect(
-      ClothingImageParameters.fromJson({'category': '饰品'}).category,
-      isNull,
-    );
+    for (final category in [
+      '连体裤',
+      '饰品',
+      '腰带',
+      '戒指',
+      '手链',
+      '手表',
+      '眼镜',
+      '袜子',
+      '内搭',
+    ]) {
+      expect(
+        ClothingImageParameters.fromJson({'category': category}).category,
+        isNull,
+      );
+    }
   });
 
   test('invalid proxy URL keeps the service unconfigured', () {

@@ -24,10 +24,22 @@ class WardrobeRepository {
 
   final AppDatabase _database;
 
-  Future<List<ClothingCategory>> listCategories() async {
+  Future<List<ClothingCategory>> listCategories({
+    bool includeFemaleCategories = false,
+  }) async {
     final database = await _database.database;
+    final hiddenCategories = includeFemaleCategories
+        ? const <String>[]
+        : femaleOnlyClothingCategoryNames
+              .map(normalizeWardrobeCatalogName)
+              .toList(growable: false);
     final rows = await database.query(
       'clothing_categories',
+      where: hiddenCategories.isEmpty
+          ? null
+          : 'normalized_name NOT IN '
+                '(${List.filled(hiddenCategories.length, '?').join(', ')})',
+      whereArgs: hiddenCategories.isEmpty ? null : hiddenCategories,
       orderBy: 'sort_order ASC, name COLLATE NOCASE ASC',
     );
     return rows.map(ClothingCategory.fromMap).toList(growable: false);

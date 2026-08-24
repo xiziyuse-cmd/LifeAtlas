@@ -25,9 +25,20 @@ void main() {
 
     test('catalogs are seeded and custom names are normalized', () async {
       final categories = await repository.listCategories();
-      expect(categories, hasLength(20));
+      expect(categories, hasLength(10));
       expect(categories.map((item) => item.name), isNot(contains('连体裤')));
       expect(categories.map((item) => item.name), isNot(contains('饰品')));
+      expect(categories.map((item) => item.name), isNot(contains('内衣')));
+      expect(categories.map((item) => item.name), isNot(contains('裙装')));
+      expect(categories.map((item) => item.name), isNot(contains('连衣裙')));
+      final femaleCategories = await repository.listCategories(
+        includeFemaleCategories: true,
+      );
+      expect(femaleCategories, hasLength(13));
+      expect(
+        femaleCategories.map((item) => item.name),
+        containsAll(['内衣', '裙装', '连衣裙']),
+      );
       final first = await repository.createBrand('  Example   Brand  ');
       final duplicate = await repository.createBrand('example brand');
 

@@ -9,6 +9,7 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
 
   static const _themeKey = 'theme_mode';
   static const _outfitModuleKey = 'outfit';
+  static const _profileGenderKey = 'profile_gender';
 
   final AppDatabase _appDatabase;
 
@@ -30,6 +31,13 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
       whereArgs: [_outfitModuleKey],
       limit: 1,
     );
+    final genderRows = await database.query(
+      'app_settings',
+      columns: ['setting_value'],
+      where: 'setting_key = ?',
+      whereArgs: [_profileGenderKey],
+      limit: 1,
+    );
 
     final themeValue = themeRows.isEmpty
         ? null
@@ -40,6 +48,11 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
     return AppSettings(
       themePreference: AppThemePreference.fromStorage(themeValue),
       outfitModuleEnabled: outfitEnabled,
+      profileGender: ProfileGender.fromStorage(
+        genderRows.isEmpty
+            ? null
+            : genderRows.first['setting_value'] as String?,
+      ),
     );
   }
 
@@ -58,6 +71,15 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
     await database.insert('module_settings', {
       'module_key': _outfitModuleKey,
       'enabled': enabled ? 1 : 0,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> saveProfileGender(ProfileGender gender) async {
+    final database = await _appDatabase.database;
+    await database.insert('app_settings', {
+      'setting_key': _profileGenderKey,
+      'setting_value': gender.name,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }

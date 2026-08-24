@@ -2,7 +2,6 @@ import 'package:sqflite/sqflite.dart';
 
 const defaultClothingCategoryNames = <String>[
   '外套',
-  '内搭',
   '上衣',
   '长裤',
   '短裤',
@@ -12,18 +11,23 @@ const defaultClothingCategoryNames = <String>[
   '家居服',
   '鞋',
   '包',
-  '腰带',
   '帽子',
   '围巾',
   '项链',
+];
+
+const retiredDefaultClothingCategoryNames = <String>['连体裤', '饰品'];
+const retiredDefaultClothingCategoryNamesV5 = <String>[
+  '腰带',
   '戒指',
   '手链',
   '手表',
   '眼镜',
   '袜子',
+  '内搭',
 ];
 
-const retiredDefaultClothingCategoryNames = <String>['连体裤', '饰品'];
+const femaleOnlyClothingCategoryNames = <String>['内衣', '裙装', '连衣裙'];
 
 String normalizeWardrobeCatalogName(String value) {
   return value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
@@ -172,7 +176,21 @@ Future<void> upgradeWardrobeSchemaToV3(Database database) async {
 }
 
 Future<void> upgradeWardrobeSchemaToV4(Database database) async {
-  final normalizedNames = retiredDefaultClothingCategoryNames
+  await _removeCatalogCategories(database, retiredDefaultClothingCategoryNames);
+}
+
+Future<void> upgradeWardrobeSchemaToV5(Database database) async {
+  await _removeCatalogCategories(
+    database,
+    retiredDefaultClothingCategoryNamesV5,
+  );
+}
+
+Future<void> _removeCatalogCategories(
+  Database database,
+  List<String> names,
+) async {
+  final normalizedNames = names
       .map(normalizeWardrobeCatalogName)
       .toList(growable: false);
   await database.delete(

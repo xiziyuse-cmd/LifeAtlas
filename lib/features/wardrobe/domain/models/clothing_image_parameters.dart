@@ -1,7 +1,17 @@
 import 'season_tags.dart';
 
 class ClothingImageParameters {
-  static const _retiredCategories = {'连体裤', '饰品'};
+  static const _retiredCategories = {
+    '连体裤',
+    '饰品',
+    '腰带',
+    '戒指',
+    '手链',
+    '手表',
+    '眼镜',
+    '袜子',
+    '内搭',
+  };
 
   ClothingImageParameters({
     this.name,

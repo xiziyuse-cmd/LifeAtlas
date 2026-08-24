@@ -5,6 +5,7 @@ import '../../../core/auth/ai_auth_session.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../modules/presentation/modules_page.dart';
 import 'ai_auth_page.dart';
+import 'body_profile_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({
@@ -134,22 +135,32 @@ class ProfilePage extends StatelessWidget {
         const SizedBox(height: 20),
         Text('更多', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        const Card(
+        Card(
           child: Column(
             children: [
-              ListTile(
+              const ListTile(
                 leading: Icon(Icons.account_balance_wallet_outlined),
                 title: Text('我的钱包'),
                 subtitle: Text('后续阶段实现'),
               ),
-              Divider(height: 1),
+              const Divider(height: 1),
               ListTile(
+                key: const ValueKey('profile-body-entry'),
                 leading: Icon(Icons.straighten_outlined),
-                title: Text('我的身材'),
-                subtitle: Text('后续阶段实现'),
+                title: const Text('我的身材'),
+                subtitle: Text('性别：${controller.profileGender.label}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (context) =>
+                          BodyProfilePage(controller: controller),
+                    ),
+                  );
+                },
               ),
-              Divider(height: 1),
-              ListTile(
+              const Divider(height: 1),
+              const ListTile(
                 leading: Icon(Icons.support_agent_outlined),
                 title: Text('联系开发者'),
                 subtitle: Text('后续阶段实现'),

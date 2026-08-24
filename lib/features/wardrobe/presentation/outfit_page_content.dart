@@ -26,6 +26,7 @@ class OutfitPage extends StatefulWidget {
     this.preorderAnalysisService = const UnconfiguredPreorderAnalysisService(),
     this.onDataChanged,
     this.onDailyOutfitSaved,
+    this.showFemaleCategories = false,
   });
 
   final WardrobeRepository? repository;
@@ -34,6 +35,7 @@ class OutfitPage extends StatefulWidget {
   final PreorderAnalysisService preorderAnalysisService;
   final VoidCallback? onDataChanged;
   final Future<void> Function()? onDailyOutfitSaved;
+  final bool showFemaleCategories;
 
   @override
   State<OutfitPage> createState() => _OutfitPageState();
@@ -66,6 +68,15 @@ class _OutfitPageState extends State<OutfitPage> {
     _load(showLoading: false);
   }
 
+  @override
+  void didUpdateWidget(covariant OutfitPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.showFemaleCategories != widget.showFemaleCategories) {
+      _selectedCategoryId = null;
+      _load();
+    }
+  }
+
   Future<void> _load({bool showLoading = true}) async {
     if (showLoading && mounted) {
       setState(() {
@@ -77,7 +88,9 @@ class _OutfitPageState extends State<OutfitPage> {
       final results = await Future.wait<Object>([
         _repository.listClothing(),
         _repository.listOutfitSets(),
-        _repository.listCategories(),
+        _repository.listCategories(
+          includeFemaleCategories: widget.showFemaleCategories,
+        ),
         _repository.listBrands(),
       ]);
       if (!mounted) {

@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  test('v1 wardrobe data migrates additively to v4', () async {
+  test('v1 wardrobe data migrates additively to v5', () async {
     sqfliteFfiInit();
     final directory = await Directory.systemTemp.createTemp(
       'lifeatlas-migration-',
@@ -104,7 +104,7 @@ void main() {
     expect(positions.map((row) => row['position']), [0, 1]);
     expect(
       await migrated.query('clothing_categories', where: 'is_default = 1'),
-      hasLength(20),
+      hasLength(13),
     );
     expect(
       await migrated.query(
@@ -114,6 +114,13 @@ void main() {
       ),
       isEmpty,
     );
+    final remainingCategoryNames = (await migrated.query(
+      'clothing_categories',
+      columns: const ['name'],
+    )).map((row) => row['name']);
+    for (final retiredName in ['腰带', '戒指', '手链', '手表', '眼镜', '袜子', '内搭']) {
+      expect(remainingCategoryNames, isNot(contains(retiredName)));
+    }
     final retiredCategoryClothing = await migrated.query(
       'clothing_items',
       where: 'id = ?',

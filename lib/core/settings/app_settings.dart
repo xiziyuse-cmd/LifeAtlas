@@ -21,12 +21,31 @@ enum AppThemePreference {
   }
 }
 
+enum ProfileGender {
+  unspecified('未设置'),
+  male('男性'),
+  female('女性');
+
+  const ProfileGender(this.label);
+
+  final String label;
+
+  static ProfileGender fromStorage(String? value) {
+    return ProfileGender.values.firstWhere(
+      (gender) => gender.name == value,
+      orElse: () => ProfileGender.unspecified,
+    );
+  }
+}
+
 class AppSettings {
   const AppSettings({
     this.themePreference = AppThemePreference.system,
     this.outfitModuleEnabled = false,
+    this.profileGender = ProfileGender.unspecified,
   });
 
   final AppThemePreference themePreference;
   final bool outfitModuleEnabled;
+  final ProfileGender profileGender;
 }

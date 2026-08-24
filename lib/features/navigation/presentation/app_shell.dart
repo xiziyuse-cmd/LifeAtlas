@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_controller.dart';
 import '../../../core/auth/ai_auth_session.dart';
+import '../../../core/settings/app_settings.dart';
 import '../../home/data/home_repository.dart';
 import '../../home/data/weather_service.dart';
 import '../../home/presentation/home_page.dart';
@@ -111,6 +112,8 @@ class _AppShellState extends State<AppShell> {
             imageService: _wardrobeImageService,
             imageParameterService: widget.clothingImageParameterService,
             preorderAnalysisService: widget.preorderAnalysisService,
+            showFemaleCategories:
+                widget.controller.profileGender == ProfileGender.female,
             onDataChanged: _notifyWardrobeChanged,
             onDailyOutfitSaved: _applyTodayWeatherToOutfit,
           ),

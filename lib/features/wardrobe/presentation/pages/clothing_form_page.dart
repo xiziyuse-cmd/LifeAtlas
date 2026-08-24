@@ -199,7 +199,11 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
 
   void _applyImageParameters(ClothingImageParameters parameters) {
     _fillTextIfEmpty(_nameController, parameters.name);
-    _fillTextIfEmpty(_categoryController, parameters.category);
+    final suggestedCategory = parameters.category;
+    if (suggestedCategory != null &&
+        widget.categories.contains(suggestedCategory)) {
+      _fillTextIfEmpty(_categoryController, suggestedCategory);
+    }
     _fillTextIfEmpty(_brandController, parameters.brand);
     _fillTextIfEmpty(_colorController, parameters.color);
     _fillTextIfEmpty(_materialController, parameters.material);

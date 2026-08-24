@@ -107,6 +107,28 @@ void main() {
     expect(find.byKey(const ValueKey('ai-auth-password')), findsOneWidget);
     expect(find.byKey(const ValueKey('ai-auth-login')), findsOneWidget);
   });
+
+  testWidgets('body profile saves gender selection', (tester) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    await controller.initialize();
+
+    await tester.pumpWidget(LifeAtlasApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    final bodyEntry = find.byKey(const ValueKey('profile-body-entry'));
+    await tester.ensureVisible(bodyEntry);
+    await tester.pumpAndSettle();
+    await tester.tap(bodyEntry);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-gender-female')));
+    await tester.pumpAndSettle();
+
+    expect(controller.profileGender, ProfileGender.female);
+    expect(repository.settings.profileGender, ProfileGender.female);
+    expect(find.text('穿搭中将显示内衣、裙装和连衣裙。'), findsOneWidget);
+  });
 }
 
 class _MemoryAppSettingsRepository implements AppSettingsRepository {
@@ -120,6 +142,16 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
     settings = AppSettings(
       themePreference: settings.themePreference,
       outfitModuleEnabled: enabled,
+      profileGender: settings.profileGender,
+    );
+  }
+
+  @override
+  Future<void> saveProfileGender(ProfileGender gender) async {
+    settings = AppSettings(
+      themePreference: settings.themePreference,
+      outfitModuleEnabled: settings.outfitModuleEnabled,
+      profileGender: gender,
     );
   }
 
@@ -128,6 +160,7 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
     settings = AppSettings(
       themePreference: preference,
       outfitModuleEnabled: settings.outfitModuleEnabled,
+      profileGender: settings.profileGender,
     );
   }
 }

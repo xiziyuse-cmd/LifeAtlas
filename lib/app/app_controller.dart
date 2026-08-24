@@ -10,16 +10,19 @@ class AppController extends ChangeNotifier {
 
   AppThemePreference _themePreference = AppThemePreference.system;
   bool _outfitModuleEnabled = false;
+  ProfileGender _profileGender = ProfileGender.unspecified;
   bool _initialized = false;
 
   AppThemePreference get themePreference => _themePreference;
   bool get outfitModuleEnabled => _outfitModuleEnabled;
+  ProfileGender get profileGender => _profileGender;
   bool get initialized => _initialized;
 
   Future<void> initialize() async {
     final settings = await _settingsRepository.load();
     _themePreference = settings.themePreference;
     _outfitModuleEnabled = settings.outfitModuleEnabled;
+    _profileGender = settings.profileGender;
     _initialized = true;
     notifyListeners();
   }
@@ -41,6 +44,15 @@ class AppController extends ChangeNotifier {
 
     await _settingsRepository.saveOutfitModuleEnabled(enabled);
     _outfitModuleEnabled = enabled;
+    notifyListeners();
+  }
+
+  Future<void> setProfileGender(ProfileGender gender) async {
+    if (_profileGender == gender) {
+      return;
+    }
+    await _settingsRepository.saveProfileGender(gender);
+    _profileGender = gender;
     notifyListeners();
   }
 }
