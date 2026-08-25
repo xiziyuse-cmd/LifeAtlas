@@ -5,6 +5,7 @@ abstract final class WardrobeKeys {
   static const loading = ValueKey('wardrobe-loading');
   static const error = ValueKey('wardrobe-error');
   static const empty = ValueKey('wardrobe-empty');
+  static const clothingGrid = ValueKey('wardrobe-clothing-grid');
 
   static const seasonFilter = ValueKey('wardrobe-filter-season');
   static const categoryFilter = ValueKey('wardrobe-filter-category');

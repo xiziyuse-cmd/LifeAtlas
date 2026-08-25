@@ -111,4 +111,86 @@ void main() {
       await tempDirectory.delete(recursive: true);
     }
   });
+
+  test('AI response timeout reports a clear network retry message', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final tempDirectory = await Directory.systemTemp.createTemp(
+      'lifeatlas-doubao-timeout-test-',
+    );
+    final image = File(
+      '${tempDirectory.path}${Platform.pathSeparator}size.jpg',
+    );
+    await image.writeAsBytes([0xff, 0xd8, 0xff, 0xd9]);
+
+    server.listen((request) async {
+      await request.drain<void>();
+      await Future<void>.delayed(const Duration(seconds: 1));
+    });
+
+    try {
+      final service = DoubaoProxyClothingImageParameterService(
+        proxyUrl:
+            'http://${InternetAddress.loopbackIPv4.address}:${server.port}/v1/wardrobe/analyze',
+        accessTokenProvider: () async => 'test-token',
+        allowInsecureHttp: true,
+        timeout: const Duration(milliseconds: 30),
+      );
+
+      await expectLater(
+        service.analyze(image.path),
+        throwsA(
+          isA<ClothingImageParameterRequestException>().having(
+            (error) => error.message,
+            'message',
+            'AI识别超时，请检查网络后重试。',
+          ),
+        ),
+      );
+    } finally {
+      await server.close(force: true);
+      await tempDirectory.delete(recursive: true);
+    }
+  });
+
+  test('proxy model timeout uses the same clear timeout message', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final tempDirectory = await Directory.systemTemp.createTemp(
+      'lifeatlas-doubao-proxy-timeout-test-',
+    );
+    final image = File(
+      '${tempDirectory.path}${Platform.pathSeparator}size.jpg',
+    );
+    await image.writeAsBytes([0xff, 0xd8, 0xff, 0xd9]);
+
+    server.listen((request) async {
+      await request.drain<void>();
+      request.response.statusCode = HttpStatus.gatewayTimeout;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode({'message': '火山方舟模型响应超时'}));
+      await request.response.close();
+    });
+
+    try {
+      final service = DoubaoProxyClothingImageParameterService(
+        proxyUrl:
+            'http://${InternetAddress.loopbackIPv4.address}:${server.port}/v1/wardrobe/analyze',
+        accessTokenProvider: () async => 'test-token',
+        allowInsecureHttp: true,
+      );
+
+      await expectLater(
+        service.analyze(image.path),
+        throwsA(
+          isA<ClothingImageParameterRequestException>().having(
+            (error) => error.message,
+            'message',
+            'AI识别超时，请检查网络后重试。',
+          ),
+        ),
+      );
+    } finally {
+      await server.close(force: true);
+      await tempDirectory.delete(recursive: true);
+    }
+  });
 }

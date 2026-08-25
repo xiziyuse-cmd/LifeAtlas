@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 
 import '../../data/clothing_image_parameter_service.dart';
@@ -135,11 +137,17 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       if (mounted && selectedImagePath != null) {
         setState(() => _imagePath = selectedImagePath);
       }
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        '衣服展示图片上传失败',
+        name: 'lifeatlas.wardrobe.form',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('无法读取图片，请稍后重试')));
+        ).showSnackBar(const SnackBar(content: Text('图片上传失败，请重新上传')));
       }
     } finally {
       if (mounted) {
@@ -159,11 +167,17 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
           _measurementAnalysisStatus = null;
         });
       }
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        '尺寸图片上传失败',
+        name: 'lifeatlas.wardrobe.form',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('无法读取尺寸图片，请稍后重试')));
+        ).showSnackBar(const SnackBar(content: Text('图片上传失败，请重新上传')));
       }
     } finally {
       if (mounted) {
@@ -200,17 +214,35 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       }
       _applyMeasurementParameters(parameters);
       setState(() => _measurementAnalysisStatus = '已识别尺寸，请核对后保存');
-    } on ClothingImageParameterRequestException catch (error) {
+    } on ClothingImageParameterRequestException catch (error, stackTrace) {
+      developer.log(
+        'AI 尺寸识别请求失败',
+        name: 'lifeatlas.wardrobe.form',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _measurementAnalysisStatus = error.message);
       }
-    } on ClothingImageParameterUnavailableException catch (error) {
+    } on ClothingImageParameterUnavailableException catch (error, stackTrace) {
+      developer.log(
+        'AI 尺寸识别服务未配置',
+        name: 'lifeatlas.wardrobe.form',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _measurementAnalysisStatus = error.message);
       }
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        'AI 尺寸识别发生未分类异常',
+        name: 'lifeatlas.wardrobe.form',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
-        setState(() => _measurementAnalysisStatus = '尺寸识别失败，可再次尝试或手动填写');
+        setState(() => _measurementAnalysisStatus = 'AI服务请求失败，请稍后重试');
       }
     } finally {
       if (mounted) {
@@ -855,22 +887,56 @@ class _SelectionField extends StatelessWidget {
     final isEmpty = displayValue == null || displayValue.isEmpty;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(4),
-      child: InputDecorator(
-        isEmpty: isEmpty,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          suffixIcon: const Icon(Icons.expand_more),
-        ),
-        child: Text(
-          isEmpty ? placeholder : displayValue,
-          style: isEmpty
-              ? Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                )
-              : null,
-        ),
+      borderRadius: BorderRadius.circular(8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textScaler = MediaQuery.textScalerOf(context);
+          final useVerticalLayout =
+              constraints.maxWidth < 300 || textScaler.scale(16) > 21;
+          final selector = ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: InputDecorator(
+              isEmpty: isEmpty,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.fromLTRB(12, 13, 8, 13),
+                suffixIcon: Icon(Icons.expand_more),
+              ),
+              child: Text(
+                isEmpty ? placeholder : displayValue,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: isEmpty
+                    ? Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      )
+                    : Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          );
+          final labelWidget = Text(
+            '$label：',
+            maxLines: 1,
+            style: Theme.of(context).textTheme.bodyLarge,
+          );
+          if (useVerticalLayout) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [labelWidget, const SizedBox(height: 8), selector],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              labelWidget,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Align(alignment: Alignment.centerLeft, child: selector),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -980,7 +1046,7 @@ class _NumberField extends StatelessWidget {
         if (normalized.isEmpty || double.tryParse(normalized) != null) {
           return null;
         }
-        return '请输入有效数字';
+        return '$label格式有误，请输入数字';
       },
     );
   }
@@ -1022,7 +1088,7 @@ class _RangeNumberField extends StatelessWidget {
                   labelText: '最小值',
                   border: OutlineInputBorder(),
                 ),
-                validator: _validateNumber,
+                validator: (value) => _validateNumber(value, '腰围最小值'),
               ),
             ),
             const Padding(
@@ -1040,7 +1106,7 @@ class _RangeNumberField extends StatelessWidget {
                   labelText: '最大值',
                   border: OutlineInputBorder(),
                 ),
-                validator: _validateNumber,
+                validator: (value) => _validateNumber(value, '腰围最大值'),
               ),
             ),
           ],
@@ -1049,11 +1115,11 @@ class _RangeNumberField extends StatelessWidget {
     );
   }
 
-  static String? _validateNumber(String? value) {
+  static String? _validateNumber(String? value, String label) {
     final normalized = value?.trim() ?? '';
     if (normalized.isEmpty || double.tryParse(normalized) != null) {
       return null;
     }
-    return '请输入有效数字';
+    return '$label格式有误，请输入数字';
   }
 }

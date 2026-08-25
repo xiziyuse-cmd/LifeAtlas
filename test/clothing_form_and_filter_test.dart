@@ -1,13 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/features/wardrobe/data/clothing_image_parameter_service.dart';
+import 'package:lifeatlas/features/wardrobe/data/wardrobe_repository.dart';
 import 'package:lifeatlas/features/wardrobe/data/wardrobe_image_service.dart';
+import 'package:lifeatlas/features/wardrobe/domain/models/clothing_catalog.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_image_parameters.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_item.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_parameter.dart';
+import 'package:lifeatlas/features/wardrobe/domain/models/outfit_set.dart';
+import 'package:lifeatlas/features/wardrobe/domain/models/wardrobe_filter.dart';
+import 'package:lifeatlas/features/wardrobe/presentation/clothing_save_error.dart';
+import 'package:lifeatlas/features/wardrobe/presentation/outfit_page_content.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/pages/clothing_detail_page.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/pages/clothing_form_page.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/wardrobe_keys.dart';
+import 'package:lifeatlas/features/wardrobe/presentation/widgets/clothing_card.dart';
+import 'package:lifeatlas/features/wardrobe/presentation/widgets/clothing_grid.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/widgets/wardrobe_filter_bar.dart';
 
 void main() {
@@ -493,6 +503,131 @@ void main() {
     );
     expect(field.controller?.text, '99');
   });
+
+  testWidgets(
+    'season and category selectors do not overlap on a narrow screen',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(280, 700);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.4;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ClothingFormPage(
+            imageService: _FakeImageService(const []),
+            categories: const ['外套', '上衣'],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('季节：'), findsOneWidget);
+      expect(find.text('请选择季节（最多三个）'), findsOneWidget);
+      expect(find.text('品类：'), findsOneWidget);
+      expect(find.text('请选择品类'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('wardrobe clothing grid always uses three compact columns', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 700);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    ClothingItem? tappedItem;
+    final now = DateTime.utc(2026, 8, 25);
+    final items = List.generate(
+      6,
+      (index) => ClothingItem(
+        id: index + 1,
+        name: '名称非常长需要省略的测试衣服 ${index + 1}',
+        imagePath: 'missing/$index.jpg',
+        seasonTags: const ['春', '秋'],
+        category: '上衣',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: ClothingGrid(
+              items: items,
+              isRecording: false,
+              selectedItemIds: const {},
+              onSelectionChanged: (_, _) {},
+              onItemTap: (item) => tappedItem = item,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final grid = tester.widget<GridView>(find.byKey(WardrobeKeys.clothingGrid));
+    final delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 3);
+    expect(find.byType(ClothingCard), findsNWidgets(6));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(WardrobeKeys.clothingCard(1)));
+    await tester.pump();
+    expect(tappedItem?.id, 1);
+  });
+
+  test('clothing save errors expose specific safe reasons', () {
+    expect(clothingSaveErrorMessage(ArgumentError('衣服名称不能为空。')), '衣服名称不能为空');
+    expect(
+      clothingSaveErrorMessage(const FormatException('购买价格不是数字')),
+      '数据格式错误：购买价格不是数字',
+    );
+    expect(
+      clothingSaveErrorMessage(const FileSystemException('disk full')),
+      '本地存储失败，请检查存储空间后重试',
+    );
+    expect(
+      clothingSaveErrorMessage(const SocketException('offline')),
+      '网络连接失败，请检查网络后重试',
+    );
+    expect(clothingSaveErrorMessage(Exception()), '保存失败，请稍后重试');
+  });
+
+  testWidgets('clothing persistence failure is shown with its actual reason', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OutfitPage(
+          repository: _FailingWardrobeRepository(ArgumentError('所选品类不存在。')),
+          imageService: _FakeImageService(const ['missing/display.jpg']),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(WardrobeKeys.addClothing));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(WardrobeKeys.clothingImagePicker));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(WardrobeKeys.clothingNameField), '测试衣服');
+    await tester.tap(find.byKey(WardrobeKeys.clothingSubmit));
+    await tester.pumpAndSettle();
+
+    expect(find.text('所选品类不存在'), findsOneWidget);
+    expect(find.text('衣服保存失败，请稍后重试'), findsNothing);
+  });
 }
 
 void _useTallViewport(WidgetTester tester) {
@@ -534,4 +669,36 @@ class _FakeImageParameterService implements ClothingImageParameterService {
     analyzedPaths.add(imagePath);
     return result;
   }
+}
+
+class _FailingWardrobeRepository extends WardrobeRepository {
+  _FailingWardrobeRepository(this.error);
+
+  final Object error;
+
+  @override
+  Future<List<ClothingItem>> listClothing({
+    WardrobeFilter filter = const WardrobeFilter(),
+  }) async => const [];
+
+  @override
+  Future<List<OutfitSet>> listOutfitSets({String? seasonTag}) async => const [];
+
+  @override
+  Future<List<ClothingCategory>> listCategories({
+    bool includeFemaleCategories = false,
+  }) async => [
+    ClothingCategory(
+      id: 1,
+      name: '上衣',
+      isDefault: true,
+      createdAt: DateTime.utc(2026, 8, 25),
+    ),
+  ];
+
+  @override
+  Future<List<ClothingBrand>> listBrands() async => const [];
+
+  @override
+  Future<int> createClothing(ClothingItem item) async => throw error;
 }

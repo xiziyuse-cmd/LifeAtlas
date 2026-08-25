@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 
 import '../data/clothing_image_parameter_service.dart';
@@ -11,8 +13,9 @@ import 'pages/clothing_detail_page.dart';
 import 'pages/clothing_form_page.dart';
 import 'pages/outfit_sets_page.dart';
 import 'preorder_page.dart';
+import 'clothing_save_error.dart';
 import 'wardrobe_keys.dart';
-import 'widgets/clothing_card.dart';
+import 'widgets/clothing_grid.dart';
 import 'widgets/outfit_set_carousel_card.dart';
 import 'widgets/wardrobe_filter_bar.dart';
 
@@ -132,11 +135,17 @@ class _OutfitPageState extends State<OutfitPage> {
       await _repository.createClothing(item);
       widget.onDataChanged?.call();
       await _load();
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        '新增衣服保存失败',
+        name: 'lifeatlas.wardrobe.persistence',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('衣服保存失败，请稍后重试')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(clothingSaveErrorMessage(error))),
+        );
       }
     }
   }
@@ -164,11 +173,17 @@ class _OutfitPageState extends State<OutfitPage> {
       widget.onDataChanged?.call();
       await _load();
       return refreshed ?? edited;
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      developer.log(
+        '编辑衣服保存失败',
+        name: 'lifeatlas.wardrobe.persistence',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('衣服修改失败，请稍后重试')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(clothingSaveErrorMessage(error))),
+        );
       }
       return null;
     }
@@ -458,18 +473,13 @@ class _OutfitPageState extends State<OutfitPage> {
         ],
         if (standaloneItems.isNotEmpty) ...[
           if (matchingSets.isNotEmpty) const _SectionLabel(label: '单件'),
-          for (final item in standaloneItems) ...[
-            ClothingCard(
-              item: item,
-              isRecording: _isRecording,
-              isSelected: item.id != null && _selectedItemIds.contains(item.id),
-              onSelectionChanged: item.id == null
-                  ? null
-                  : (selected) => _setSelected(item.id!, selected),
-              onTap: () => _openClothing(item),
-            ),
-            const SizedBox(height: 12),
-          ],
+          ClothingGrid(
+            items: standaloneItems,
+            isRecording: _isRecording,
+            selectedItemIds: _selectedItemIds,
+            onSelectionChanged: _setSelected,
+            onItemTap: _openClothing,
+          ),
         ],
       ],
     );

@@ -232,8 +232,14 @@ async function handleRequest(request, env) {
 }
 
 async function requestArk({ arkApiKey, arkBaseUrl, requestBody, serviceName }) {
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 90_000);
+  console.info(JSON.stringify({
+    event: 'ark_request_started',
+    service: serviceName,
+    model: requestBody.model,
+  }));
   try {
     const response = await fetch(`${arkBaseUrl}/chat/completions`, {
       method: 'POST',
@@ -245,6 +251,13 @@ async function requestArk({ arkApiKey, arkBaseUrl, requestBody, serviceName }) {
       body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
+    console.info(JSON.stringify({
+      event: 'ark_response_received',
+      service: serviceName,
+      model: requestBody.model,
+      status: response.status,
+      elapsedMs: Date.now() - startedAt,
+    }));
     const responseText = await response.text();
     let decoded;
     try {
@@ -263,6 +276,13 @@ async function requestArk({ arkApiKey, arkBaseUrl, requestBody, serviceName }) {
     }
     return decoded;
   } catch (error) {
+    console.error(JSON.stringify({
+      event: 'ark_request_failed',
+      service: serviceName,
+      model: requestBody.model,
+      phase: error?.name === 'AbortError' ? 'timeout' : 'request',
+      elapsedMs: Date.now() - startedAt,
+    }));
     if (error?.name === 'AbortError') {
       throw publicError(504, '火山方舟模型响应超时');
     }
