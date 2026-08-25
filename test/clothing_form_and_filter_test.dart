@@ -5,6 +5,7 @@ import 'package:lifeatlas/features/wardrobe/data/wardrobe_image_service.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_image_parameters.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_item.dart';
 import 'package:lifeatlas/features/wardrobe/domain/models/clothing_parameter.dart';
+import 'package:lifeatlas/features/wardrobe/presentation/pages/clothing_detail_page.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/pages/clothing_form_page.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/wardrobe_keys.dart';
 import 'package:lifeatlas/features/wardrobe/presentation/widgets/wardrobe_filter_bar.dart';
@@ -17,14 +18,69 @@ void main() {
     final top = keys('上衣');
     final coat = keys('羽绒外套');
     final trousers = keys('长裤');
+    final hat = keys('帽子');
     final glasses = keys('眼镜');
 
     expect(top, containsAll(['clothing_length', 'chest_circumference']));
     expect(top, isNot(contains('trouser_length')));
     expect(coat, containsAll(['chest_circumference', 'fill_weight']));
     expect(trousers, containsAll(['front_rise', 'back_rise', 'inseam_length']));
+    expect(
+      trousers,
+      containsAll(['waist_circumference_min', 'waist_circumference_max']),
+    );
     expect(trousers, isNot(contains('shoulder_width')));
+    for (final removedKey in [
+      'elastic_waist_min',
+      'elastic_waist_max',
+      'suggested_height_min',
+      'suggested_height_max',
+      'suggested_weight_min',
+      'suggested_weight_max',
+    ]) {
+      expect(trousers, isNot(contains(removedKey)));
+    }
+    expect(hat, containsAll(['accessory_height', 'crown_depth']));
+    for (final removedKey in [
+      'hood_height',
+      'hood_depth',
+      'slit_length',
+      'collar_height',
+      'front_neck_drop',
+      'back_neck_drop',
+    ]) {
+      expect(coat, isNot(contains(removedKey)));
+    }
     expect(glasses, containsAll(['frame_width', 'temple_length']));
+
+    for (final category in [
+      '外套',
+      '上衣',
+      '长裤',
+      '短裤',
+      '家居服',
+      '鞋',
+      '包',
+      '围巾',
+      '项链',
+      '内衣',
+      '裙装',
+      '连衣裙',
+    ]) {
+      final labels = ClothingParameterCatalog.forCategory(
+        category,
+      ).map((definition) => definition.label);
+      expect(labels, isNot(contains('帽高')));
+      expect(labels, isNot(contains('帽深')));
+      expect(labels, isNot(contains('开衩长')));
+      expect(labels, isNot(contains('领高')));
+      expect(labels, isNot(contains('前领深')));
+      expect(labels, isNot(contains('后领深')));
+    }
+    final hatLabels = ClothingParameterCatalog.forCategory(
+      '帽子',
+    ).map((definition) => definition.label);
+    expect(hatLabels, containsAll(['帽高', '帽深']));
   });
 
   testWidgets('filter conditions are collapsed behind one button', (
@@ -77,7 +133,11 @@ void main() {
         material: '棉',
         clothingLength: 60,
         trouserLength: 98,
-        parameterValues: const {'front_rise': 30},
+        parameterValues: const {
+          'front_rise': 30,
+          'waist_circumference_min': 70,
+          'waist_circumference_max': 76,
+        },
       ),
     );
 
@@ -101,11 +161,14 @@ void main() {
     expect(parameterService.analyzedPaths, isEmpty);
 
     await tester.scrollUntilVisible(
-      find.byKey(WardrobeKeys.category('长裤')),
+      find.byKey(WardrobeKeys.clothingCategorySelector),
       280,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.tap(find.byKey(WardrobeKeys.clothingCategorySelector));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(WardrobeKeys.category('长裤')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(WardrobeKeys.clothingSizeToggle),
       280,
@@ -146,6 +209,14 @@ void main() {
       find.widgetWithText(TextFormField, '前裆长（cm）'),
     );
     expect(frontRise.controller?.text, '30');
+    final minimumWaist = tester.widget<TextFormField>(
+      find.byKey(WardrobeKeys.clothingWaistMinField),
+    );
+    final maximumWaist = tester.widget<TextFormField>(
+      find.byKey(WardrobeKeys.clothingWaistMaxField),
+    );
+    expect(minimumWaist.controller?.text, '70');
+    expect(maximumWaist.controller?.text, '76');
   });
 
   testWidgets('hidden measurements are cleared from the submitted item', (
@@ -161,6 +232,7 @@ void main() {
       category: '上衣',
       material: '棉',
       clothingLength: 70,
+      waistCircumference: 72,
       trouserLength: 100,
       parameterValues: const {
         'sku': ClothingParameterValue(key: 'sku', textValue: 'OLD-SKU'),
@@ -203,6 +275,20 @@ void main() {
     await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
     await tester.pumpAndSettle();
 
+    final minimumWaist = tester.widget<TextFormField>(
+      find.byKey(WardrobeKeys.clothingWaistMinField),
+    );
+    final maximumWaist = tester.widget<TextFormField>(
+      find.byKey(WardrobeKeys.clothingWaistMaxField),
+    );
+    expect(minimumWaist.controller?.text, '72');
+    expect(maximumWaist.controller?.text, '72');
+    await tester.enterText(
+      find.byKey(WardrobeKeys.clothingWaistMinField),
+      '70',
+    );
+    await tester.enterText(find.byKey(WardrobeKeys.clothingWaistMaxField), '');
+
     await tester.scrollUntilVisible(
       find.byKey(WardrobeKeys.clothingLengthField),
       280,
@@ -216,6 +302,15 @@ void main() {
 
     expect(submitted?.clothingLength, 70);
     expect(submitted?.trouserLength, isNull);
+    expect(submitted?.waistCircumference, isNull);
+    expect(
+      submitted?.parameterValues['waist_circumference_min']?.numberValue,
+      70,
+    );
+    expect(
+      submitted?.parameterValues.containsKey('waist_circumference_max'),
+      isFalse,
+    );
     expect(submitted?.material, '棉');
     expect(submitted?.parameterValues['sku']?.textValue, 'OLD-SKU');
     expect(submitted?.parameterValues['fit']?.textValue, '合身');
@@ -234,19 +329,36 @@ void main() {
       ),
     );
 
+    expect(find.byKey(WardrobeKeys.season('春')), findsNothing);
+    await tester.tap(find.byKey(WardrobeKeys.clothingSeasonSelector));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(WardrobeKeys.season('春')));
+    await tester.tap(find.byKey(WardrobeKeys.season('夏')));
+    await tester.tap(find.byKey(WardrobeKeys.season('秋')));
+    await tester.tap(find.byKey(WardrobeKeys.season('冬')));
+    await tester.pumpAndSettle();
+    expect(find.text('一件衣服最多选择三个季节'), findsOneWidget);
+    await tester.tap(find.byKey(WardrobeKeys.clothingSeasonConfirm));
+    await tester.pumpAndSettle();
+    expect(find.byKey(WardrobeKeys.season('春')), findsNothing);
+    expect(find.text('春、夏、秋'), findsOneWidget);
+
+    expect(find.byKey(WardrobeKeys.category('上衣')), findsNothing);
     await tester.scrollUntilVisible(
-      find.byKey(WardrobeKeys.category('上衣')),
+      find.byKey(WardrobeKeys.clothingCategorySelector),
       280,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.tap(find.byKey(WardrobeKeys.clothingCategorySelector));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(WardrobeKeys.category('上衣')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(WardrobeKeys.clothingCategorySelector));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(WardrobeKeys.category('长裤')));
     await tester.pumpAndSettle();
-
-    ChoiceChip chip(String category) =>
-        tester.widget<ChoiceChip>(find.byKey(WardrobeKeys.category(category)));
-    expect(chip('上衣').selected, isFalse);
-    expect(chip('长裤').selected, isTrue);
+    expect(find.byKey(WardrobeKeys.category('长裤')), findsNothing);
+    expect(find.text('长裤'), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.byKey(WardrobeKeys.clothingSizeToggle),
@@ -288,6 +400,40 @@ void main() {
     expect(field.controller?.text, '101');
   });
 
+  testWidgets('clothing detail displays waist as one range', (tester) async {
+    final now = DateTime.utc(2026, 8, 25);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ClothingDetailPage(
+          item: ClothingItem(
+            name: '范围上衣',
+            imagePath: 'missing/top.jpg',
+            category: '上衣',
+            parameterValues: const {
+              'waist_circumference_min': ClothingParameterValue(
+                key: 'waist_circumference_min',
+                numberValue: 68,
+                unit: 'cm',
+              ),
+              'waist_circumference_max': ClothingParameterValue(
+                key: 'waist_circumference_max',
+                numberValue: 74,
+                unit: 'cm',
+              ),
+            },
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('68 – 74 cm'), findsOneWidget);
+    expect(find.text('腰围最小值'), findsNothing);
+    expect(find.text('腰围最大值'), findsNothing);
+  });
+
   testWidgets('unconfigured AI leaves manually entered dimensions intact', (
     tester,
   ) async {
@@ -302,11 +448,14 @@ void main() {
     );
 
     await tester.scrollUntilVisible(
-      find.byKey(WardrobeKeys.category('长裤')),
+      find.byKey(WardrobeKeys.clothingCategorySelector),
       280,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.tap(find.byKey(WardrobeKeys.clothingCategorySelector));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(WardrobeKeys.category('长裤')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(WardrobeKeys.clothingSizeToggle),
       280,

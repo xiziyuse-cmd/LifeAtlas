@@ -36,7 +36,6 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   static const _visibleMeasurementGroups = {
     '尺寸',
     '裤装尺寸',
-    '适穿范围',
     '内衣尺寸',
     '鞋履尺寸',
     '箱包尺寸',
@@ -83,7 +82,11 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _fillLegacyParameter('shoulder_width', item?.shoulderWidth);
     _fillLegacyParameter('chest_circumference', item?.chestCircumference);
     _fillLegacyParameter('sleeve_length', item?.sleeveLength);
-    _fillLegacyParameter('waist_circumference', item?.waistCircumference);
+    final legacyWaist =
+        item?.parameterValues['waist_circumference']?.numberValue ??
+        item?.waistCircumference;
+    _fillLegacyParameter('waist_circumference_min', legacyWaist);
+    _fillLegacyParameter('waist_circumference_max', legacyWaist);
     _fillLegacyParameter('hip_circumference', item?.hipCircumference);
     _fillLegacyParameter('trouser_length', item?.trouserLength);
     _priceController = _numberController(item?.purchasePrice);
@@ -222,7 +225,6 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _fillRecognizedNumber('shoulder_width', parameters.shoulderWidth);
     _fillRecognizedNumber('chest_circumference', parameters.chestCircumference);
     _fillRecognizedNumber('sleeve_length', parameters.sleeveLength);
-    _fillRecognizedNumber('waist_circumference', parameters.waistCircumference);
     _fillRecognizedNumber('hip_circumference', parameters.hipCircumference);
     _fillRecognizedNumber('trouser_length', parameters.trouserLength);
     for (final entry in parameters.parameterValues.entries) {
@@ -241,6 +243,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
         _fillTextIfEmpty(controller, value);
       }
     }
+    _fillWaistRangeIfEmpty(parameters.waistCircumference);
     setState(() {});
   }
 
@@ -252,6 +255,11 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     if (isVisible && controller != null) {
       _fillNumberIfEmpty(controller, value);
     }
+  }
+
+  void _fillWaistRangeIfEmpty(double? value) {
+    _fillRecognizedNumber('waist_circumference_min', value);
+    _fillRecognizedNumber('waist_circumference_max', value);
   }
 
   static void _fillTextIfEmpty(
@@ -288,20 +296,108 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     }
   }
 
-  void _toggleSeason(String season, bool selected) {
-    if (selected && _selectedSeasons.length >= 3) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('一件衣服最多选择三个季节')));
-      return;
+  Future<void> _selectSeasons() async {
+    final temporarySelection = {..._selectedSeasons};
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '选择季节（最多三个）',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final season in _seasons)
+                      FilterChip(
+                        key: WardrobeKeys.season(season),
+                        label: Text(season),
+                        selected: temporarySelection.contains(season),
+                        onSelected: (isSelected) {
+                          if (isSelected && temporarySelection.length >= 3) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(content: Text('一件衣服最多选择三个季节')),
+                            );
+                            return;
+                          }
+                          setSheetState(() {
+                            if (isSelected) {
+                              temporarySelection.add(season);
+                            } else {
+                              temporarySelection.remove(season);
+                            }
+                          });
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: WardrobeKeys.clothingSeasonConfirm,
+                  onPressed: () =>
+                      Navigator.of(sheetContext).pop(temporarySelection),
+                  child: const Text('完成'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() {
+        _selectedSeasons
+          ..clear()
+          ..addAll(selected);
+      });
     }
-    setState(() {
-      if (selected) {
-        _selectedSeasons.add(season);
-      } else {
-        _selectedSeasons.remove(season);
-      }
-    });
+  }
+
+  Future<void> _selectCategory() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('选择品类', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final category in _categoryOptions)
+                    ChoiceChip(
+                      key: WardrobeKeys.category(category),
+                      label: Text(category),
+                      selected: _selectedCategory == category,
+                      onSelected: (_) =>
+                          Navigator.of(sheetContext).pop(category),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() => _selectedCategory = selected);
+    }
   }
 
   List<String> get _categoryOptions {
@@ -354,7 +450,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       shoulderWidth: parameterNumber('shoulder_width'),
       chestCircumference: parameterNumber('chest_circumference'),
       sleeveLength: parameterNumber('sleeve_length'),
-      waistCircumference: parameterNumber('waist_circumference'),
+      waistCircumference: null,
       hipCircumference: parameterNumber('hip_circumference'),
       trouserLength: parameterNumber('trouser_length'),
       parameterValues: parameterValues,
@@ -453,40 +549,25 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                   value == null || value.trim().isEmpty ? '请输入衣服名称' : null,
             ),
             const SizedBox(height: 18),
-            Text('季节（最多三个）', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final season in _seasons)
-                  FilterChip(
-                    key: WardrobeKeys.season(season),
-                    label: Text(season),
-                    selected: _selectedSeasons.contains(season),
-                    onSelected: (selected) => _toggleSeason(season, selected),
-                  ),
-              ],
+            _SelectionField(
+              key: WardrobeKeys.clothingSeasonSelector,
+              label: '季节',
+              value: _selectedSeasons.isEmpty
+                  ? null
+                  : [
+                      for (final season in _seasons)
+                        if (_selectedSeasons.contains(season)) season,
+                    ].join('、'),
+              placeholder: '请选择季节（最多三个）',
+              onTap: _selectSeasons,
             ),
             const SizedBox(height: 12),
-            Text('品类', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              key: WardrobeKeys.clothingCategoryOptions,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final category in _categoryOptions)
-                  ChoiceChip(
-                    key: WardrobeKeys.category(category),
-                    label: Text(category),
-                    selected: _selectedCategory == category,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _selectedCategory = category);
-                      }
-                    },
-                  ),
-              ],
+            _SelectionField(
+              key: WardrobeKeys.clothingCategorySelector,
+              label: '品类',
+              value: _selectedCategory,
+              placeholder: '请选择品类',
+              onTap: _selectCategory,
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -599,7 +680,19 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     for (final definition in entry.value)
-                      if (definition.type == ClothingParameterType.number)
+                      if (definition.key == 'waist_circumference_min')
+                        _RangeNumberField(
+                          key: WardrobeKeys.clothingWaistRange,
+                          label: '腰围',
+                          minimumController:
+                              _parameterControllers['waist_circumference_min']!,
+                          maximumController:
+                              _parameterControllers['waist_circumference_max']!,
+                          unit: definition.unit,
+                        )
+                      else if (definition.key == 'waist_circumference_max')
+                        const SizedBox.shrink()
+                      else if (definition.type == ClothingParameterType.number)
                         _NumberField(
                           key: _legacyFieldKey(definition.key),
                           controller: _parameterControllers[definition.key]!,
@@ -713,7 +806,6 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     'shoulder_width' => WardrobeKeys.clothingShoulderWidthField,
     'chest_circumference' => WardrobeKeys.clothingChestField,
     'sleeve_length' => WardrobeKeys.clothingSleeveLengthField,
-    'waist_circumference' => WardrobeKeys.clothingWaistField,
     'hip_circumference' => WardrobeKeys.clothingHipField,
     'trouser_length' => WardrobeKeys.clothingTrouserLengthField,
     _ => null,
@@ -741,6 +833,47 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   static String _formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+}
+
+class _SelectionField extends StatelessWidget {
+  const _SelectionField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.placeholder,
+    required this.onTap,
+  });
+
+  final String label;
+  final String? value;
+  final String placeholder;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = value?.trim();
+    final isEmpty = displayValue == null || displayValue.isEmpty;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: InputDecorator(
+        isEmpty: isEmpty,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          suffixIcon: const Icon(Icons.expand_more),
+        ),
+        child: Text(
+          isEmpty ? placeholder : displayValue,
+          style: isEmpty
+              ? Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                )
+              : null,
+        ),
+      ),
+    );
+  }
 }
 
 class _SuggestionDropdown extends StatelessWidget {
@@ -850,5 +983,77 @@ class _NumberField extends StatelessWidget {
         return '请输入有效数字';
       },
     );
+  }
+}
+
+class _RangeNumberField extends StatelessWidget {
+  const _RangeNumberField({
+    super.key,
+    required this.label,
+    required this.minimumController,
+    required this.maximumController,
+    required this.unit,
+  });
+
+  final String label;
+  final TextEditingController minimumController;
+  final TextEditingController maximumController;
+  final String? unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayUnit = unit?.trim() ?? '';
+    final title = displayUnit.isEmpty ? label : '$label（$displayUnit）';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.bodyMedium),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                key: WardrobeKeys.clothingWaistMinField,
+                controller: minimumController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: '最小值',
+                  border: OutlineInputBorder(),
+                ),
+                validator: _validateNumber,
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text('–'),
+            ),
+            Expanded(
+              child: TextFormField(
+                key: WardrobeKeys.clothingWaistMaxField,
+                controller: maximumController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: '最大值',
+                  border: OutlineInputBorder(),
+                ),
+                validator: _validateNumber,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  static String? _validateNumber(String? value) {
+    final normalized = value?.trim() ?? '';
+    if (normalized.isEmpty || double.tryParse(normalized) != null) {
+      return null;
+    }
+    return '请输入有效数字';
   }
 }

@@ -181,8 +181,13 @@ class ClothingParameterCatalog {
       group: '尺寸',
     ),
     ClothingParameterDefinition(
-      key: 'waist_circumference',
-      label: '腰围',
+      key: 'waist_circumference_min',
+      label: '腰围最小值',
+      group: '尺寸',
+    ),
+    ClothingParameterDefinition(
+      key: 'waist_circumference_max',
+      label: '腰围最大值',
       group: '尺寸',
     ),
     ClothingParameterDefinition(
@@ -217,21 +222,7 @@ class ClothingParameterCatalog {
       label: '领围',
       group: '尺寸',
     ),
-    ClothingParameterDefinition(key: 'collar_height', label: '领高', group: '尺寸'),
     ClothingParameterDefinition(key: 'neck_width', label: '领宽', group: '尺寸'),
-    ClothingParameterDefinition(
-      key: 'front_neck_drop',
-      label: '前领深',
-      group: '尺寸',
-    ),
-    ClothingParameterDefinition(
-      key: 'back_neck_drop',
-      label: '后领深',
-      group: '尺寸',
-    ),
-    ClothingParameterDefinition(key: 'hood_height', label: '帽高', group: '尺寸'),
-    ClothingParameterDefinition(key: 'hood_depth', label: '帽深', group: '尺寸'),
-    ClothingParameterDefinition(key: 'slit_length', label: '开衩长', group: '尺寸'),
     ClothingParameterDefinition(
       key: 'filling_material',
       label: '填充物',
@@ -299,38 +290,6 @@ class ClothingParameterCatalog {
       key: 'waistband_height',
       label: '腰头高',
       group: '裤装尺寸',
-    ),
-    ClothingParameterDefinition(
-      key: 'elastic_waist_min',
-      label: '松紧腰最小围',
-      group: '裤装尺寸',
-    ),
-    ClothingParameterDefinition(
-      key: 'elastic_waist_max',
-      label: '松紧腰最大围',
-      group: '裤装尺寸',
-    ),
-    ClothingParameterDefinition(
-      key: 'suggested_height_min',
-      label: '建议身高下限',
-      group: '适穿范围',
-    ),
-    ClothingParameterDefinition(
-      key: 'suggested_height_max',
-      label: '建议身高上限',
-      group: '适穿范围',
-    ),
-    ClothingParameterDefinition(
-      key: 'suggested_weight_min',
-      label: '建议体重下限',
-      group: '适穿范围',
-      unit: 'kg',
-    ),
-    ClothingParameterDefinition(
-      key: 'suggested_weight_max',
-      label: '建议体重上限',
-      group: '适穿范围',
-      unit: 'kg',
     ),
     ClothingParameterDefinition(
       key: 'cup_size',
@@ -461,7 +420,7 @@ class ClothingParameterCatalog {
     ),
     ClothingParameterDefinition(
       key: 'accessory_height',
-      label: '高度',
+      label: '帽高',
       group: '配饰尺寸',
     ),
     ClothingParameterDefinition(
@@ -637,7 +596,8 @@ class ClothingParameterCatalog {
     'shoulder_width',
     'chest_circumference',
     'flat_chest_width',
-    'waist_circumference',
+    'waist_circumference_min',
+    'waist_circumference_max',
     'hem_circumference',
     'sleeve_length',
     'raglan_sleeve_length',
@@ -645,13 +605,11 @@ class ClothingParameterCatalog {
     'cuff_circumference',
     'back_width',
     'collar_circumference',
-    'collar_height',
     'neck_width',
-    'front_neck_drop',
-    'back_neck_drop',
   ];
   static const _pants = [
-    'waist_circumference',
+    'waist_circumference_min',
+    'waist_circumference_max',
     'hip_circumference',
     'front_rise',
     'back_rise',
@@ -663,22 +621,14 @@ class ClothingParameterCatalog {
     'calf_circumference',
     'leg_opening_circumference',
     'waistband_height',
-    'elastic_waist_min',
-    'elastic_waist_max',
-    'suggested_height_min',
-    'suggested_height_max',
-    'suggested_weight_min',
-    'suggested_weight_max',
   ];
   static const _skirt = [
-    'waist_circumference',
+    'waist_circumference_min',
+    'waist_circumference_max',
     'hip_circumference',
     'clothing_length',
     'hem_circumference',
     'waistband_height',
-    'slit_length',
-    'elastic_waist_min',
-    'elastic_waist_max',
   ];
   static const _accessoryCommon = [
     'sku',
@@ -696,9 +646,6 @@ class ClothingParameterCatalog {
       addAll(_common);
       addAll(_top);
       addAll([
-        'hood_height',
-        'hood_depth',
-        'slit_length',
         'filling_material',
         'fill_weight',
         'fill_content_percentage',
@@ -714,7 +661,7 @@ class ClothingParameterCatalog {
     } else if (_matches(normalized, ['连衣裙', '连身裙'])) {
       addAll(_common);
       addAll(_top);
-      addAll(['hip_circumference', 'slit_length']);
+      addAll(['hip_circumference']);
     } else if (_matches(normalized, ['裙装', '半身裙', '裙'])) {
       addAll(_common);
       addAll(_skirt);
@@ -726,7 +673,8 @@ class ClothingParameterCatalog {
         'cup_size',
         'strap_length',
         'side_wing_height',
-        'waist_circumference',
+        'waist_circumference_min',
+        'waist_circumference_max',
         'hip_circumference',
         'front_rise',
         'back_rise',
@@ -845,12 +793,7 @@ class ClothingParameterCatalog {
       ]);
     } else if (_matches(normalized, ['饰品', '配饰'])) {
       addAll(_accessoryCommon);
-      addAll([
-        'total_length',
-        'accessory_width',
-        'accessory_height',
-        'accessory_weight',
-      ]);
+      addAll(['total_length', 'accessory_width', 'accessory_weight']);
     } else {
       addAll(_common);
       addAll(_top);

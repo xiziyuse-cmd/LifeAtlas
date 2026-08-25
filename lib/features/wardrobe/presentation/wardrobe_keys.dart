@@ -23,7 +23,11 @@ abstract final class WardrobeKeys {
   static const clothingForm = ValueKey('clothing-form');
   static const clothingImagePicker = ValueKey('clothing-image-picker');
   static const clothingNameField = ValueKey('clothing-name-field');
-  static const clothingCategoryOptions = ValueKey('clothing-category-options');
+  static const clothingSeasonSelector = ValueKey('clothing-season-selector');
+  static const clothingSeasonConfirm = ValueKey('clothing-season-confirm');
+  static const clothingCategorySelector = ValueKey(
+    'clothing-category-selector',
+  );
   static const clothingBrandField = ValueKey('clothing-brand-field');
   static const clothingSizeToggle = ValueKey('clothing-size-toggle');
   static const clothingSizeContent = ValueKey('clothing-size-content');
@@ -44,7 +48,9 @@ abstract final class WardrobeKeys {
   static const clothingSleeveLengthField = ValueKey(
     'clothing-sleeve-length-field',
   );
-  static const clothingWaistField = ValueKey('clothing-waist-field');
+  static const clothingWaistRange = ValueKey('clothing-waist-range');
+  static const clothingWaistMinField = ValueKey('clothing-waist-min-field');
+  static const clothingWaistMaxField = ValueKey('clothing-waist-max-field');
   static const clothingHipField = ValueKey('clothing-hip-field');
   static const clothingTrouserLengthField = ValueKey(
     'clothing-trouser-length-field',

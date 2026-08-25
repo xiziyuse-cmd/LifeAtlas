@@ -179,6 +179,16 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     for (final definition in ClothingParameterCatalog.forCategory(
       _item.category,
     )) {
+      if (definition.key == 'waist_circumference_min') {
+        final display = _waistRangeDisplay;
+        if (display != null) {
+          groups.putIfAbsent(definition.group, () => []).add(('腰围', display));
+        }
+        continue;
+      }
+      if (definition.key == 'waist_circumference_max') {
+        continue;
+      }
       final dynamicValue = _item.parameterValues[definition.key];
       final legacyValue = _legacyParameterValue(definition.key);
       final display =
@@ -195,6 +205,24 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
       ));
     }
     return groups;
+  }
+
+  String? get _waistRangeDisplay {
+    final legacyValue =
+        _item.parameterValues['waist_circumference']?.numberValue ??
+        _item.waistCircumference;
+    final minimum =
+        _item.parameterValues['waist_circumference_min']?.numberValue ??
+        legacyValue;
+    final maximum =
+        _item.parameterValues['waist_circumference_max']?.numberValue ??
+        legacyValue;
+    if (minimum == null && maximum == null) {
+      return null;
+    }
+    final minimumText = minimum == null ? '—' : _number(minimum);
+    final maximumText = maximum == null ? '—' : _number(maximum);
+    return '$minimumText – $maximumText cm';
   }
 
   double? _legacyParameterValue(String key) => switch (key) {

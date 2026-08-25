@@ -26,6 +26,8 @@ void main() {
     expect(find.byKey(const ValueKey('profile-outfit-switch')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('profile-modules-entry')));
     await tester.pumpAndSettle();
+    expect(find.text('开启板块后会在底部导航中新增入口；关闭不会删除已经保存的数据。'), findsNothing);
+    expect(find.text('衣柜、套装、穿搭记录与预购管理'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('modules-outfit-switch')));
     await tester.pumpAndSettle();
 
