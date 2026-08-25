@@ -9,7 +9,7 @@ LifeAtlas 是一款围绕个人生活记录、穿搭管理和 AI 辅助分析设
 ## 当前版本
 
 - 版本号：`1.2.3`
-- 构建号：`11`
+- 构建号：`12`
 - 当前阶段：穿搭板块完整品类参数、Doubao 图片识别、预购文字分析、Cloudflare Workers HTTPS 代理及单账号短期令牌认证已接入；真实天气服务、其他 AI 功能及系统后台唤醒待后续接入
 
 ## 技术栈
@@ -50,6 +50,8 @@ LifeAtlas 是一款围绕个人生活记录、穿搭管理和 AI 辅助分析设
 当前已完成可运行的穿搭板块本地闭环，并通过安全代理接入 Doubao-Seed-2.1-pro 衣服图片参数识别和 Doubao-Seed-2.1-turbo 预购文字分析。真实天气 API、其他 AI Prompt、以及 App 被系统终止时的精确 22:00 后台唤醒尚未接入；现阶段使用前台定时与启动／恢复补偿保证已有天气数据的幂等同步。
 
 火山方舟 API Key、AI 登录密码和令牌签名密钥只能配置在代理服务器加密变量中。Flutter 客户端通过运行时登录获得短期令牌，不在源代码、构建参数或安装包内保存供应商密钥、密码或固定代理口令。本地启动见 `tooling/doubao_proxy/README.md`，Cloudflare 正式部署见 `tooling/cloudflare_worker/README.md`。
+
+正式 Cloudflare Worker 地址已作为非敏感配置默认值写在独立配置层，普通 Release 构建即可使用 AI；构建参数仍可覆盖地址。APK 只会包含公开 HTTPS 地址，不包含任何服务器密钥。
 
 ## 项目目录说明
 
