@@ -22,13 +22,20 @@ abstract final class WardrobeKeys {
 
   static const clothingForm = ValueKey('clothing-form');
   static const clothingImagePicker = ValueKey('clothing-image-picker');
-  static const clothingImageAnalyze = ValueKey('clothing-image-analyze');
-  static const clothingImageAnalysisStatus = ValueKey(
-    'clothing-image-analysis-status',
-  );
   static const clothingNameField = ValueKey('clothing-name-field');
-  static const clothingCategoryField = ValueKey('clothing-category-field');
+  static const clothingCategoryOptions = ValueKey('clothing-category-options');
   static const clothingBrandField = ValueKey('clothing-brand-field');
+  static const clothingSizeToggle = ValueKey('clothing-size-toggle');
+  static const clothingSizeContent = ValueKey('clothing-size-content');
+  static const clothingMeasurementImagePicker = ValueKey(
+    'clothing-measurement-image-picker',
+  );
+  static const clothingMeasurementImageAnalyze = ValueKey(
+    'clothing-measurement-image-analyze',
+  );
+  static const clothingMeasurementImageStatus = ValueKey(
+    'clothing-measurement-image-status',
+  );
   static const clothingLengthField = ValueKey('clothing-length-field');
   static const clothingShoulderWidthField = ValueKey(
     'clothing-shoulder-width-field',
@@ -67,6 +74,9 @@ abstract final class WardrobeKeys {
 
   static ValueKey<String> season(String season) =>
       ValueKey('clothing-season-$season');
+
+  static ValueKey<String> category(String category) =>
+      ValueKey('clothing-category-$category');
 
   static ValueKey<String> outfitSetSeason(String season) =>
       ValueKey('outfit-set-season-$season');

@@ -33,24 +33,35 @@ class ClothingFormPage extends StatefulWidget {
 
 class _ClothingFormPageState extends State<ClothingFormPage> {
   static const _seasons = ['春', '夏', '秋', '冬'];
+  static const _visibleMeasurementGroups = {
+    '尺寸',
+    '裤装尺寸',
+    '适穿范围',
+    '内衣尺寸',
+    '鞋履尺寸',
+    '箱包尺寸',
+    '配饰尺寸',
+  };
 
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _brandController;
-  late final TextEditingController _categoryController;
   late final TextEditingController _colorController;
-  late final TextEditingController _materialController;
   late final TextEditingController _sizeController;
   late final Map<String, TextEditingController> _parameterControllers;
   late final TextEditingController _priceController;
   late final TextEditingController _notesController;
 
   late final Set<String> _selectedSeasons;
+  String? _selectedCategory;
   String? _imagePath;
+  String? _measurementImagePath;
   DateTime? _purchaseDate;
+  bool _showMeasurements = false;
   bool _isPickingImage = false;
-  bool _isAnalyzingImage = false;
-  String? _imageAnalysisStatus;
+  bool _isPickingMeasurementImage = false;
+  bool _isAnalyzingMeasurementImage = false;
+  String? _measurementAnalysisStatus;
 
   @override
   void initState() {
@@ -58,12 +69,12 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     final item = widget.initialItem;
     _nameController = TextEditingController(text: item?.name);
     _brandController = TextEditingController(text: item?.brand);
-    _categoryController = TextEditingController(text: item?.category);
     _colorController = TextEditingController(text: item?.color);
-    _materialController = TextEditingController(text: item?.material);
     _sizeController = TextEditingController(text: item?.size);
     _parameterControllers = {
-      for (final definition in ClothingParameterCatalog.definitions)
+      for (final definition in ClothingParameterCatalog.definitions.where(
+        (definition) => _visibleMeasurementGroups.contains(definition.group),
+      ))
         definition.key: TextEditingController(
           text: item?.parameterValues[definition.key]?.editableText,
         ),
@@ -78,21 +89,18 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _priceController = _numberController(item?.purchasePrice);
     _notesController = TextEditingController(text: item?.notes);
     _selectedSeasons = {...?item?.seasonTags};
+    _selectedCategory = item?.category;
     _imagePath = item?.imagePath;
     _purchaseDate = item?.purchaseDate;
-    _categoryController.addListener(_onCategoryChanged);
     _recoverLostImage();
   }
 
   @override
   void dispose() {
-    _categoryController.removeListener(_onCategoryChanged);
     for (final controller in [
       _nameController,
       _brandController,
-      _categoryController,
       _colorController,
-      _materialController,
       _sizeController,
       _priceController,
       _notesController,
@@ -111,7 +119,6 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       }
       final imagePath = recovered.last;
       setState(() => _imagePath = imagePath);
-      await _analyzeImage(imagePath);
     } on Object {
       // A failed recovery must not prevent manual editing or another pick.
     }
@@ -119,14 +126,11 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
 
   Future<void> _pickImage() async {
     setState(() => _isPickingImage = true);
-    String? selectedImagePath;
     try {
-      selectedImagePath = await widget.imageService.pickSingleFromGallery();
+      final selectedImagePath = await widget.imageService
+          .pickSingleFromGallery();
       if (mounted && selectedImagePath != null) {
-        setState(() {
-          _imagePath = selectedImagePath;
-          _imageAnalysisStatus = null;
-        });
+        setState(() => _imagePath = selectedImagePath);
       }
     } on Object {
       if (mounted) {
@@ -139,14 +143,29 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
         setState(() => _isPickingImage = false);
       }
     }
-    if (selectedImagePath != null && mounted) {
-      await _analyzeImage(selectedImagePath);
-    }
   }
 
-  void _onCategoryChanged() {
-    if (mounted) {
-      setState(() {});
+  Future<void> _pickMeasurementImage() async {
+    setState(() => _isPickingMeasurementImage = true);
+    try {
+      final selectedImagePath = await widget.imageService
+          .pickSingleFromGallery();
+      if (mounted && selectedImagePath != null) {
+        setState(() {
+          _measurementImagePath = selectedImagePath;
+          _measurementAnalysisStatus = null;
+        });
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('无法读取尺寸图片，请稍后重试')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingMeasurementImage = false);
+      }
     }
   }
 
@@ -157,89 +176,60 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     }
   }
 
-  Future<void> _analyzeImage(String imagePath) async {
+  Future<void> _analyzeMeasurementImage(String imagePath) async {
     if (!widget.imageParameterService.isConfigured) {
       if (mounted) {
         setState(() {
-          _imageAnalysisStatus = '图片参数识别服务尚未配置，可先手动填写';
+          _measurementAnalysisStatus = '请先配置 AI 接口，可继续手动填写尺寸';
         });
       }
       return;
     }
 
     setState(() {
-      _isAnalyzingImage = true;
-      _imageAnalysisStatus = '正在读取图片参数…';
+      _isAnalyzingMeasurementImage = true;
+      _measurementAnalysisStatus = '正在识别尺寸…';
     });
     try {
       final parameters = await widget.imageParameterService.analyze(imagePath);
-      if (!mounted || _imagePath != imagePath) {
+      if (!mounted || _measurementImagePath != imagePath) {
         return;
       }
-      _applyImageParameters(parameters);
-      setState(() => _imageAnalysisStatus = '已读取图片参数，请核对后保存');
+      _applyMeasurementParameters(parameters);
+      setState(() => _measurementAnalysisStatus = '已识别尺寸，请核对后保存');
     } on ClothingImageParameterRequestException catch (error) {
       if (mounted) {
-        setState(() => _imageAnalysisStatus = error.message);
+        setState(() => _measurementAnalysisStatus = error.message);
       }
     } on ClothingImageParameterUnavailableException catch (error) {
       if (mounted) {
-        setState(() => _imageAnalysisStatus = error.message);
+        setState(() => _measurementAnalysisStatus = error.message);
       }
     } on Object {
       if (mounted) {
-        setState(() => _imageAnalysisStatus = '图片参数读取失败，可再次尝试或手动填写');
+        setState(() => _measurementAnalysisStatus = '尺寸识别失败，可再次尝试或手动填写');
       }
     } finally {
       if (mounted) {
-        setState(() => _isAnalyzingImage = false);
+        setState(() => _isAnalyzingMeasurementImage = false);
       }
     }
   }
 
-  void _applyImageParameters(ClothingImageParameters parameters) {
-    _fillTextIfEmpty(_nameController, parameters.name);
-    final suggestedCategory = parameters.category;
-    if (suggestedCategory != null &&
-        widget.categories.contains(suggestedCategory)) {
-      _fillTextIfEmpty(_categoryController, suggestedCategory);
-    }
-    _fillTextIfEmpty(_brandController, parameters.brand);
-    _fillTextIfEmpty(_colorController, parameters.color);
-    _fillTextIfEmpty(_materialController, parameters.material);
+  void _applyMeasurementParameters(ClothingImageParameters parameters) {
     _fillTextIfEmpty(_sizeController, parameters.size);
-    _fillNumberIfEmpty(
-      _parameterControllers['clothing_length']!,
-      parameters.clothingLength,
-    );
-    _fillNumberIfEmpty(
-      _parameterControllers['shoulder_width']!,
-      parameters.shoulderWidth,
-    );
-    _fillNumberIfEmpty(
-      _parameterControllers['chest_circumference']!,
-      parameters.chestCircumference,
-    );
-    _fillNumberIfEmpty(
-      _parameterControllers['sleeve_length']!,
-      parameters.sleeveLength,
-    );
-    _fillNumberIfEmpty(
-      _parameterControllers['waist_circumference']!,
-      parameters.waistCircumference,
-    );
-    _fillNumberIfEmpty(
-      _parameterControllers['hip_circumference']!,
-      parameters.hipCircumference,
-    );
-    _fillNumberIfEmpty(
-      _parameterControllers['trouser_length']!,
-      parameters.trouserLength,
-    );
+    _fillRecognizedNumber('clothing_length', parameters.clothingLength);
+    _fillRecognizedNumber('shoulder_width', parameters.shoulderWidth);
+    _fillRecognizedNumber('chest_circumference', parameters.chestCircumference);
+    _fillRecognizedNumber('sleeve_length', parameters.sleeveLength);
+    _fillRecognizedNumber('waist_circumference', parameters.waistCircumference);
+    _fillRecognizedNumber('hip_circumference', parameters.hipCircumference);
+    _fillRecognizedNumber('trouser_length', parameters.trouserLength);
     for (final entry in parameters.parameterValues.entries) {
       final definition = ClothingParameterCatalog.byKey[entry.key];
       final controller = _parameterControllers[entry.key];
       if (definition == null ||
+          !_measurementDefinitions.any((item) => item.key == definition.key) ||
           controller == null ||
           controller.text.trim().isNotEmpty) {
         continue;
@@ -251,8 +241,16 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
         _fillTextIfEmpty(controller, value);
       }
     }
-    if (_selectedSeasons.isEmpty && parameters.seasonTags.isNotEmpty) {
-      _selectedSeasons.addAll(parameters.seasonTags);
+    setState(() {});
+  }
+
+  void _fillRecognizedNumber(String key, double? value) {
+    final isVisible = _measurementDefinitions.any(
+      (definition) => definition.key == key,
+    );
+    final controller = _parameterControllers[key];
+    if (isVisible && controller != null) {
+      _fillNumberIfEmpty(controller, value);
     }
   }
 
@@ -306,6 +304,23 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     });
   }
 
+  List<String> get _categoryOptions {
+    final categories = [...widget.categories];
+    final selected = _selectedCategory?.trim() ?? '';
+    if (selected.isNotEmpty && !categories.contains(selected)) {
+      categories.add(selected);
+    }
+    return categories;
+  }
+
+  List<ClothingParameterDefinition> get _measurementDefinitions =>
+      ClothingParameterCatalog.forCategory(_selectedCategory)
+          .where(
+            (definition) =>
+                _visibleMeasurementGroups.contains(definition.group),
+          )
+          .toList(growable: false);
+
   void _submit() {
     final imagePath = _imagePath?.trim() ?? '';
     final formIsValid = _formKey.currentState?.validate() ?? false;
@@ -320,22 +335,20 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
 
     final initialItem = widget.initialItem;
     final now = (widget.now ?? DateTime.now)();
-    final parameterValues = _parameterValuesForCategory(
-      _categoryController.text,
-    );
+    final parameterValues = _parameterValuesForCategory(_selectedCategory);
     double? parameterNumber(String key) => parameterValues[key]?.numberValue;
     final item = ClothingItem(
       id: initialItem?.id,
       name: _nameController.text.trim(),
       imagePath: imagePath,
       brand: _optionalText(_brandController),
-      category: _optionalText(_categoryController),
+      category: _selectedCategory,
       seasonTags: [
         for (final season in _seasons)
           if (_selectedSeasons.contains(season)) season,
       ],
       color: _optionalText(_colorController),
-      material: _optionalText(_materialController),
+      material: initialItem?.material,
       size: _optionalText(_sizeController),
       clothingLength: parameterNumber('clothing_length'),
       shoulderWidth: parameterNumber('shoulder_width'),
@@ -361,9 +374,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialItem != null;
-    final parameterDefinitions = ClothingParameterCatalog.forCategory(
-      _categoryController.text,
-    );
+    final parameterDefinitions = _measurementDefinitions;
     final parameterGroups = <String, List<ClothingParameterDefinition>>{};
     for (final definition in parameterDefinitions) {
       parameterGroups.putIfAbsent(definition.group, () => []).add(definition);
@@ -374,6 +385,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       body: Form(
         key: _formKey,
         child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
           children: [
             InkWell(
@@ -428,36 +440,6 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                 ],
               ),
             ),
-            if (_imagePath != null) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  key: WardrobeKeys.clothingImageAnalyze,
-                  onPressed: _isAnalyzingImage
-                      ? null
-                      : () => _analyzeImage(_imagePath!),
-                  icon: _isAnalyzingImage
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.document_scanner_outlined),
-                  label: Text(_isAnalyzingImage ? '读取中…' : '读取图片参数'),
-                ),
-              ),
-              if (_imageAnalysisStatus case final status?)
-                Padding(
-                  key: WardrobeKeys.clothingImageAnalysisStatus,
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    status,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-            ],
             const SizedBox(height: 18),
             TextFormField(
               key: WardrobeKeys.clothingNameField,
@@ -486,12 +468,152 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
               ],
             ),
             const SizedBox(height: 12),
-            _SuggestionDropdown(
-              key: WardrobeKeys.clothingCategoryField,
-              controller: _categoryController,
-              label: '品类（可直接输入新增）',
-              suggestions: widget.categories,
+            Text('品类', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              key: WardrobeKeys.clothingCategoryOptions,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final category in _categoryOptions)
+                  ChoiceChip(
+                    key: WardrobeKeys.category(category),
+                    label: Text(category),
+                    selected: _selectedCategory == category,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _selectedCategory = category);
+                      }
+                    },
+                  ),
+              ],
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: WardrobeKeys.clothingSizeToggle,
+              onPressed: () {
+                setState(() => _showMeasurements = !_showMeasurements);
+              },
+              icon: Icon(
+                _showMeasurements ? Icons.expand_less : Icons.expand_more,
+              ),
+              label: const Text('衣服尺寸'),
+            ),
+            if (_showMeasurements) ...[
+              const SizedBox(height: 12),
+              _SectionCard(
+                key: WardrobeKeys.clothingSizeContent,
+                title: '衣服尺寸',
+                children: [
+                  _TextField(controller: _sizeController, label: '尺码'),
+                  InkWell(
+                    key: WardrobeKeys.clothingMeasurementImagePicker,
+                    onTap: _isPickingMeasurementImage
+                        ? null
+                        : _pickMeasurementImage,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        LocalClothingImage(
+                          imagePath: _measurementImagePath,
+                          width: double.infinity,
+                          height: 160,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.48),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isPickingMeasurementImage)
+                                  const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.document_scanner_outlined,
+                                    color: Colors.white,
+                                    size: 19,
+                                  ),
+                                const SizedBox(width: 7),
+                                Text(
+                                  _measurementImagePath == null
+                                      ? '上传尺寸图片'
+                                      : '更换尺寸图片',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_measurementImagePath != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.tonalIcon(
+                        key: WardrobeKeys.clothingMeasurementImageAnalyze,
+                        onPressed: _isAnalyzingMeasurementImage
+                            ? null
+                            : () => _analyzeMeasurementImage(
+                                _measurementImagePath!,
+                              ),
+                        icon: _isAnalyzingMeasurementImage
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.auto_awesome_outlined),
+                        label: Text(
+                          _isAnalyzingMeasurementImage ? '识别中…' : 'AI识别尺寸',
+                        ),
+                      ),
+                    ),
+                  if (_measurementAnalysisStatus case final status?)
+                    Text(
+                      status,
+                      key: WardrobeKeys.clothingMeasurementImageStatus,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  for (final entry in parameterGroups.entries) ...[
+                    Text(
+                      entry.key,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    for (final definition in entry.value)
+                      if (definition.type == ClothingParameterType.number)
+                        _NumberField(
+                          key: _legacyFieldKey(definition.key),
+                          controller: _parameterControllers[definition.key]!,
+                          label: _parameterLabel(definition),
+                        )
+                      else
+                        _TextField(
+                          controller: _parameterControllers[definition.key]!,
+                          label: definition.label,
+                        ),
+                  ],
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             _SuggestionDropdown(
               key: WardrobeKeys.clothingBrandField,
@@ -502,32 +624,8 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
             const SizedBox(height: 18),
             _SectionCard(
               title: '基础信息',
-              children: [
-                _TextField(controller: _colorController, label: '颜色'),
-                _TextField(controller: _materialController, label: '材质'),
-                _TextField(controller: _sizeController, label: '尺码'),
-              ],
+              children: [_TextField(controller: _colorController, label: '颜色')],
             ),
-            for (final entry in parameterGroups.entries) ...[
-              const SizedBox(height: 12),
-              _SectionCard(
-                title: entry.key,
-                children: [
-                  for (final definition in entry.value)
-                    if (definition.type == ClothingParameterType.number)
-                      _NumberField(
-                        key: _legacyFieldKey(definition.key),
-                        controller: _parameterControllers[definition.key]!,
-                        label: _parameterLabel(definition),
-                      )
-                    else
-                      _TextField(
-                        controller: _parameterControllers[definition.key]!,
-                        label: definition.label,
-                      ),
-                ],
-              ),
-            ],
             const SizedBox(height: 12),
             _SectionCard(
               title: '购买信息',
@@ -569,10 +667,13 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   }
 
   Map<String, ClothingParameterValue> _parameterValuesForCategory(
-    String category,
+    String? category,
   ) {
     final values = <String, ClothingParameterValue>{};
-    for (final definition in ClothingParameterCatalog.forCategory(category)) {
+    for (final definition
+        in ClothingParameterCatalog.forCategory(category).where(
+          (definition) => _visibleMeasurementGroups.contains(definition.group),
+        )) {
       final text = _parameterControllers[definition.key]!.text.trim();
       if (text.isEmpty) {
         continue;
@@ -588,6 +689,14 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
               textValue: text,
               unit: definition.unit,
             );
+    }
+    final initialValues = widget.initialItem?.parameterValues ?? const {};
+    for (final entry in initialValues.entries) {
+      final definition = ClothingParameterCatalog.byKey[entry.key];
+      if (definition != null &&
+          !_visibleMeasurementGroups.contains(definition.group)) {
+        values.putIfAbsent(entry.key, () => entry.value);
+      }
     }
     return values;
   }
@@ -668,7 +777,7 @@ class _SuggestionDropdown extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.children});
+  const _SectionCard({super.key, required this.title, required this.children});
 
   final String title;
   final List<Widget> children;

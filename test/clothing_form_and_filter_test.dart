@@ -60,10 +60,14 @@ void main() {
     expect(find.byKey(WardrobeKeys.brandFilter), findsOneWidget);
   });
 
-  testWidgets('image analysis fills blanks and changes visible parameters', (
+  testWidgets('display image and AI measurement image stay independent', (
     tester,
   ) async {
-    final imageService = _FakeImageService('missing/recognized.jpg');
+    _useTallViewport(tester);
+    final imageService = _FakeImageService([
+      'missing/display.jpg',
+      'missing/measurements.jpg',
+    ]);
     final parameterService = _FakeImageParameterService(
       ClothingImageParameters(
         name: '识别长裤',
@@ -93,9 +97,39 @@ void main() {
     final nameField = tester.widget<TextFormField>(
       find.byKey(WardrobeKeys.clothingNameField),
     );
-    expect(nameField.controller?.text, '识别长裤');
-    expect(parameterService.analyzedPaths, ['missing/recognized.jpg']);
-    expect(find.text('已读取图片参数，请核对后保存'), findsOneWidget);
+    expect(nameField.controller?.text, isEmpty);
+    expect(parameterService.analyzedPaths, isEmpty);
+
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.category('长裤')),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.category('长裤')));
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingSizeToggle),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+    await tester.pumpAndSettle();
+    expect(find.byKey(WardrobeKeys.clothingSizeContent), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingMeasurementImagePicker),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImagePicker));
+    await tester.pumpAndSettle();
+    expect(parameterService.analyzedPaths, isEmpty);
+
+    await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImageAnalyze));
+    await tester.pumpAndSettle();
+
+    expect(nameField.controller?.text, isEmpty);
+    expect(parameterService.analyzedPaths, ['missing/measurements.jpg']);
+    expect(find.text('已识别尺寸，请核对后保存'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(WardrobeKeys.clothingTrouserLengthField),
       280,
@@ -117,6 +151,7 @@ void main() {
   testWidgets('hidden measurements are cleared from the submitted item', (
     tester,
   ) async {
+    _useTallViewport(tester);
     ClothingItem? submitted;
     final now = DateTime.utc(2026, 8, 21);
     final initialItem = ClothingItem(
@@ -124,8 +159,13 @@ void main() {
       name: '测试上衣',
       imagePath: 'missing/top.jpg',
       category: '上衣',
+      material: '棉',
       clothingLength: 70,
       trouserLength: 100,
+      parameterValues: const {
+        'sku': ClothingParameterValue(key: 'sku', textValue: 'OLD-SKU'),
+        'fit': ClothingParameterValue(key: 'fit', textValue: '合身'),
+      },
       createdAt: now,
       updatedAt: now,
     );
@@ -138,7 +178,7 @@ void main() {
               submitted = await Navigator.of(context).push<ClothingItem>(
                 MaterialPageRoute(
                   builder: (context) => ClothingFormPage(
-                    imageService: _FakeImageService(null),
+                    imageService: _FakeImageService(const []),
                     initialItem: initialItem,
                     categories: const ['上衣', '长裤'],
                   ),
@@ -154,6 +194,15 @@ void main() {
     await tester.tap(find.text('打开表单'));
     await tester.pumpAndSettle();
 
+    expect(find.byKey(WardrobeKeys.clothingLengthField), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingSizeToggle),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+    await tester.pumpAndSettle();
+
     await tester.scrollUntilVisible(
       find.byKey(WardrobeKeys.clothingLengthField),
       280,
@@ -167,16 +216,156 @@ void main() {
 
     expect(submitted?.clothingLength, 70);
     expect(submitted?.trouserLength, isNull);
+    expect(submitted?.material, '棉');
+    expect(submitted?.parameterValues['sku']?.textValue, 'OLD-SKU');
+    expect(submitted?.parameterValues['fit']?.textValue, '合身');
+  });
+
+  testWidgets('category is single-select and size values survive collapsing', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ClothingFormPage(
+          imageService: _FakeImageService(const []),
+          categories: const ['外套', '上衣', '长裤'],
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.category('上衣')),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.category('上衣')));
+    await tester.tap(find.byKey(WardrobeKeys.category('长裤')));
+    await tester.pumpAndSettle();
+
+    ChoiceChip chip(String category) =>
+        tester.widget<ChoiceChip>(find.byKey(WardrobeKeys.category(category)));
+    expect(chip('上衣').selected, isFalse);
+    expect(chip('长裤').selected, isTrue);
+
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingSizeToggle),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+    await tester.pumpAndSettle();
+    expect(find.text('商品信息'), findsNothing);
+    expect(find.text('材质'), findsNothing);
+    expect(find.text('版型'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingTrouserLengthField),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(
+      find.byKey(WardrobeKeys.clothingTrouserLengthField),
+      '101',
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingSizeToggle),
+      -280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+    await tester.pumpAndSettle();
+    expect(find.byKey(WardrobeKeys.clothingTrouserLengthField), findsNothing);
+
+    await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+    await tester.pumpAndSettle();
+    final field = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(WardrobeKeys.clothingTrouserLengthField),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    expect(field.controller?.text, '101');
+  });
+
+  testWidgets('unconfigured AI leaves manually entered dimensions intact', (
+    tester,
+  ) async {
+    _useTallViewport(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ClothingFormPage(
+          imageService: _FakeImageService(const ['missing/size.jpg']),
+          categories: const ['长裤'],
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.category('长裤')),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.category('长裤')));
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingSizeToggle),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(WardrobeKeys.clothingTrouserLengthField),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(
+      find.byKey(WardrobeKeys.clothingTrouserLengthField),
+      '99',
+    );
+    await tester.ensureVisible(
+      find.byKey(WardrobeKeys.clothingMeasurementImagePicker),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImagePicker));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(WardrobeKeys.clothingMeasurementImageAnalyze),
+    );
+    await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImageAnalyze));
+    await tester.pumpAndSettle();
+
+    expect(find.text('请先配置 AI 接口，可继续手动填写尺寸'), findsOneWidget);
+    final field = tester.widget<TextFormField>(
+      find.descendant(
+        of: find.byKey(WardrobeKeys.clothingTrouserLengthField),
+        matching: find.byType(TextFormField),
+      ),
+    );
+    expect(field.controller?.text, '99');
   });
 }
 
-class _FakeImageService implements WardrobeImageService {
-  _FakeImageService(this.path);
+void _useTallViewport(WidgetTester tester) {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = const Size(800, 1200);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPhysicalSize);
+}
 
-  final String? path;
+class _FakeImageService implements WardrobeImageService {
+  _FakeImageService(this.paths);
+
+  final List<String?> paths;
+  var _nextPath = 0;
 
   @override
-  Future<String?> pickSingleFromGallery() async => path;
+  Future<String?> pickSingleFromGallery() async {
+    if (_nextPath >= paths.length) {
+      return null;
+    }
+    return paths[_nextPath++];
+  }
 
   @override
   Future<List<String>> retrieveLostData() async => const [];
