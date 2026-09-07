@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../core/auth/ai_auth_session.dart';
 import '../core/theme/app_theme.dart';
+import '../features/kitchen/data/kitchen_repository.dart';
+import '../features/kitchen/data/kitchen_ai_service.dart';
 import '../features/home/data/home_repository.dart';
 import '../features/navigation/presentation/app_shell.dart';
 import '../features/wardrobe/data/clothing_image_parameter_service.dart';
@@ -15,6 +17,8 @@ class LifeAtlasApp extends StatelessWidget {
     super.key,
     required this.controller,
     this.aiAuthSession,
+    this.kitchenRepository,
+    this.kitchenAiService,
     this.homeRepository,
     this.wardrobeRepository,
     this.wardrobeImageService,
@@ -25,6 +29,8 @@ class LifeAtlasApp extends StatelessWidget {
 
   final AppController controller;
   final AiAuthSession? aiAuthSession;
+  final KitchenRepository? kitchenRepository;
+  final KitchenAiService? kitchenAiService;
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final WardrobeImageService? wardrobeImageService;
@@ -45,6 +51,8 @@ class LifeAtlasApp extends StatelessWidget {
           home: AppShell(
             controller: controller,
             aiAuthSession: aiAuthSession,
+            kitchenRepository: kitchenRepository,
+            kitchenAiService: kitchenAiService,
             homeRepository: homeRepository,
             wardrobeRepository: wardrobeRepository,
             wardrobeImageService: wardrobeImageService,

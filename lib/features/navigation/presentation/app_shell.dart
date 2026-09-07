@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../app/app_controller.dart';
 import '../../../core/auth/ai_auth_session.dart';
 import '../../../core/settings/app_settings.dart';
+import '../../../core/config/ai_service_config.dart';
+import '../../kitchen/data/kitchen_repository.dart';
+import '../../kitchen/data/kitchen_ai_service.dart';
+import '../../kitchen/presentation/kitchen_page.dart';
 import '../../home/data/home_repository.dart';
 import '../../home/data/weather_service.dart';
 import '../../home/presentation/home_page.dart';
@@ -20,6 +24,8 @@ class AppShell extends StatefulWidget {
     super.key,
     required this.controller,
     this.aiAuthSession,
+    this.kitchenRepository,
+    this.kitchenAiService,
     this.homeRepository,
     this.wardrobeRepository,
     this.wardrobeImageService,
@@ -30,6 +36,8 @@ class AppShell extends StatefulWidget {
 
   final AppController controller;
   final AiAuthSession? aiAuthSession;
+  final KitchenRepository? kitchenRepository;
+  final KitchenAiService? kitchenAiService;
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final WardrobeImageService? wardrobeImageService;
@@ -45,6 +53,14 @@ class _AppShellState extends State<AppShell> {
   late final WardrobeRepository _wardrobeRepository;
   late final WardrobeImageService _wardrobeImageService;
   int _wardrobeRevision = 0;
+  late final _kitchenRepository =
+      widget.kitchenRepository ?? KitchenRepository();
+  late final _kitchenAiService =
+      widget.kitchenAiService ??
+      ProxyKitchenAiService(
+        endpoint: AiServiceConfig.kitchenRecommendationProxyUrl,
+        accessTokenProvider: widget.aiAuthSession?.validAccessToken,
+      );
 
   @override
   void initState() {
@@ -116,6 +132,18 @@ class _AppShellState extends State<AppShell> {
                 widget.controller.profileGender == ProfileGender.female,
             onDataChanged: _notifyWardrobeChanged,
             onDailyOutfitSaved: _applyTodayWeatherToOutfit,
+          ),
+        ),
+      if (widget.controller.kitchenModuleEnabled)
+        _AppDestination(
+          id: 'kitchen',
+          label: '厨房',
+          icon: Icons.kitchen_outlined,
+          selectedIcon: Icons.kitchen,
+          page: KitchenPage(
+            key: const PageStorageKey('kitchen'),
+            repository: _kitchenRepository,
+            aiService: _kitchenAiService,
           ),
         ),
       _AppDestination(

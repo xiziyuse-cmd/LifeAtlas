@@ -5,6 +5,7 @@
 - `GET /health`
 - `POST /v1/wardrobe/analyze`
 - `POST /v1/wardrobe/preorder-analysis`
+- `POST /v1/kitchen/recommend`：读取库存与口味要求，返回最多 5 道完整结构化菜谱。
 
 ## Cloudflare 加密变量
 
@@ -26,9 +27,13 @@
 ## 通过 Cloudflare 网页部署
 
 1. 打开独立 Worker `lifeatlas-ai-proxy` 的“编辑代码”。
-2. 用本目录的 `worker.js` 完整替换默认 Hello World。
+2. 用本目录的 `worker.js` 替换入口，同时添加同目录模块 `kitchen.js`。入口保留 `import ... from './kitchen.js'`。
 3. 点击“部署”。
 4. 访问 `https://<你的 Worker 域名>/health`，确认返回 `status: ok`。
+
+厨房推荐使用原有账号认证和 Turbo 模型，无需新增密钥。安装新版 APK 前应先部署这两个文件；旧 Worker 没有厨房路由时，客户端明确提示“厨房 AI 接口尚未部署”。本次本地自动化使用模拟模型响应验证代理契约，不代表已经部署或完成真实模型联调。
+
+自定义厨房代理地址使用 `--dart-define=LIFEATLAS_KITCHEN_AI_PROXY_URL=https://<你的 Worker 域名>/v1/kitchen/recommend`。`npm test` 同时运行现有接口与厨房接口测试。
 
 ## 正式 APK 构建
 

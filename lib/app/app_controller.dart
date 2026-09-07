@@ -12,6 +12,13 @@ class AppController extends ChangeNotifier {
   bool _outfitModuleEnabled = false;
   ProfileGender _profileGender = ProfileGender.unspecified;
   bool _initialized = false;
+  bool _kitchenModuleEnabled = false;
+  bool get kitchenModuleEnabled => _kitchenModuleEnabled;
+  Future<void> setKitchenModuleEnabled(bool enabled) async {
+    await _settingsRepository.saveKitchenModuleEnabled(enabled);
+    _kitchenModuleEnabled = enabled;
+    notifyListeners();
+  }
 
   AppThemePreference get themePreference => _themePreference;
   bool get outfitModuleEnabled => _outfitModuleEnabled;
@@ -22,6 +29,7 @@ class AppController extends ChangeNotifier {
     final settings = await _settingsRepository.load();
     _themePreference = settings.themePreference;
     _outfitModuleEnabled = settings.outfitModuleEnabled;
+    _kitchenModuleEnabled = settings.kitchenModuleEnabled;
     _profileGender = settings.profileGender;
     _initialized = true;
     notifyListeners();

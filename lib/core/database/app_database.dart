@@ -2,10 +2,11 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import 'wardrobe_schema.dart';
+import 'kitchen_schema.dart';
 
 class AppDatabase {
   static const _databaseName = 'life_atlas.db';
-  static const databaseVersion = 5;
+  static const databaseVersion = 6;
 
   AppDatabase({DatabaseFactory? factory, this.databasePath})
     : _databaseFactory = factory;
@@ -163,6 +164,7 @@ class AppDatabase {
     await upgradeWardrobeSchemaToV3(database);
     await upgradeWardrobeSchemaToV4(database);
     await upgradeWardrobeSchemaToV5(database);
+    await upgradeKitchenSchemaToV6(database);
   }
 
   Future<void> _upgradeSchema(
@@ -181,6 +183,9 @@ class AppDatabase {
     }
     if (oldVersion < 5) {
       await upgradeWardrobeSchemaToV5(database);
+    }
+    if (oldVersion < 6) {
+      await upgradeKitchenSchemaToV6(database);
     }
   }
 

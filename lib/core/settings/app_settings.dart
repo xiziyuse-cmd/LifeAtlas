@@ -42,10 +42,12 @@ class AppSettings {
   const AppSettings({
     this.themePreference = AppThemePreference.system,
     this.outfitModuleEnabled = false,
+    this.kitchenModuleEnabled = false,
     this.profileGender = ProfileGender.unspecified,
   });
 
   final AppThemePreference themePreference;
   final bool outfitModuleEnabled;
+  final bool kitchenModuleEnabled;
   final ProfileGender profileGender;
 }

@@ -1,3 +1,5 @@
+import { KITCHEN_PROMPT, normalizeKitchenInput, normalizeKitchenResult } from './kitchen.js';
+
 const DEFAULT_ARK_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
 const DEFAULT_IMAGE_MODEL = 'doubao-seed-2-1-pro-260628';
 const DEFAULT_TEXT_MODEL = 'doubao-seed-2-1-turbo-260628';
@@ -138,7 +140,8 @@ async function handleRequest(request, env) {
   const isPreorderAnalysis =
     request.method === 'POST' &&
     url.pathname === '/v1/wardrobe/preorder-analysis';
-  if (!isImageAnalysis && !isPreorderAnalysis) {
+  const isKitchenRecommendation = request.method === 'POST' && url.pathname === '/v1/kitchen/recommend';
+  if (!isImageAnalysis && !isPreorderAnalysis && !isKitchenRecommendation) {
     return jsonResponse(404, { message: '接口不存在' });
   }
 
@@ -165,6 +168,16 @@ async function handleRequest(request, env) {
   const arkBaseUrl = (
     normalizeEnv(env.ARK_BASE_URL) || DEFAULT_ARK_BASE_URL
   ).replace(/\/$/, '');
+
+  if (isKitchenRecommendation) {
+    const input = normalizeKitchenInput(body);
+    const result = await requestArk({ arkApiKey, arkBaseUrl, serviceName: '厨房推荐', requestBody: {
+      model: textModel,
+      messages: [{role: 'system', content: KITCHEN_PROMPT}, {role: 'user', content: JSON.stringify(input)}],
+      temperature: 0.2, max_tokens: 6000, response_format: {type: 'json_object'},
+    }});
+    return jsonResponse(200, {...normalizeKitchenResult(extractModelJson(result)), promptVersion: 'kitchen-v1', model: result.model || textModel, usage: result.usage || null});
+  }
 
   if (isPreorderAnalysis) {
     const input = normalizePreorderInput(body);

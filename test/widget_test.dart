@@ -5,8 +5,41 @@ import 'package:lifeatlas/app/life_atlas_app.dart';
 import 'package:lifeatlas/core/auth/ai_auth_session.dart';
 import 'package:lifeatlas/core/settings/app_settings.dart';
 import 'package:lifeatlas/core/settings/app_settings_repository.dart';
+import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
+import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 
 void main() {
+  testWidgets('kitchen module toggle adds and removes its destination', (
+    tester,
+  ) async {
+    final settings = _MemoryAppSettingsRepository();
+    final controller = AppController(settings);
+    await controller.initialize();
+    await tester.pumpWidget(
+      LifeAtlasApp(
+        controller: controller,
+        kitchenRepository: _EmptyKitchenRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-modules-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('modules-kitchen-switch')));
+    await tester.pumpAndSettle();
+    expect(settings.settings.kitchenModuleEnabled, true);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    await tester.tap(find.text('厨房'));
+    await tester.pumpAndSettle();
+    expect(find.text('菜谱'), findsOneWidget);
+    await controller.setKitchenModuleEnabled(false);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationDestination), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('profile module entry controls the dynamic bottom tab', (
     tester,
   ) async {
@@ -134,6 +167,16 @@ void main() {
 }
 
 class _MemoryAppSettingsRepository implements AppSettingsRepository {
+  @override
+  Future<void> saveKitchenModuleEnabled(bool enabled) async {
+    settings = AppSettings(
+      themePreference: settings.themePreference,
+      outfitModuleEnabled: settings.outfitModuleEnabled,
+      kitchenModuleEnabled: enabled,
+      profileGender: settings.profileGender,
+    );
+  }
+
   AppSettings settings = const AppSettings();
 
   @override
@@ -144,6 +187,7 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
     settings = AppSettings(
       themePreference: settings.themePreference,
       outfitModuleEnabled: enabled,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
       profileGender: settings.profileGender,
     );
   }
@@ -154,6 +198,7 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
       themePreference: settings.themePreference,
       outfitModuleEnabled: settings.outfitModuleEnabled,
       profileGender: gender,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
     );
   }
 
@@ -161,10 +206,20 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveThemePreference(AppThemePreference preference) async {
     settings = AppSettings(
       themePreference: preference,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
       outfitModuleEnabled: settings.outfitModuleEnabled,
       profileGender: settings.profileGender,
     );
   }
+}
+
+class _EmptyKitchenRepository extends KitchenRepository {
+  @override
+  Future<List<Recipe>> listRecipes() async => [];
+  @override
+  Future<List<InventoryItem>> listInventory() async => [];
+  @override
+  Future<List<CookingRecord>> listRecords() async => [];
 }
 
 class _MemoryAiTokenStore implements AiTokenStore {

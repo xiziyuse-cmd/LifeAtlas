@@ -6,6 +6,7 @@ abstract interface class AppSettingsRepository {
   Future<void> saveThemePreference(AppThemePreference preference);
 
   Future<void> saveOutfitModuleEnabled(bool enabled);
+  Future<void> saveKitchenModuleEnabled(bool enabled);
 
   Future<void> saveProfileGender(ProfileGender gender);
 }
