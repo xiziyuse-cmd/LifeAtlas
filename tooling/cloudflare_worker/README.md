@@ -35,6 +35,8 @@
 
 自定义厨房代理地址使用 `--dart-define=LIFEATLAS_KITCHEN_AI_PROXY_URL=https://<你的 Worker 域名>/v1/kitchen/recommend`。`npm test` 同时运行现有接口与厨房接口测试。
 
+2026-09-08 部署记录：两个模块已部署到正式 `lifeatlas-ai-proxy`，活动版本 `df67f531`。正式健康检查返回 HTTP 200，厨房推荐未登录请求返回 HTTP 401。上述线上检查确认路由和认证配置生效，真实模型结果仍需 App 内登录后验收。
+
 ## 正式 APK 构建
 
 APK 只配置 Worker HTTPS 地址，不再包含固定代理口令、登录密码、签名密钥或供应商 Key。

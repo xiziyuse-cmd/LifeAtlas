@@ -8,9 +8,11 @@
 
 产物：`build/delivery/LifeAtlas-1.3.0+15.apk`。SHA-256：`EF92FCFA6EAF1C312B393C56175BF5D5679DA4D9DC6C120DD7725F8DBFE17FE0`。
 
-未完成的外部验证：尚未真机验证媒体选择和播放。Chrome 的 Cloudflare/GitHub 登录已过期，线上 Worker 部署等待用户完成浏览器登录，真实模型尚未联调。菜品识别、菜谱优化依需求仅预留接口。
+部署收尾交付：14:30 重新构建 Release APK，包内版本和签名验证通过，文件大小与 SHA-256 同上；14:33 再次发送到微信文件传输助手，已检查文件消息并确认上传完成。
 
-下一步：浏览器登录完成后，按 `tooling/cloudflare_worker/README.md` 更新 Worker 的两个模块，再验证库存推荐与一键保存。
+2026-09-08 线上部署：用户完成 Chrome 登录后，`worker.js` 与 `kitchen.js` 已部署到 `lifeatlas-ai-proxy`，活动版本 `df67f531`。正式 `/health` 返回 HTTP 200，`POST /v1/kitchen/recommend` 未登录请求返回预期 HTTP 401，确认厨房路由和认证配置已生效。
+
+未完成的外部验证：尚未真机验证媒体选择和播放；当前没有连接 Android 设备，真实模型推荐需在 App 内登录后验收。菜品识别、菜谱优化依需求仅预留接口。
 
 ## 修改文件
 
