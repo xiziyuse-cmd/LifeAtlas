@@ -4,9 +4,13 @@
 
 验证：静态分析无问题，55 项 Flutter 测试、12 项 Worker 测试通过。320 像素宽屏幕及 1.4 倍字体布局通过界面测试。
 
-未完成的外部验证：Gradle 9.1.0 下载网络超时，沙箱外重试亦失败，未生成新版 APK；尚未真机验证媒体选择和播放。现有 Cloudflare Worker 尚未部署本次代码，真实模型尚未联调。菜品识别、菜谱优化依需求仅预留接口。
+2026-09-08 交付更新：Gradle 下载问题已解决，使用镜像文件并核对官方 SHA-256 后恢复构建。Release APK 版本 1.3.0+15，大小 56,709,802 字节，包内版本与 APK 签名验证通过。14:16 已通过微信文件传输助手发送，随后确认上传完成。
 
-下一步：网络恢复后构建 Release APK；按 `tooling/cloudflare_worker/README.md` 更新 Worker 的两个模块，再登录账号验证库存推荐与一键保存。
+产物：`build/delivery/LifeAtlas-1.3.0+15.apk`。SHA-256：`EF92FCFA6EAF1C312B393C56175BF5D5679DA4D9DC6C120DD7725F8DBFE17FE0`。
+
+未完成的外部验证：尚未真机验证媒体选择和播放。Chrome 的 Cloudflare/GitHub 登录已过期，线上 Worker 部署等待用户完成浏览器登录，真实模型尚未联调。菜品识别、菜谱优化依需求仅预留接口。
+
+下一步：浏览器登录完成后，按 `tooling/cloudflare_worker/README.md` 更新 Worker 的两个模块，再验证库存推荐与一键保存。
 
 ## 修改文件
 
@@ -15,6 +19,7 @@
 - `README.md`
 - `REQUIREMENTS.md`
 - `CHANGELOG.md`
+- `CODEX_RULES.md`（2026-09-08 增加持续打包和微信交付规则）
 - `KITCHEN_IMPLEMENTATION.md`
 - `pubspec.yaml`
 - `pubspec.lock`
