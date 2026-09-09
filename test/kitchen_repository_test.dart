@@ -9,6 +9,7 @@ import 'package:lifeatlas/core/settings/sqlite_app_settings_repository.dart';
 import 'support/test_database.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   test(
     'v5 database upgrades to kitchen schema without losing settings',
     () async {
@@ -46,7 +47,7 @@ void main() {
         await directory.delete();
       });
       final repository = KitchenRepository(database: upgraded);
-      expect(await repository.listRecipes(), hasLength(3));
+      expect(await repository.listRecipes(), hasLength(35));
       expect(
         (await SqliteAppSettingsRepository(
           upgraded,
@@ -72,7 +73,7 @@ void main() {
       addTearDown(db.close);
       final repository = KitchenRepository(database: db);
       final presets = await repository.listRecipes();
-      expect(presets, hasLength(3));
+      expect(presets, hasLength(35));
       final original = presets.first;
       final id = await repository.saveRecipe(
         Recipe.fromMap(
@@ -83,7 +84,7 @@ void main() {
       );
       expect(id, isNot(original.id));
       var recipes = await repository.listRecipes();
-      expect(recipes, hasLength(4));
+      expect(recipes, hasLength(36));
       expect(
         recipes.firstWhere((r) => r.id == original.id).name,
         original.name,
@@ -112,10 +113,10 @@ void main() {
       recipes = await repository.listRecipes();
       expect(recipes.firstWhere((r) => r.id == id).cookCount, 1);
       await repository.deleteRecipe(id);
-      expect(await repository.listRecipes(), hasLength(3));
+      expect(await repository.listRecipes(), hasLength(35));
       expect((await repository.listRecords()).single.recipeName, '改名');
       await repository.deleteRecipe(original.id!);
-      expect(await repository.listRecipes(), hasLength(3));
+      expect(await repository.listRecipes(), hasLength(35));
       expect(
         await (await db.database).rawQuery('PRAGMA foreign_key_check'),
         isEmpty,

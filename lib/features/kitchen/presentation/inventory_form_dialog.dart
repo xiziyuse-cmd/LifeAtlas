@@ -11,6 +11,7 @@ class InventoryFormDialog extends StatefulWidget {
 
 class _InventoryFormDialogState extends State<InventoryFormDialog> {
   late final TextEditingController name, amount, unit, shelfLife, remark;
+  final _nameFocus = FocusNode();
   late DateTime purchaseDate;
   @override
   void initState() {
@@ -25,6 +26,9 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
     remark = TextEditingController(text: item?.remark ?? '');
     purchaseDate = item?.purchaseDate ?? DateTime.now();
     shelfLife.addListener(_refresh);
+    _nameFocus.addListener(() {
+      if (!_nameFocus.hasFocus) _applyDefault();
+    });
   }
 
   void _refresh() => setState(() {});
@@ -39,10 +43,12 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
           ).add(Duration(days: days));
   }
 
-  void _applyDefault(String value) {
-    name.text = value;
-    if (widget.item == null) {
-      final matches = widget.foods.where((food) => food.name == value);
+  void _applyDefault() {
+    if (widget.item == null && shelfLife.text.trim().isEmpty) {
+      final normalized = name.text.trim();
+      final matches = widget.foods.where(
+        (food) => food.name.trim() == normalized,
+      );
       if (matches.isNotEmpty) {
         shelfLife.text = '${matches.first.defaultShelfLife}';
       }
@@ -95,6 +101,7 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
   @override
   void dispose() {
     shelfLife.removeListener(_refresh);
+    _nameFocus.dispose();
     for (final c in [name, amount, unit, shelfLife, remark]) {
       c.dispose();
     }
@@ -110,37 +117,18 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Autocomplete<String>(
-              optionsBuilder: (value) => value.text.isEmpty
-                  ? widget.foods.map((e) => e.name)
-                  : widget.foods
-                        .map((e) => e.name)
-                        .where((name) => name.contains(value.text)),
-              onSelected: _applyDefault,
-              fieldViewBuilder: (_, controller, focus, submit) {
-                controller.text = name.text;
-                controller.addListener(() {
-                  if (name.text != controller.text) {
-                    name.text = controller.text;
-                    if (widget.item == null && shelfLife.text.isEmpty) {
-                      final match = widget.foods.where(
-                        (food) => food.name == controller.text,
-                      );
-                      if (match.isNotEmpty) {
-                        shelfLife.text = '${match.first.defaultShelfLife}';
-                      }
-                    }
-                  }
-                });
-                return TextField(
-                  controller: controller,
-                  focusNode: focus,
-                  decoration: const InputDecoration(
-                    labelText: '食物名称',
-                    prefixIcon: Icon(Icons.restaurant_outlined),
-                  ),
-                );
+            TextField(
+              controller: name,
+              focusNode: _nameFocus,
+              textInputAction: TextInputAction.done,
+              onEditingComplete: () {
+                _applyDefault();
+                _nameFocus.unfocus();
               },
+              decoration: const InputDecoration(
+                labelText: '食物名称',
+                prefixIcon: Icon(Icons.restaurant_outlined),
+              ),
             ),
             const SizedBox(height: 12),
             Row(

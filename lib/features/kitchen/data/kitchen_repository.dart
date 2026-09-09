@@ -1,8 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/kitchen_models.dart';
-import 'preset_recipes.dart';
 
 class KitchenRepository {
   KitchenRepository({AppDatabase? database})
@@ -10,20 +10,51 @@ class KitchenRepository {
   final AppDatabase _database;
 
   Future<void> ensurePresets() async {
+    const markerKey = 'kitchen_presets_v2';
     final db = await _database.database;
     await db.transaction((tx) async {
       final marker = await tx.query(
         'app_settings',
         where: 'setting_key = ?',
-        whereArgs: ['kitchen_presets_v1'],
+        whereArgs: [markerKey],
       );
       if (marker.isNotEmpty) return;
-      for (final recipe in presetRecipes) {
-        await _save(tx, recipe, source: 'preset');
+      final raw = await rootBundle.loadString(
+        'assets/data/preset_recipes.json',
+      );
+      final recipes = (jsonDecode(raw) as List).map(
+        (item) => Recipe.fromMap(
+          Map<String, Object?>.from(item as Map),
+          sourceType: 'preset',
+        ),
+      );
+      for (final recipe in recipes) {
+        recipe.validate();
+        final existing = await tx.query(
+          'recipe',
+          columns: ['id'],
+          where: 'source_type = ? AND name = ? AND is_deleted = 0',
+          whereArgs: ['preset', recipe.name],
+          limit: 1,
+        );
+        if (existing.isEmpty) {
+          await _save(tx, recipe, source: 'preset');
+        } else {
+          await _save(
+            tx,
+            Recipe.fromMap(
+              recipe.toMap(),
+              id: existing.first['id'] as int,
+              sourceType: 'preset',
+            ),
+            source: 'preset',
+            copyPreset: false,
+          );
+        }
       }
       await tx.insert('app_settings', {
-        'setting_key': 'kitchen_presets_v1',
-        'setting_value': '1',
+        'setting_key': markerKey,
+        'setting_value': '2',
       });
     });
   }
@@ -101,6 +132,7 @@ class KitchenRepository {
     DatabaseExecutor tx,
     Recipe recipe, {
     String source = 'personal',
+    bool copyPreset = true,
   }) async {
     final now = DateTime.now().toIso8601String();
     final values = {
@@ -120,7 +152,7 @@ class KitchenRepository {
         whereArgs: [id],
       );
       if (current.isEmpty) throw StateError('菜谱已删除，请返回刷新');
-      if (current.first['source_type'] == 'preset') id = null;
+      if (copyPreset && current.first['source_type'] == 'preset') id = null;
     }
     if (id == null) {
       id = await tx.insert('recipe', {...values, 'create_time': now});

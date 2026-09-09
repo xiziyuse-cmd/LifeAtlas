@@ -52,9 +52,8 @@ void main() {
         ),
       ),
     );
-    await tester.enterText(find.widgetWithText(TextField, '食物名称'), '鸡');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('鸡蛋'));
+    await tester.enterText(find.widgetWithText(TextField, '食物名称'), '鸡蛋');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     final shelfField = tester.widget<TextField>(
       find.widgetWithText(TextField, '保质期（天）'),
@@ -71,7 +70,7 @@ void main() {
       findsOneWidget,
     );
   });
-  testWidgets('kitchen has three-column cards and all tabs on narrow screen', (
+  testWidgets('kitchen has search, three-column cards and two tabs', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(320, 720);
@@ -99,13 +98,18 @@ void main() {
       3,
     );
     expect(find.text('西红柿炒鸡蛋'), findsOneWidget);
+    expect(find.text('搜索菜名、分类或食材'), findsOneWidget);
+    expect(find.text('制作记录'), findsNothing);
+    await tester.enterText(find.byType(TextField).first, '土豆');
+    await tester.pump();
+    expect(find.text('青椒土豆丝'), findsOneWidget);
+    expect(find.text('西红柿炒鸡蛋'), findsNothing);
+    await tester.enterText(find.byType(TextField).first, '');
+    await tester.pump();
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('库存'));
     await tester.pumpAndSettle();
     expect(find.text('AI推荐菜谱'), findsOneWidget);
-    await tester.tap(find.text('制作记录'));
-    await tester.pumpAndSettle();
-    expect(find.text('记录制作'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('preset editor preserves material and step details when saving', (

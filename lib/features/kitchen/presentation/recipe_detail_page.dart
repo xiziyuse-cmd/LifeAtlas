@@ -3,7 +3,6 @@ import '../data/kitchen_repository.dart';
 import '../domain/kitchen_models.dart';
 import 'kitchen_widgets.dart';
 import 'recipe_form_page.dart';
-import 'record_form_page.dart';
 
 class RecipeDetailPage extends StatefulWidget {
   const RecipeDetailPage({
@@ -20,12 +19,34 @@ class RecipeDetailPage extends StatefulWidget {
 class _RecipeDetailPageState extends State<RecipeDetailPage> {
   late Recipe _recipe = widget.recipe;
   bool _busy = false;
-  Future<void> _action(Future<void> Function() action) async {
+
+  Future<void> _edit() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            RecipeFormPage(repository: widget.repository, recipe: _recipe),
+      ),
+    );
+    if (!mounted) return;
+    final recipes = await widget.repository.listRecipes();
+    if (_recipe.sourceType != 'preset') {
+      final matches = recipes.where((item) => item.id == _recipe.id);
+      if (matches.isNotEmpty) setState(() => _recipe = matches.first);
+    }
+  }
+
+  Future<void> _delete() async {
+    if (_recipe.id == null ||
+        !await confirmKitchenDelete(context, _recipe.name)) {
+      return;
+    }
     setState(() => _busy = true);
     try {
-      await action();
-    } catch (e) {
-      if (mounted) kitchenError(context, e);
+      await widget.repository.deleteRecipe(_recipe.id!);
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (mounted) kitchenError(context, error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -33,167 +54,253 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final r = _recipe;
-    final sorted = [...r.seasonings]..sort((a, b) => a.sort.compareTo(b.sort));
+    final recipe = _recipe;
+    final theme = Theme.of(context);
+    final seasonings = [...recipe.seasonings]
+      ..sort((a, b) => a.sort.compareTo(b.sort));
     return Scaffold(
-      appBar: AppBar(title: Text(r.name)),
+      appBar: AppBar(
+        title: const Text('菜谱详情'),
+        actions: [
+          if (recipe.sourceType != 'preset')
+            PopupMenuButton<String>(
+              onSelected: (value) => value == 'edit' ? _edit() : _delete(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('编辑菜谱')),
+                PopupMenuItem(value: 'delete', child: Text('删除菜谱')),
+              ],
+            ),
+        ],
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          KitchenImage(r.image, height: 220),
-          const SizedBox(height: 12),
-          Text(r.name, style: Theme.of(context).textTheme.headlineSmall),
-          Text('${r.categories.join(' | ')} · ${r.difficulty}'),
-          Text('${r.cookTime}分钟 · 制作${r.cookCount}次'),
-          if (r.sourceType == 'preset') const Text('预置菜谱 · 编辑后保存为个人版本'),
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: KitchenImage(recipe.image, height: double.infinity),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            recipe.name,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
-              if (r.id == null)
-                FilledButton(
-                  onPressed: _busy
-                      ? null
-                      : () => _action(() async {
-                          final id = await widget.repository.saveRecipe(r);
-                          final recipes = await widget.repository.listRecipes();
-                          if (mounted) {
-                            setState(
-                              () => _recipe = recipes.firstWhere(
-                                (e) => e.id == id,
-                              ),
-                            );
-                          }
-                        }),
-                  child: const Text('一键添加到菜谱库'),
+              ...recipe.categories.map(
+                (value) => Chip(
+                  label: Text(value),
+                  avatar: const Icon(Icons.local_offer_outlined, size: 16),
                 ),
-              if (r.id != null)
-                FilledButton(
-                  onPressed: _busy
-                      ? null
-                      : () => _action(() async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RecordFormPage(
-                                repository: widget.repository,
-                                recipe: r,
-                              ),
-                            ),
-                          );
-                          final list = await widget.repository.listRecipes();
-                          if (mounted) {
-                            setState(
-                              () => _recipe = list.firstWhere(
-                                (e) => e.id == r.id,
-                              ),
-                            );
-                          }
-                        }),
-                  child: const Text('记录制作'),
-                ),
-              OutlinedButton(
-                onPressed: _busy
-                    ? null
-                    : () => _action(() async {
-                        final id = await Navigator.push<int>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => RecipeFormPage(
-                              repository: widget.repository,
-                              recipe: r,
-                            ),
-                          ),
-                        );
-                        if (id != null) {
-                          final list = await widget.repository.listRecipes();
-                          if (mounted) {
-                            setState(
-                              () =>
-                                  _recipe = list.firstWhere((e) => e.id == id),
-                            );
-                          }
-                        }
-                      }),
-                child: Text(r.sourceType == 'preset' ? '编辑为个人版本' : '编辑'),
               ),
-              if (r.id != null && r.sourceType != 'preset')
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () async {
-                          if (!await confirmKitchenDelete(context, '菜谱') ||
-                              !mounted) {
-                            return;
-                          }
-                          await _action(() async {
-                            await widget.repository.deleteRecipe(r.id!);
-                            if (context.mounted) Navigator.pop(context);
-                          });
-                        },
-                  child: const Text('删除'),
-                ),
+              Chip(
+                label: Text(recipe.difficulty),
+                avatar: const Icon(Icons.signal_cellular_alt, size: 16),
+              ),
             ],
           ),
-          const Divider(),
-          Text('食材', style: Theme.of(context).textTheme.titleLarge),
-          for (final m in r.materials)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text('${m.name} ${m.quantity}'),
-              subtitle: m.remark.isEmpty ? null : Text(m.remark),
-            ),
-          Text('调料', style: Theme.of(context).textTheme.titleLarge),
-          for (final m in sorted)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text('${m.name} ${m.quantity}'),
-              subtitle: Text(
-                '${m.stage} · 顺序 ${m.sort}${m.remark.isEmpty ? '' : ' · ${m.remark}'}',
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '预计制作 ${recipe.cookTime} 分钟',
+                style: theme.textTheme.titleMedium,
               ),
-            ),
-          Text('制作过程', style: Theme.of(context).textTheme.titleLarge),
-          for (var i = 0; i < r.steps.length; i++) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${i + 1}. ${r.steps[i].name}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text('耗时：${r.steps[i].duration}分钟'),
-                    const SizedBox(height: 12),
-                    Text(r.steps[i].content),
-                    const SizedBox(height: 8),
-                    if (r.steps[i].materials.isNotEmpty)
-                      Text(
-                        '使用食材：${r.materials.where((m) => r.steps[i].materials.contains(m.name)).map((m) => '${m.name} ${m.quantity}').join('、')}',
-                      ),
-                    for (final m in sorted.where(
-                      (m) =>
-                          r.steps[i].seasonings.contains(m.name) ||
-                          m.stage == r.steps[i].name,
-                    ))
-                      Text('${m.sort}. ${m.name} ${m.quantity}'),
-                    if (r.steps[i].image.isNotEmpty)
-                      KitchenImage(r.steps[i].image),
-                    if (r.steps[i].video.isNotEmpty)
-                      KitchenVideo(
-                        r.steps[i].video,
-                        key: ValueKey(r.steps[i].video),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (i < r.steps.length - 1)
-              const Center(child: Icon(Icons.arrow_downward)),
-          ],
+            ],
+          ),
           const SizedBox(height: 24),
+          _section(context, '食材', Icons.shopping_basket_outlined, [
+            for (final item in recipe.materials) _ingredient(context, item),
+          ]),
+          const SizedBox(height: 16),
+          _section(context, '调料', Icons.science_outlined, [
+            for (final item in seasonings)
+              _ingredient(context, item, seasoning: true),
+          ]),
+          const SizedBox(height: 24),
+          Text(
+            '制作步骤',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (var i = 0; i < recipe.steps.length; i++)
+            _step(
+              context,
+              recipe.steps[i],
+              i + 1,
+              i == recipe.steps.length - 1,
+            ),
+          const SizedBox(height: 16),
+          if (recipe.sourceType == 'preset')
+            FilledButton.icon(
+              onPressed: _busy ? null : _edit,
+              icon: const Icon(Icons.bookmark_add_outlined),
+              label: const Text('保存为个人版本'),
+            )
+          else
+            FilledButton.icon(
+              onPressed: _busy ? null : _edit,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('编辑菜谱'),
+            ),
         ],
       ),
     );
   }
+
+  Widget _section(
+    BuildContext context,
+    String title,
+    IconData icon,
+    List<Widget> children,
+  ) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    ),
+  );
+
+  Widget _ingredient(
+    BuildContext context,
+    RecipeMaterial item, {
+    bool seasoning = false,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.name,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Text(item.quantity, style: Theme.of(context).textTheme.titleSmall),
+          ],
+        ),
+        if (item.remark.isNotEmpty)
+          Text(
+            '备注：${item.remark}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        if (seasoning)
+          Text(
+            '阶段：${item.stage} · 顺序：${item.sort}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+      ],
+    ),
+  );
+
+  Widget _step(BuildContext context, RecipeStep step, int number, bool last) =>
+      IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 40,
+              child: Column(
+                children: [
+                  CircleAvatar(radius: 16, child: Text('$number')),
+                  if (!last)
+                    Expanded(
+                      child: Container(
+                        width: 2,
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Card(
+                margin: const EdgeInsets.only(bottom: 14),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              step.name,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          const Icon(Icons.timer_outlined, size: 17),
+                          const SizedBox(width: 4),
+                          Text('${step.duration}分钟'),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(step.content),
+                      if (step.materials.isNotEmpty ||
+                          step.seasonings.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            ...step.materials.map(
+                              (name) => Chip(
+                                visualDensity: VisualDensity.compact,
+                                label: Text(name),
+                              ),
+                            ),
+                            ...step.seasonings.map(
+                              (name) => Chip(
+                                visualDensity: VisualDensity.compact,
+                                label: Text(name),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (step.image.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        KitchenImage(step.image),
+                      ],
+                      if (step.video.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        KitchenVideo(step.video),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }

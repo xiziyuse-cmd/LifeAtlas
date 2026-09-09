@@ -17,6 +17,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
   late final _time = TextEditingController(
     text: '${widget.recipe?.cookTime ?? 20}',
   );
+  final _customCategory = TextEditingController();
   late String _image = widget.recipe?.image ?? '',
       _difficulty = widget.recipe?.difficulty ?? '简单';
   late final _categories = <String>{...?widget.recipe?.categories};
@@ -28,7 +29,17 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
   void dispose() {
     _name.dispose();
     _time.dispose();
+    _customCategory.dispose();
     super.dispose();
+  }
+
+  void _addCustomCategory() {
+    final value = _customCategory.text.trim();
+    if (value.isEmpty) return;
+    setState(() {
+      _categories.add(value);
+      _customCategory.clear();
+    });
   }
 
   Future<void> _material(bool seasoning, [int? index]) async {
@@ -207,34 +218,55 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
             decoration: const InputDecoration(labelText: '菜名'),
           ),
           const SizedBox(height: 16),
-          const Text('分类'),
+          Text('分类', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               for (final c in {...kitchenCategories, ..._categories})
                 FilterChip(
                   label: Text(c),
+                  avatar: SizedBox(
+                    width: 18,
+                    child: Icon(
+                      Icons.check,
+                      size: 16,
+                      color: _categories.contains(c)
+                          ? null
+                          : Colors.transparent,
+                    ),
+                  ),
+                  showCheckmark: false,
                   selected: _categories.contains(c),
                   onSelected: (v) => setState(() {
                     v ? _categories.add(c) : _categories.remove(c);
                   }),
                 ),
-              ActionChip(
-                label: const Text('自定义分类'),
-                onPressed: () async {
-                  final v = await kitchenFields(
-                    context,
-                    '自定义分类',
-                    ['分类名称'],
-                    [''],
-                  );
-                  if (v != null && v.first.isNotEmpty && mounted) {
-                    setState(() => _categories.add(v.first));
-                  }
-                },
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customCategory,
+                  decoration: const InputDecoration(
+                    labelText: '自定义分类',
+                    hintText: '输入分类名称',
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addCustomCategory(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                onPressed: _addCustomCategory,
+                child: const Text('添加'),
               ),
             ],
           ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _difficulty,
             decoration: const InputDecoration(labelText: '难度'),

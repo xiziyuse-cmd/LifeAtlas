@@ -21,6 +21,18 @@ class KitchenImage extends StatelessWidget {
               child: const Icon(Icons.restaurant, size: 40),
             ),
           )
+        : path.startsWith('assets/')
+        ? Image.asset(
+            path,
+            height: height,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => SizedBox(
+              height: height,
+              width: double.infinity,
+              child: const Center(child: Icon(Icons.broken_image_outlined)),
+            ),
+          )
         : Image.file(
             File(path),
             height: height,
