@@ -14,4 +14,15 @@ void main() {
     await repository.saveProfileGender(ProfileGender.female);
     expect((await repository.load()).profileGender, ProfileGender.female);
   });
+
+  test('theme palette persists independently from brightness mode', () async {
+    final database = await openTestAppDatabase();
+    addTearDown(database.close);
+    final repository = SqliteAppSettingsRepository(database);
+    await repository.saveThemePreference(AppThemePreference.dark);
+    await repository.saveThemePalette(AppThemePalette.milkPudding);
+    final settings = await repository.load();
+    expect(settings.themePreference, AppThemePreference.dark);
+    expect(settings.themePalette, AppThemePalette.milkPudding);
+  });
 }

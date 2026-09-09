@@ -45,8 +45,8 @@ class LifeAtlasApp extends StatelessWidget {
         return MaterialApp(
           title: 'LifeAtlas',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
+          theme: AppTheme.light(controller.themePalette),
+          darkTheme: AppTheme.dark(controller.themePalette),
           themeMode: controller.themePreference.themeMode,
           home: AppShell(
             controller: controller,

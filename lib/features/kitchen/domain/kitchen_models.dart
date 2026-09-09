@@ -163,12 +163,15 @@ class InventoryItem {
     required this.unit,
     this.remark = '',
     this.expireDate,
+    this.purchaseDate,
+    this.shelfLifeDays,
     required this.updatedAt,
   });
   final int? id;
   final String name, unit, remark;
   final double amount;
-  final DateTime? expireDate;
+  final DateTime? expireDate, purchaseDate;
+  final int? shelfLifeDays;
   final DateTime updatedAt;
   Map<String, Object?> toMap() => {
     'name': name,
@@ -176,6 +179,8 @@ class InventoryItem {
     'unit': unit,
     'remark': remark,
     'expire_date': expireDate?.toIso8601String(),
+    'purchase_date': purchaseDate?.toIso8601String(),
+    'shelf_life_days': shelfLifeDays,
     'update_time': updatedAt.toIso8601String(),
   };
   factory InventoryItem.fromMap(Map<String, Object?> m) => InventoryItem(
@@ -185,7 +190,44 @@ class InventoryItem {
     unit: m['unit'] as String,
     remark: m['remark'] as String,
     expireDate: DateTime.tryParse(m['expire_date'] as String? ?? ''),
+    purchaseDate: DateTime.tryParse(m['purchase_date'] as String? ?? ''),
+    shelfLifeDays: m['shelf_life_days'] as int?,
     updatedAt: DateTime.parse(m['update_time'] as String),
+  );
+
+  int? remainingDays([DateTime? now]) {
+    if (expireDate == null) return null;
+    final today = DateTime.parse(kitchenDate(now ?? DateTime.now()));
+    final expiry = DateTime.parse(kitchenDate(expireDate!));
+    return expiry.difference(today).inDays;
+  }
+
+  InventoryFreshness get freshness {
+    final days = remainingDays();
+    if (days == null) return InventoryFreshness.unknown;
+    if (days < 0) return InventoryFreshness.expired;
+    if (days == 0) return InventoryFreshness.today;
+    if (days <= 3) return InventoryFreshness.nearExpiry;
+    return InventoryFreshness.fresh;
+  }
+}
+
+enum InventoryFreshness { fresh, nearExpiry, today, expired, unknown }
+
+class FoodBaseInfo {
+  const FoodBaseInfo({
+    required this.name,
+    required this.category,
+    required this.defaultShelfLife,
+    required this.storageType,
+  });
+  final String name, category, storageType;
+  final int defaultShelfLife;
+  factory FoodBaseInfo.fromMap(Map<String, Object?> m) => FoodBaseInfo(
+    name: m['name'] as String,
+    category: m['category'] as String,
+    defaultShelfLife: m['default_shelf_life'] as int,
+    storageType: m['storage_type'] as String,
   );
 }
 

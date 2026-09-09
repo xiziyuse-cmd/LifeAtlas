@@ -99,6 +99,28 @@ void main() {
     );
   });
 
+  testWidgets('settings theme preview changes and persists palette', (
+    tester,
+  ) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    await controller.initialize();
+    await tester.pumpWidget(LifeAtlasApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-theme-entry')));
+    await tester.pumpAndSettle();
+    expect(find.text('设置'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('settings-theme-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('theme-milkPudding')));
+    await tester.pumpAndSettle();
+    expect(controller.themePalette, AppThemePalette.milkPudding);
+    expect(repository.settings.themePalette, AppThemePalette.milkPudding);
+    expect(find.text('✓ 当前使用'), findsOneWidget);
+  });
+
   testWidgets('bottom tab pages do not show a common app bar title', (
     tester,
   ) async {
@@ -153,7 +175,7 @@ void main() {
     await tester.tap(find.text('我的'));
     await tester.pumpAndSettle();
     final bodyEntry = find.byKey(const ValueKey('profile-body-entry'));
-    await tester.ensureVisible(bodyEntry);
+    await tester.scrollUntilVisible(bodyEntry, 300);
     await tester.pumpAndSettle();
     await tester.tap(bodyEntry);
     await tester.pumpAndSettle();
@@ -171,6 +193,7 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveKitchenModuleEnabled(bool enabled) async {
     settings = AppSettings(
       themePreference: settings.themePreference,
+      themePalette: settings.themePalette,
       outfitModuleEnabled: settings.outfitModuleEnabled,
       kitchenModuleEnabled: enabled,
       profileGender: settings.profileGender,
@@ -186,6 +209,7 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveOutfitModuleEnabled(bool enabled) async {
     settings = AppSettings(
       themePreference: settings.themePreference,
+      themePalette: settings.themePalette,
       outfitModuleEnabled: enabled,
       kitchenModuleEnabled: settings.kitchenModuleEnabled,
       profileGender: settings.profileGender,
@@ -196,6 +220,7 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveProfileGender(ProfileGender gender) async {
     settings = AppSettings(
       themePreference: settings.themePreference,
+      themePalette: settings.themePalette,
       outfitModuleEnabled: settings.outfitModuleEnabled,
       profileGender: gender,
       kitchenModuleEnabled: settings.kitchenModuleEnabled,
@@ -206,6 +231,18 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveThemePreference(AppThemePreference preference) async {
     settings = AppSettings(
       themePreference: preference,
+      themePalette: settings.themePalette,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
+      outfitModuleEnabled: settings.outfitModuleEnabled,
+      profileGender: settings.profileGender,
+    );
+  }
+
+  @override
+  Future<void> saveThemePalette(AppThemePalette palette) async {
+    settings = AppSettings(
+      themePreference: settings.themePreference,
+      themePalette: palette,
       kitchenModuleEnabled: settings.kitchenModuleEnabled,
       outfitModuleEnabled: settings.outfitModuleEnabled,
       profileGender: settings.profileGender,

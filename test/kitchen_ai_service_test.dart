@@ -20,6 +20,10 @@ void main() {
         final input =
             jsonDecode(await utf8.decoder.bind(request).join()) as Map;
         expect((input['inventory'] as List).single['name'], '鸡蛋');
+        expect(
+          (input['inventory'] as List).single['remaining_days'],
+          isA<int>(),
+        );
         expect(input['instruction'], '少油');
         request.response.headers.contentType = ContentType.json;
         request.response.write(
@@ -43,6 +47,7 @@ void main() {
           name: '鸡蛋',
           amount: 3,
           unit: '个',
+          expireDate: DateTime.now().add(const Duration(days: 2)),
           updatedAt: DateTime.now(),
         ),
       ];

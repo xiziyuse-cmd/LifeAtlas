@@ -5,6 +5,7 @@ import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
 import 'package:lifeatlas/features/kitchen/data/preset_recipes.dart';
 import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 import 'package:lifeatlas/features/kitchen/presentation/kitchen_page.dart';
+import 'package:lifeatlas/features/kitchen/presentation/inventory_form_dialog.dart';
 import 'package:lifeatlas/features/kitchen/presentation/recipe_form_page.dart';
 
 class _Repository extends KitchenRepository {
@@ -32,6 +33,44 @@ class _Ai implements KitchenAiService {
 }
 
 void main() {
+  testWidgets('inventory form applies editable food shelf-life default', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: InventoryFormDialog(
+            foods: [
+              FoodBaseInfo(
+                name: '鸡蛋',
+                category: '蛋类',
+                defaultShelfLife: 30,
+                storageType: '冷藏',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.enterText(find.widgetWithText(TextField, '食物名称'), '鸡');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('鸡蛋'));
+    await tester.pumpAndSettle();
+    final shelfField = tester.widget<TextField>(
+      find.widgetWithText(TextField, '保质期（天）'),
+    );
+    expect(shelfField.controller?.text, '30');
+    expect(
+      find.text(kitchenDate(DateTime.now().add(const Duration(days: 30)))),
+      findsOneWidget,
+    );
+    await tester.enterText(find.widgetWithText(TextField, '保质期（天）'), '21');
+    await tester.pump();
+    expect(
+      find.text(kitchenDate(DateTime.now().add(const Duration(days: 21)))),
+      findsOneWidget,
+    );
+  });
   testWidgets('kitchen has three-column cards and all tabs on narrow screen', (
     tester,
   ) async {

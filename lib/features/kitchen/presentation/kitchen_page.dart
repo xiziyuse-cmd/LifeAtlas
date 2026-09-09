@@ -7,6 +7,7 @@ import 'recipe_form_page.dart';
 import 'recipe_detail_page.dart';
 import 'record_form_page.dart';
 import 'kitchen_recommendation_page.dart';
+import 'inventory_form_dialog.dart';
 
 class KitchenPage extends StatefulWidget {
   const KitchenPage({
@@ -62,55 +63,15 @@ class _KitchenPageState extends State<KitchenPage> {
   }
 
   Future<void> _editInventory([InventoryItem? item]) async {
-    final values = await kitchenFields(
-      context,
-      item == null ? '新增库存' : '编辑库存',
-      ['食材名称', '剩余数量', '单位', '备注', '到期日（可选，YYYY-MM-DD）'],
-      [
-        item?.name ?? '',
-        '${item?.amount ?? ''}',
-        item?.unit ?? '个',
-        item?.remark ?? '',
-        item?.expireDate == null ? '' : kitchenDate(item!.expireDate!),
-      ],
-      numeric: {1},
-      validate: (values) {
-        final amount = double.tryParse(values[1]);
-        if (values[0].isEmpty ||
-            values[2].isEmpty ||
-            amount == null ||
-            !amount.isFinite ||
-            amount < 0) {
-          return '请填写名称、非负数量和单位';
-        }
-        final date = DateTime.tryParse(values[4]);
-        if (values[4].isNotEmpty &&
-            (date == null || kitchenDate(date) != values[4])) {
-          return '到期日格式应为 YYYY-MM-DD';
-        }
-        return null;
-      },
+    final foods = await widget.repository.listFoodBaseInfo();
+    if (!mounted) return;
+    final value = await showDialog<InventoryItem>(
+      context: context,
+      builder: (_) => InventoryFormDialog(item: item, foods: foods),
     );
-    if (values == null || !mounted) return;
+    if (value == null || !mounted) return;
     try {
-      final amount = double.tryParse(values[1]);
-      final expiry = values[4].isEmpty ? null : DateTime.tryParse(values[4]);
-      if (amount == null ||
-          (values[4].isNotEmpty &&
-              (expiry == null || kitchenDate(expiry) != values[4]))) {
-        throw const FormatException('请填写有效数量及 YYYY-MM-DD 格式的日期');
-      }
-      await widget.repository.saveInventory(
-        InventoryItem(
-          id: item?.id,
-          name: values[0],
-          amount: amount,
-          unit: values[2],
-          remark: values[3],
-          expireDate: expiry,
-          updatedAt: DateTime.now(),
-        ),
-      );
+      await widget.repository.saveInventory(value);
       await _load();
     } catch (e) {
       if (mounted) kitchenError(context, e);
@@ -298,14 +259,52 @@ class _KitchenPageState extends State<KitchenPage> {
                               padding: EdgeInsets.all(24),
                               child: Text('暂无库存，添加家中已有的食材和调料'),
                             ),
+                          if (_inventory.any(
+                            (item) =>
+                                item.freshness ==
+                                    InventoryFreshness.nearExpiry ||
+                                item.freshness == InventoryFreshness.today ||
+                                item.freshness == InventoryFreshness.expired,
+                          )) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              '即将过期',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '优先处理临期和已过期食物',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Text(
+                            '全部库存',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                           for (final item in _inventory)
                             Card(
                               child: ListTile(
                                 title: Text(
                                   '${item.name}  ${item.amount}${item.unit}',
                                 ),
-                                subtitle: Text(
-                                  '${kitchenDate(item.updatedAt)}更新${item.expireDate == null ? '' : '\n到期：${kitchenDate(item.expireDate!)}'}${item.remark.isEmpty ? '' : '\n${item.remark}'}',
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (item.expireDate != null)
+                                        Text(
+                                          '预计过期：${kitchenDate(item.expireDate!)} · ${_remainingText(item)}',
+                                        ),
+                                      Text(
+                                        '${kitchenDate(item.updatedAt)}更新${item.remark.isEmpty ? '' : ' · ${item.remark}'}',
+                                      ),
+                                      const SizedBox(height: 7),
+                                      _FreshnessChip(item: item),
+                                    ],
+                                  ),
                                 ),
                                 onTap: () => _editInventory(item),
                                 trailing: IconButton(
@@ -389,4 +388,50 @@ class _KitchenPageState extends State<KitchenPage> {
       ],
     ),
   );
+}
+
+String _remainingText(InventoryItem item) {
+  final days = item.remainingDays();
+  if (days == null) return '未设置保质期';
+  if (days < 0) return '已过期${-days}天';
+  if (days == 0) return '今天到期';
+  return '剩余$days天';
+}
+
+class _FreshnessChip extends StatelessWidget {
+  const _FreshnessChip({required this.item});
+  final InventoryItem item;
+  @override
+  Widget build(BuildContext context) {
+    final (label, icon, color) = switch (item.freshness) {
+      InventoryFreshness.fresh => ('新鲜', Icons.eco_outlined, Colors.green),
+      InventoryFreshness.nearExpiry => ('临期', Icons.schedule, Colors.orange),
+      InventoryFreshness.today => (
+        '今日到期',
+        Icons.notification_important_outlined,
+        Colors.deepOrange,
+      ),
+      InventoryFreshness.expired => (
+        '已过期',
+        Icons.warning_amber_rounded,
+        Colors.red,
+      ),
+      InventoryFreshness.unknown => (
+        '未设置',
+        Icons.help_outline,
+        Theme.of(context).colorScheme.outline,
+      ),
+    };
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Chip(
+        avatar: Icon(icon, size: 16, color: color),
+        label: Text(label),
+        labelStyle: TextStyle(color: color, fontWeight: FontWeight.w700),
+        backgroundColor: color.withValues(alpha: .1),
+        side: BorderSide(color: color.withValues(alpha: .35)),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
 }

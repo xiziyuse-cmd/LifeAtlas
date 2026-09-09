@@ -7,8 +7,10 @@ const recipe = {name: '鸡蛋汤', categories: ['汤类'], difficulty: '简单',
 test('kitchen input validates quantities and drops unrelated fields', () => {
   assert.throws(() => normalizeKitchenInput({inventory: []}), e => e.status === 400);
   assert.throws(() => normalizeKitchenInput({inventory: [{name: '盐', amount: -1, unit: 'g'}]}), e => e.status === 400);
-  const input = normalizeKitchenInput({inventory: [{name: '鸡蛋', amount: 3, unit: '个', secret: 'drop'}], instruction: '少油'});
+  const input = normalizeKitchenInput({inventory: [{name: '鸡蛋', amount: 3, unit: '个', remaining_days: 2, secret: 'drop'}], instruction: '少油'});
   assert.equal(input.inventory[0].secret, undefined);
+  assert.equal(input.inventory[0].remaining_days, 2);
+  assert.throws(() => normalizeKitchenInput({inventory: [{name: '鸡蛋', amount: 3, unit: '个', remaining_days: 1.5}]}), e => e.status === 400);
   assert.equal(input.instruction, '少油');
 });
 test('kitchen response validates step references and removes model media paths', () => {

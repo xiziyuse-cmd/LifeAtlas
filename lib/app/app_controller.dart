@@ -9,6 +9,7 @@ class AppController extends ChangeNotifier {
   final AppSettingsRepository _settingsRepository;
 
   AppThemePreference _themePreference = AppThemePreference.system;
+  AppThemePalette _themePalette = AppThemePalette.defaultTheme;
   bool _outfitModuleEnabled = false;
   ProfileGender _profileGender = ProfileGender.unspecified;
   bool _initialized = false;
@@ -21,6 +22,7 @@ class AppController extends ChangeNotifier {
   }
 
   AppThemePreference get themePreference => _themePreference;
+  AppThemePalette get themePalette => _themePalette;
   bool get outfitModuleEnabled => _outfitModuleEnabled;
   ProfileGender get profileGender => _profileGender;
   bool get initialized => _initialized;
@@ -28,6 +30,7 @@ class AppController extends ChangeNotifier {
   Future<void> initialize() async {
     final settings = await _settingsRepository.load();
     _themePreference = settings.themePreference;
+    _themePalette = settings.themePalette;
     _outfitModuleEnabled = settings.outfitModuleEnabled;
     _kitchenModuleEnabled = settings.kitchenModuleEnabled;
     _profileGender = settings.profileGender;
@@ -42,6 +45,13 @@ class AppController extends ChangeNotifier {
 
     await _settingsRepository.saveThemePreference(preference);
     _themePreference = preference;
+    notifyListeners();
+  }
+
+  Future<void> setThemePalette(AppThemePalette palette) async {
+    if (_themePalette == palette) return;
+    await _settingsRepository.saveThemePalette(palette);
+    _themePalette = palette;
     notifyListeners();
   }
 

@@ -78,7 +78,9 @@ class ProxyKitchenAiService implements KitchenAiService {
     request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
     request.write(
       jsonEncode({
-        'inventory': inventory.map((i) => i.toMap()).toList(),
+        'inventory': inventory
+            .map((i) => {...i.toMap(), 'remaining_days': i.remainingDays()})
+            .toList(),
         'instruction': instruction,
       }),
     );

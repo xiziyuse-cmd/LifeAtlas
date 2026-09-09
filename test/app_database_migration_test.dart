@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  test('v1 wardrobe data migrates additively to v5', () async {
+  test('v1 data migrates additively through kitchen shelf-life v7', () async {
     sqfliteFfiInit();
     final directory = await Directory.systemTemp.createTemp(
       'lifeatlas-migration-',
@@ -144,6 +144,14 @@ void main() {
       hasLength(2),
     );
     expect(await migrated.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+    expect(await migrated.query('food_base_info'), isNotEmpty);
+    final inventoryColumns = await migrated.rawQuery(
+      'PRAGMA table_info(ingredient_inventory)',
+    );
+    expect(
+      inventoryColumns.map((row) => row['name']),
+      containsAll(['purchase_date', 'shelf_life_days']),
+    );
   });
 }
 

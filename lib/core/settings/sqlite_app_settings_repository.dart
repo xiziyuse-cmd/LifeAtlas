@@ -8,6 +8,7 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
   SqliteAppSettingsRepository(this._appDatabase);
 
   static const _themeKey = 'theme_mode';
+  static const _themePaletteKey = 'theme_palette';
   static const _outfitModuleKey = 'outfit';
   static const _profileGenderKey = 'profile_gender';
 
@@ -22,6 +23,13 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
       columns: ['setting_value'],
       where: 'setting_key = ?',
       whereArgs: [_themeKey],
+      limit: 1,
+    );
+    final paletteRows = await database.query(
+      'app_settings',
+      columns: ['setting_value'],
+      where: 'setting_key = ?',
+      whereArgs: [_themePaletteKey],
       limit: 1,
     );
     final moduleRows = await database.query(
@@ -54,6 +62,11 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
       kitchenModuleEnabled:
           kitchenRows.isNotEmpty && kitchenRows.first['enabled'] == 1,
       themePreference: AppThemePreference.fromStorage(themeValue),
+      themePalette: AppThemePalette.fromStorage(
+        paletteRows.isEmpty
+            ? null
+            : paletteRows.first['setting_value'] as String?,
+      ),
       outfitModuleEnabled: outfitEnabled,
       profileGender: ProfileGender.fromStorage(
         genderRows.isEmpty
@@ -69,6 +82,15 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
     await database.insert('app_settings', {
       'setting_key': _themeKey,
       'setting_value': preference.name,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> saveThemePalette(AppThemePalette palette) async {
+    final database = await _appDatabase.database;
+    await database.insert('app_settings', {
+      'setting_key': _themePaletteKey,
+      'setting_value': palette.name,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 

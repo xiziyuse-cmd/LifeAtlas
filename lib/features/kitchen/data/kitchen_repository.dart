@@ -169,17 +169,26 @@ class KitchenRepository {
     );
   }
 
-  Future<List<InventoryItem>> listInventory() async =>
+  Future<List<InventoryItem>>
+  listInventory() async => (await (await _database.database).query(
+    'ingredient_inventory',
+    orderBy:
+        'CASE WHEN expire_date IS NULL THEN 1 ELSE 0 END, expire_date ASC, id DESC',
+  )).map(InventoryItem.fromMap).toList();
+  Future<List<FoodBaseInfo>> listFoodBaseInfo() async =>
       (await (await _database.database).query(
-        'ingredient_inventory',
-        orderBy: 'update_time DESC, id DESC',
-      )).map(InventoryItem.fromMap).toList();
+        'food_base_info',
+        orderBy: 'category, name',
+      )).map(FoodBaseInfo.fromMap).toList();
   Future<void> saveInventory(InventoryItem item) async {
     if (item.name.trim().isEmpty ||
         item.unit.trim().isEmpty ||
         !item.amount.isFinite ||
         item.amount < 0) {
       throw const FormatException('请填写食材名称、非负数量和单位');
+    }
+    if (item.shelfLifeDays != null && item.shelfLifeDays! <= 0) {
+      throw const FormatException('保质期需要填写正整数天数');
     }
     final db = await _database.database;
     final values = {

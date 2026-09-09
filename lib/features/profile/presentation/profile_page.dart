@@ -6,13 +6,10 @@ import '../../../core/settings/app_settings.dart';
 import '../../modules/presentation/modules_page.dart';
 import 'ai_auth_page.dart';
 import 'body_profile_page.dart';
+import 'settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({
-    super.key,
-    required this.controller,
-    this.aiAuthSession,
-  });
+  const ProfilePage({super.key, required this.controller, this.aiAuthSession});
 
   final AppController controller;
   final AiAuthSession? aiAuthSession;
@@ -95,6 +92,19 @@ class ProfilePage extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                key: const ValueKey('profile-theme-entry'),
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('设置'),
+                subtitle: Text('主题：${controller.themePalette.label}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => SettingsPage(controller: controller),
+                  ),
+                ),
               ),
               const Divider(height: 1),
               if (aiAuthSession case final session?)

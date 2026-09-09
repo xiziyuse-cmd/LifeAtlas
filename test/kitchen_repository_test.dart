@@ -30,6 +30,7 @@ void main() {
         'recipe_seasoning',
         'recipe',
         'ingredient_inventory',
+        'food_base_info',
       ]) {
         await db.execute('DROP TABLE $table');
       }
@@ -52,7 +53,7 @@ void main() {
         ).load()).outfitModuleEnabled,
         true,
       );
-      expect(await (await upgraded.database).getVersion(), 6);
+      expect(await (await upgraded.database).getVersion(), 7);
     },
   );
   test('seasoning flow uses stage order and numeric addition order', () {
@@ -169,6 +170,66 @@ void main() {
       expect(await repository.listInventory(), isEmpty);
     },
   );
+
+  test(
+    'food defaults are separate and inventory is sorted by expiry',
+    () async {
+      final db = await openTestAppDatabase();
+      addTearDown(db.close);
+      final repository = KitchenRepository(database: db);
+      final defaults = await repository.listFoodBaseInfo();
+      expect(
+        defaults.firstWhere((food) => food.name == '鸡蛋').defaultShelfLife,
+        30,
+      );
+      final now = DateTime(2026, 9, 9);
+      await repository.saveInventory(
+        InventoryItem(
+          name: '鸡蛋',
+          amount: 8,
+          unit: '个',
+          purchaseDate: now,
+          shelfLifeDays: 21,
+          expireDate: DateTime(2026, 9, 30),
+          updatedAt: now,
+        ),
+      );
+      await repository.saveInventory(
+        InventoryItem(
+          name: '土豆',
+          amount: 2,
+          unit: '个',
+          purchaseDate: now,
+          shelfLifeDays: 3,
+          expireDate: DateTime(2026, 9, 12),
+          updatedAt: now,
+        ),
+      );
+      final inventory = await repository.listInventory();
+      expect(inventory.map((item) => item.name), ['土豆', '鸡蛋']);
+      expect(inventory.last.shelfLifeDays, 21);
+      expect(
+        defaults.firstWhere((food) => food.name == '鸡蛋').defaultShelfLife,
+        30,
+      );
+    },
+  );
+
+  test('freshness boundaries use calendar days', () {
+    final now = DateTime(2026, 9, 9, 22);
+    InventoryItem item(int offset) => InventoryItem(
+      name: '测试',
+      amount: 1,
+      unit: '个',
+      expireDate: DateTime(2026, 9, 9).add(Duration(days: offset)),
+      updatedAt: now,
+    );
+    expect(item(4).remainingDays(now), 4);
+    expect(item(4).freshness, InventoryFreshness.fresh);
+    expect(item(3).freshness, InventoryFreshness.nearExpiry);
+    expect(item(0).freshness, InventoryFreshness.today);
+    expect(item(-1).freshness, InventoryFreshness.expired);
+  });
 
   test('invalid recipe cannot partially overwrite existing rows', () async {
     final db = await openTestAppDatabase();
