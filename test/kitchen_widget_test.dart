@@ -7,6 +7,7 @@ import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 import 'package:lifeatlas/features/kitchen/presentation/kitchen_page.dart';
 import 'package:lifeatlas/features/kitchen/presentation/inventory_form_dialog.dart';
 import 'package:lifeatlas/features/kitchen/presentation/recipe_form_page.dart';
+import 'package:lifeatlas/features/kitchen/presentation/recipe_detail_page.dart';
 
 class _Repository extends KitchenRepository {
   Recipe? saved;
@@ -33,6 +34,190 @@ class _Ai implements KitchenAiService {
 }
 
 void main() {
+  testWidgets('ingredient buttons set default units and save both types', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecipeFormPage(
+          repository: repository,
+          recipe: const Recipe(
+            name: '测试菜谱',
+            steps: [RecipeStep(name: '拌匀', content: '混合均匀', duration: 2)],
+          ),
+        ),
+      ),
+    );
+    Future<void> add(
+      String type,
+      String name,
+      String amount,
+      String unit,
+    ) async {
+      final add = find.widgetWithText(TextButton, '新增');
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      final selector = find.byType(SegmentedButton<bool>);
+      expect(selector, findsOneWidget);
+      final food = find.descendant(of: selector, matching: find.text('食材'));
+      final seasoning = find.descendant(
+        of: selector,
+        matching: find.text('调料'),
+      );
+      expect(
+        tester.getCenter(food).dx,
+        lessThan(tester.getCenter(seasoning).dx),
+      );
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '单位'))
+            .controller!
+            .text,
+        'g',
+      );
+      await tester.tap(seasoning);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '单位'))
+            .controller!
+            .text,
+        '勺',
+      );
+      if (type == '食材') {
+        await tester.tap(food);
+        await tester.pumpAndSettle();
+      }
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '单位'))
+            .controller!
+            .text,
+        unit,
+      );
+      await tester.enterText(find.widgetWithText(TextField, '名称'), name);
+      await tester.enterText(find.widgetWithText(TextField, '用量'), amount);
+      await tester.tap(find.widgetWithText(FilledButton, '确定'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+    }
+
+    await add('食材', '胡萝卜', '100', 'g');
+    await add('调料', '盐', '1', '勺');
+    final save = find.text('保存菜谱');
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(repository.saved!.materials.single.quantity, '100g');
+    expect(repository.saved!.seasonings.single.quantity, '1勺');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('editing preserves custom units and duplicate validation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecipeFormPage(
+          repository: _Repository(),
+          recipe: const Recipe(
+            name: '测试菜谱',
+            materials: [RecipeMaterial(name: '胡萝卜', amount: 100, unit: 'g')],
+            seasonings: [RecipeMaterial(name: '酱油', amount: 1, unit: '小杯')],
+          ),
+        ),
+      ),
+    );
+    final entry = find.text('酱油 1小杯');
+    await tester.scrollUntilVisible(
+      entry,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    final unit = find.widgetWithText(TextField, '单位');
+    expect(tester.widget<TextField>(unit).controller!.text, '小杯');
+    final selector = find.byType(SegmentedButton<bool>);
+    await tester.tap(find.descendant(of: selector, matching: find.text('食材')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(unit).controller!.text, '小杯');
+    await tester.enterText(find.widgetWithText(TextField, '名称'), '胡萝卜');
+    await tester.tap(find.widgetWithText(FilledButton, '确定'));
+    await tester.pumpAndSettle();
+    expect(find.text('名称已存在，请编辑已有条目'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.text('酱油 1小杯'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'detail groups ingredients before seasonings without type labels',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecipeDetailPage(
+            repository: _Repository(),
+            recipe: const Recipe(
+              name: '测试菜谱',
+              materials: [
+                RecipeMaterial(
+                  name: '胡萝卜',
+                  amount: 100,
+                  unit: 'g',
+                  sort: 3,
+                  remark: '不应显示备注',
+                ),
+                RecipeMaterial(name: '土豆', amount: 200, unit: 'g', sort: 1),
+              ],
+              seasonings: [
+                RecipeMaterial(
+                  name: '酱油',
+                  amount: 1,
+                  unit: '勺',
+                  sort: 1,
+                  stage: '腌制',
+                ),
+                RecipeMaterial(name: '盐', amount: 2, unit: '勺', sort: 2),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.scrollUntilVisible(
+        find.text('盐'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('食材'), findsNothing);
+      expect(find.text('调料'), findsNothing);
+      expect(find.text('不应显示备注'), findsNothing);
+      expect(find.text('腌制'), findsNothing);
+      final divider = find.byKey(const ValueKey('recipe-ingredient-divider'));
+      expect(divider, findsOneWidget);
+      final names = ['土豆', '胡萝卜', '酱油', '盐'];
+      for (var i = 0; i < names.length - 1; i++) {
+        expect(
+          tester.getTopLeft(find.text(names[i])).dy,
+          lessThan(tester.getTopLeft(find.text(names[i + 1])).dy),
+        );
+      }
+      expect(
+        tester.getTopLeft(divider).dy,
+        greaterThan(tester.getTopLeft(find.text('胡萝卜')).dy),
+      );
+      expect(
+        tester.getTopLeft(divider).dy,
+        lessThan(tester.getTopLeft(find.text('酱油')).dy),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('inventory form applies editable food shelf-life default', (
     tester,
   ) async {
@@ -153,7 +338,7 @@ void main() {
     );
     await tester.tap(find.text('保存菜谱'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('至少添加一项食材'), findsOneWidget);
+    expect(find.textContaining('至少一项食材或调料'), findsOneWidget);
     expect(repository.saved, isNull);
   });
 }

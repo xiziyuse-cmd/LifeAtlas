@@ -56,10 +56,10 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   Widget build(BuildContext context) {
     final recipe = _recipe;
     final theme = Theme.of(context);
-    final ingredients = <({RecipeMaterial item, bool seasoning})>[
-      for (final item in recipe.materials) (item: item, seasoning: false),
-      for (final item in recipe.seasonings) (item: item, seasoning: true),
-    ]..sort((a, b) => a.item.sort.compareTo(b.item.sort));
+    final materials = [...recipe.materials]
+      ..sort((a, b) => a.sort.compareTo(b.sort));
+    final seasonings = [...recipe.seasonings]
+      ..sort((a, b) => a.sort.compareTo(b.sort));
     return Scaffold(
       appBar: AppBar(
         title: const Text('菜谱详情'),
@@ -118,8 +118,14 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           ),
           const SizedBox(height: 24),
           _section(context, '食材与调料', Icons.shopping_basket_outlined, [
-            for (final entry in ingredients)
-              _ingredient(context, entry.item, seasoning: entry.seasoning),
+            for (final item in materials) _ingredient(context, item),
+            if (materials.isNotEmpty && seasonings.isNotEmpty)
+              const Divider(
+                key: ValueKey('recipe-ingredient-divider'),
+                thickness: 1,
+                height: 24,
+              ),
+            for (final item in seasonings) _ingredient(context, item),
           ]),
           const SizedBox(height: 24),
           Text(
@@ -184,33 +190,17 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     ),
   );
 
-  Widget _ingredient(
-    BuildContext context,
-    RecipeMaterial item, {
-    bool seasoning = false,
-  }) => Padding(
+  Widget _ingredient(BuildContext context, RecipeMaterial item) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 7),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                item.name,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            Text(item.quantity, style: Theme.of(context).textTheme.titleSmall),
-          ],
-        ),
-        Align(
-          alignment: Alignment.centerRight,
+        Expanded(
           child: Text(
-            seasoning ? '调料' : '食材',
-            style: Theme.of(context).textTheme.bodySmall,
+            item.name,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
+        Text(item.quantity, style: Theme.of(context).textTheme.titleSmall),
       ],
     ),
   );

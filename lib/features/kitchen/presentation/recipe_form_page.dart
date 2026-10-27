@@ -57,38 +57,30 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
   Future<void> _material([_RecipeItemEntry? entry]) async {
     final item = entry?.item;
     final oldSeasoning = entry?.seasoning ?? false;
-    final values = await kitchenFields(
-      context,
-      '新增食材或调料',
-      ['类型', '名称', '用量', '单位'],
-      [
-        oldSeasoning ? '调料' : '食材',
-        item?.name ?? '',
-        '${item?.amount ?? ''}',
-        item?.unit ?? 'g',
-      ],
-      numeric: {2},
-      choices: {
-        0: ['食材', '调料'],
-      },
-      validate: (values) {
-        final amount = double.tryParse(values[2]);
-        if (values[1].isEmpty ||
-            values[3].isEmpty ||
-            amount == null ||
-            !amount.isFinite ||
-            amount <= 0) {
-          return '请填写名称、正数用量和单位';
-        }
-        final duplicate = [
-          ..._materials,
-          ..._seasonings,
-        ].any((existing) => existing.name == values[1] && existing != item);
-        if (duplicate) {
-          return '名称已存在，请编辑已有条目';
-        }
-        return null;
-      },
+    final values = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => _RecipeItemDialog(
+        item: item,
+        seasoning: oldSeasoning,
+        validate: (values) {
+          final amount = double.tryParse(values[2]);
+          if (values[1].isEmpty ||
+              values[3].isEmpty ||
+              amount == null ||
+              !amount.isFinite ||
+              amount <= 0) {
+            return '请填写名称、正数用量和单位';
+          }
+          final duplicate = [
+            ..._materials,
+            ..._seasonings,
+          ].any((existing) => existing.name == values[1] && existing != item);
+          if (duplicate) {
+            return '名称已存在，请编辑已有条目';
+          }
+          return null;
+        },
+      ),
     );
     if (values == null || !mounted) return;
     final seasoning = values[0] == '调料';
@@ -417,4 +409,124 @@ class _RecipeItemEntry {
   final RecipeMaterial item;
   final int index;
   final bool seasoning;
+}
+
+class _RecipeItemDialog extends StatefulWidget {
+  const _RecipeItemDialog({
+    required this.item,
+    required this.seasoning,
+    required this.validate,
+  });
+
+  final RecipeMaterial? item;
+  final bool seasoning;
+  final String? Function(List<String>) validate;
+
+  @override
+  State<_RecipeItemDialog> createState() => _RecipeItemDialogState();
+}
+
+class _RecipeItemDialogState extends State<_RecipeItemDialog> {
+  late bool _seasoning = widget.seasoning;
+  late final _name = TextEditingController(text: widget.item?.name ?? '');
+  late final _amount = TextEditingController(
+    text: '${widget.item?.amount ?? ''}',
+  );
+  late final _unit = TextEditingController(
+    text: widget.item?.unit ?? (_seasoning ? '勺' : 'g'),
+  );
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _amount.dispose();
+    _unit.dispose();
+    super.dispose();
+  }
+
+  void _selectType(Set<bool> selection) {
+    final seasoning = selection.single;
+    if (seasoning == _seasoning) return;
+    setState(() {
+      // Keep custom units while replacing the previous type's default unit.
+      if (_unit.text.trim().isEmpty || _unit.text == (_seasoning ? '勺' : 'g')) {
+        _unit.text = seasoning ? '勺' : 'g';
+      }
+      _seasoning = seasoning;
+      _error = null;
+    });
+  }
+
+  void _submit() {
+    final values = [
+      _seasoning ? '调料' : '食材',
+      _name.text.trim(),
+      _amount.text.trim(),
+      _unit.text.trim(),
+    ];
+    final error = widget.validate(values);
+    if (error != null) {
+      setState(() => _error = error);
+      return;
+    }
+    Navigator.pop(context, values);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.item == null ? '新增食材或调料' : '编辑食材或调料'),
+    scrollable: true,
+    content: SizedBox(
+      width: 420,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('类型'),
+          const SizedBox(height: 8),
+          SegmentedButton<bool>(
+            expandedInsets: EdgeInsets.zero,
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: false, label: Text('食材')),
+              ButtonSegment(value: true, label: Text('调料')),
+            ],
+            selected: {_seasoning},
+            onSelectionChanged: _selectType,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: '名称'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _amount,
+            decoration: const InputDecoration(labelText: '用量'),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _unit,
+            decoration: const InputDecoration(labelText: '单位'),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('取消'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('确定')),
+    ],
+  );
 }

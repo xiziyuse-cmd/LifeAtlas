@@ -280,12 +280,17 @@ void main() {
   );
 
   test('freshness boundaries use calendar days', () {
-    final now = DateTime(2026, 9, 9, 22);
+    final today = DateTime.now();
+    final now = DateTime(today.year, today.month, today.day, 22);
     InventoryItem item(int offset) => InventoryItem(
       name: '测试',
       amount: 1,
       unit: '个',
-      expireDate: DateTime(2026, 9, 9).add(Duration(days: offset)),
+      expireDate: DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).add(Duration(days: offset)),
       updatedAt: now,
     );
     expect(item(4).remainingDays(now), 4);
@@ -299,7 +304,11 @@ void main() {
     final db = await openTestAppDatabase();
     addTearDown(db.close);
     final repository = KitchenRepository(database: db);
-    final recipe = (await repository.listRecipes()).first;
+    const recipe = Recipe(
+      name: '原始菜谱',
+      materials: [RecipeMaterial(name: '土豆', amount: 100, unit: 'g')],
+      steps: [RecipeStep(name: '蒸熟', content: '蒸熟土豆', duration: 20)],
+    );
     final id = await repository.saveRecipe(recipe);
     await expectLater(
       repository.saveRecipe(Recipe(id: id, name: '无效', cookTime: -1)),
