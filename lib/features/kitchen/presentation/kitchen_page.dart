@@ -229,7 +229,7 @@ class _KitchenPageState extends State<KitchenPage> {
                                     ).textTheme.bodySmall,
                                   ),
                                   Text(
-                                    '${recipe.cookTime}分钟',
+                                    '${recipe.totalDuration}分钟',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodySmall,

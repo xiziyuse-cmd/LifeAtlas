@@ -101,7 +101,7 @@ class _KitchenRecommendationPageState extends State<KitchenRecommendationPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   Text(
-                    '${entry.value.cookTime}分钟 · ${entry.value.categories.join(' | ')}',
+                    '${entry.value.totalDuration}分钟 · ${entry.value.categories.join(' | ')}',
                   ),
                   const SizedBox(height: 8),
                   for (final m in [

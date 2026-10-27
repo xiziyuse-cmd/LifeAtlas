@@ -86,12 +86,13 @@ class Recipe {
   final int cookTime, cookCount;
   final List<RecipeMaterial> materials, seasonings;
   final List<RecipeStep> steps;
+  int get totalDuration => steps.fold(0, (total, step) => total + step.duration);
   Map<String, Object?> toMap() => {
     'name': name,
     'image': image,
     'categories': categories,
     'difficulty': difficulty,
-    'cookTime': cookTime,
+    'cookTime': totalDuration,
     'materials': materials.map((e) => e.toMap()).toList(),
     'seasonings': seasonings.map((e) => e.toMap()).toList(),
     'steps': steps.map((e) => e.toMap()).toList(),
@@ -122,12 +123,12 @@ class Recipe {
   );
   void validate() {
     if (name.trim().isEmpty ||
-        cookTime <= 0 ||
+        totalDuration <= 0 ||
         categories.isEmpty ||
         categories.any((c) => c.trim().isEmpty) ||
-        materials.isEmpty ||
+        (materials.isEmpty && seasonings.isEmpty) ||
         steps.isEmpty) {
-      throw const FormatException('请填写菜名、分类、正数制作时间，至少添加一项食材和一个步骤');
+      throw const FormatException('请填写菜名、分类、至少一项食材或调料，以及一个有效耗时的步骤');
     }
     for (final m in [...materials, ...seasonings]) {
       if (m.name.trim().isEmpty ||

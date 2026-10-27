@@ -56,8 +56,10 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   Widget build(BuildContext context) {
     final recipe = _recipe;
     final theme = Theme.of(context);
-    final seasonings = [...recipe.seasonings]
-      ..sort((a, b) => a.sort.compareTo(b.sort));
+    final ingredients = <({RecipeMaterial item, bool seasoning})>[
+      for (final item in recipe.materials) (item: item, seasoning: false),
+      for (final item in recipe.seasonings) (item: item, seasoning: true),
+    ]..sort((a, b) => a.item.sort.compareTo(b.item.sort));
     return Scaffold(
       appBar: AppBar(
         title: const Text('菜谱详情'),
@@ -109,19 +111,15 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
               const Icon(Icons.schedule, size: 20),
               const SizedBox(width: 8),
               Text(
-                '预计制作 ${recipe.cookTime} 分钟',
+                '预计制作 ${recipe.totalDuration} 分钟',
                 style: theme.textTheme.titleMedium,
               ),
             ],
           ),
           const SizedBox(height: 24),
-          _section(context, '食材', Icons.shopping_basket_outlined, [
-            for (final item in recipe.materials) _ingredient(context, item),
-          ]),
-          const SizedBox(height: 16),
-          _section(context, '调料', Icons.science_outlined, [
-            for (final item in seasonings)
-              _ingredient(context, item, seasoning: true),
+          _section(context, '食材与调料', Icons.shopping_basket_outlined, [
+            for (final entry in ingredients)
+              _ingredient(context, entry.item, seasoning: entry.seasoning),
           ]),
           const SizedBox(height: 24),
           Text(
@@ -206,16 +204,13 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             Text(item.quantity, style: Theme.of(context).textTheme.titleSmall),
           ],
         ),
-        if (item.remark.isNotEmpty)
-          Text(
-            '备注：${item.remark}',
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            seasoning ? '调料' : '食材',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-        if (seasoning)
-          Text(
-            '阶段：${item.stage} · 顺序：${item.sort}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+        ),
       ],
     ),
   );

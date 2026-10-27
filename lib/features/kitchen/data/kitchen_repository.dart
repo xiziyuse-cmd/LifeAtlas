@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/kitchen_models.dart';
@@ -9,58 +8,7 @@ class KitchenRepository {
     : _database = database ?? AppDatabase();
   final AppDatabase _database;
 
-  Future<void> ensurePresets() async {
-    const markerKey = 'kitchen_presets_v2';
-    final db = await _database.database;
-    await db.transaction((tx) async {
-      final marker = await tx.query(
-        'app_settings',
-        where: 'setting_key = ?',
-        whereArgs: [markerKey],
-      );
-      if (marker.isNotEmpty) return;
-      final raw = await rootBundle.loadString(
-        'assets/data/preset_recipes.json',
-      );
-      final recipes = (jsonDecode(raw) as List).map(
-        (item) => Recipe.fromMap(
-          Map<String, Object?>.from(item as Map),
-          sourceType: 'preset',
-        ),
-      );
-      for (final recipe in recipes) {
-        recipe.validate();
-        final existing = await tx.query(
-          'recipe',
-          columns: ['id'],
-          where: 'source_type = ? AND name = ? AND is_deleted = 0',
-          whereArgs: ['preset', recipe.name],
-          limit: 1,
-        );
-        if (existing.isEmpty) {
-          await _save(tx, recipe, source: 'preset');
-        } else {
-          await _save(
-            tx,
-            Recipe.fromMap(
-              recipe.toMap(),
-              id: existing.first['id'] as int,
-              sourceType: 'preset',
-            ),
-            source: 'preset',
-            copyPreset: false,
-          );
-        }
-      }
-      await tx.insert('app_settings', {
-        'setting_key': markerKey,
-        'setting_value': '2',
-      });
-    });
-  }
-
   Future<List<Recipe>> listRecipes() async {
-    await ensurePresets();
     final db = await _database.database;
     final rows = await db.rawQuery(
       'SELECT r.*, (SELECT COUNT(*) FROM cooking_record c WHERE c.recipe_id = r.id) AS cook_count FROM recipe r WHERE is_deleted = 0 ORDER BY id DESC',
@@ -140,7 +88,7 @@ class KitchenRepository {
       'image': recipe.image,
       'category': jsonEncode(recipe.categories),
       'difficulty': recipe.difficulty,
-      'cook_time': recipe.cookTime,
+      'cook_time': recipe.totalDuration,
       'source_type': source,
       'update_time': now,
     };

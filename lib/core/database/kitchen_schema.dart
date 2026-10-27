@@ -70,3 +70,15 @@ Future<void> upgradeKitchenSchemaToV7(Database db) async {
     });
   }
 }
+
+Future<void> upgradeKitchenSchemaToV8(Database db) async {
+  for (final table in [
+    'cooking_record',
+    'recipe_step',
+    'recipe_material',
+    'recipe_seasoning',
+    'recipe',
+  ]) {
+    await db.delete(table);
+  }
+}

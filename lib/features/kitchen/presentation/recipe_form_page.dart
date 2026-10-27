@@ -14,9 +14,6 @@ class RecipeFormPage extends StatefulWidget {
 
 class _RecipeFormPageState extends State<RecipeFormPage> {
   late final _name = TextEditingController(text: widget.recipe?.name ?? '');
-  late final _time = TextEditingController(
-    text: '${widget.recipe?.cookTime ?? 20}',
-  );
   final _customCategory = TextEditingController();
   late String _image = widget.recipe?.image ?? '',
       _difficulty = widget.recipe?.difficulty ?? '简单';
@@ -24,11 +21,26 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
   late final _materials = [...?widget.recipe?.materials];
   late final _seasonings = [...?widget.recipe?.seasonings];
   late final _steps = [...?widget.recipe?.steps];
+  List<_RecipeItemEntry> get _recipeItems => [
+    ..._materials.asMap().entries.map(
+      (entry) => _RecipeItemEntry(
+        item: entry.value,
+        index: entry.key,
+        seasoning: false,
+      ),
+    ),
+    ..._seasonings.asMap().entries.map(
+      (entry) => _RecipeItemEntry(
+        item: entry.value,
+        index: entry.key,
+        seasoning: true,
+      ),
+    ),
+  ];
   bool _saving = false;
   @override
   void dispose() {
     _name.dispose();
-    _time.dispose();
     _customCategory.dispose();
     super.dispose();
   }
@@ -42,98 +54,99 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
     });
   }
 
-  Future<void> _material(bool seasoning, [int? index]) async {
-    final list = seasoning ? _seasonings : _materials;
-    final item = index == null ? null : list[index];
+  Future<void> _material([_RecipeItemEntry? entry]) async {
+    final item = entry?.item;
+    final oldSeasoning = entry?.seasoning ?? false;
     final values = await kitchenFields(
       context,
-      seasoning ? '调料' : '食材',
-      ['名称', '用量', '单位', '备注', if (seasoning) '添加阶段', if (seasoning) '添加顺序'],
+      '新增食材或调料',
+      ['类型', '名称', '用量', '单位'],
       [
+        oldSeasoning ? '调料' : '食材',
         item?.name ?? '',
         '${item?.amount ?? ''}',
         item?.unit ?? 'g',
-        item?.remark ?? '',
-        if (seasoning) item?.stage ?? '准备阶段',
-        if (seasoning) '${item?.sort ?? list.length + 1}',
       ],
-      numeric: {1, if (seasoning) 5},
-      choices: {if (seasoning) 4: kitchenStages},
+      numeric: {2},
+      choices: {0: ['食材', '调料']},
       validate: (values) {
-        final amount = double.tryParse(values[1]);
-        final order = seasoning ? int.tryParse(values[5]) : 1;
-        if (values[0].isEmpty ||
-            values[2].isEmpty ||
+        final amount = double.tryParse(values[2]);
+        if (values[1].isEmpty ||
+            values[3].isEmpty ||
             amount == null ||
             !amount.isFinite ||
-            amount <= 0 ||
-            order == null ||
-            order < 1) {
-          return '请填写名称、正数用量、单位和正整数顺序';
+            amount <= 0) {
+          return '请填写名称、正数用量和单位';
         }
-        if (list.asMap().entries.any(
-          (e) => e.key != index && e.value.name == values[0],
-        )) {
+        final duplicate = [..._materials, ..._seasonings].any(
+          (existing) => existing.name == values[1] && existing != item,
+        );
+        if (duplicate) {
           return '名称已存在，请编辑已有条目';
         }
         return null;
       },
     );
     if (values == null || !mounted) return;
-    final amount = double.tryParse(values[1]);
-    final order = seasoning
-        ? int.tryParse(values[5])
-        : (index ?? list.length) + 1;
-    if (values[0].isEmpty ||
-        values[2].isEmpty ||
+    final seasoning = values[0] == '调料';
+    final amount = double.tryParse(values[2]);
+    if (values[1].isEmpty ||
+        values[3].isEmpty ||
         amount == null ||
         !amount.isFinite ||
-        amount <= 0 ||
-        order == null ||
-        order < 1 ||
-        (seasoning && !kitchenStages.contains(values[4]))) {
-      kitchenError(context, const FormatException('请填写名称、正数用量、单位、有效阶段及正整数顺序'));
+        amount <= 0) {
+      kitchenError(context, const FormatException('请填写名称、正数用量和单位'));
       return;
     }
-    if (list.asMap().entries.any(
-      (e) => e.key != index && e.value.name == values[0],
+    if ([..._materials, ..._seasonings].any(
+      (existing) => existing.name == values[1] && existing != item,
     )) {
       kitchenError(context, const FormatException('名称已存在，请编辑已有条目'));
       return;
     }
     setState(() {
       final updated = RecipeMaterial(
-        name: values[0],
+        name: values[1],
         amount: amount,
-        unit: values[2],
-        remark: values[3],
-        stage: seasoning ? values[4] : '准备阶段',
-        sort: order,
+        unit: values[3],
+        sort: (seasoning ? _seasonings : _materials).length + 1,
       );
-      if (index == null) {
-        list.add(updated);
-      } else {
-        list[index] = updated;
-        _renameReferences(item!.name, updated.name, seasoning);
+      if (entry != null) {
+        (oldSeasoning ? _seasonings : _materials).removeAt(entry.index);
+      }
+      (seasoning ? _seasonings : _materials).add(updated);
+      if (entry != null &&
+          (item!.name != updated.name || oldSeasoning != seasoning)) {
+        _renameReferences(item?.name, updated.name, oldSeasoning, seasoning);
       }
     });
   }
 
-  void _renameReferences(String oldName, String? newName, bool seasoning) {
+  void _renameReferences(
+    String? oldName,
+    String? newName,
+    bool oldSeasoning,
+    bool newSeasoning,
+  ) {
     for (var i = 0; i < _steps.length; i++) {
       final s = _steps[i];
-      List<String> rename(List<String> names) => names
-          .where((n) => n != oldName || newName != null)
-          .map((n) => n == oldName ? newName! : n)
-          .toList();
+      final materials = [...s.materials];
+      final seasonings = [...s.seasonings];
+      if (oldName != null) {
+        (oldSeasoning ? seasonings : materials).remove(oldName);
+      }
+      if (newName != null) {
+        final target = newSeasoning ? seasonings : materials;
+        if (!target.contains(newName)) target.add(newName);
+      }
       _steps[i] = RecipeStep(
         name: s.name,
         content: s.content,
         duration: s.duration,
         image: s.image,
         video: s.video,
-        materials: seasoning ? s.materials : rename(s.materials),
-        seasonings: seasoning ? rename(s.seasonings) : s.seasonings,
+        materials: materials,
+        seasonings: seasonings,
       );
     }
   }
@@ -170,7 +183,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
           image: _image,
           categories: _categories.toList(),
           difficulty: _difficulty,
-          cookTime: int.tryParse(_time.text) ?? 0,
+          cookTime: _steps.fold(0, (total, step) => total + step.duration),
           materials: _materials,
           seasonings: _seasonings,
           steps: _steps,
@@ -227,18 +240,19 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
               for (final c in {...kitchenCategories, ..._categories})
                 FilterChip(
                   label: Text(c),
-                  avatar: SizedBox(
-                    width: 18,
-                    child: Icon(
-                      Icons.check,
-                      size: 16,
-                      color: _categories.contains(c)
-                          ? null
-                          : Colors.transparent,
-                    ),
-                  ),
                   showCheckmark: false,
                   selected: _categories.contains(c),
+                  selectedColor: const Color(0xFF26352D),
+                  labelStyle: TextStyle(
+                    color: _categories.contains(c)
+                        ? Colors.white
+                        : null,
+                  ),
+                  side: BorderSide(
+                    color: _categories.contains(c)
+                        ? const Color(0xFF26352D)
+                        : Theme.of(context).colorScheme.outlineVariant,
+                  ),
                   onSelected: (v) => setState(() {
                     v ? _categories.add(c) : _categories.remove(c);
                   }),
@@ -267,64 +281,60 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
             ],
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _difficulty,
-            decoration: const InputDecoration(labelText: '难度'),
-            items: [
-              for (final d in {
-                ...['简单', '中等', '困难'],
-                _difficulty,
-              })
-                DropdownMenuItem(value: d, child: Text(d)),
-            ],
-            onChanged: (v) => setState(() => _difficulty = v!),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _time,
-            decoration: const InputDecoration(labelText: '预计制作时间（分钟）'),
-            keyboardType: TextInputType.number,
-          ),
-          for (final seasoning in [false, true]) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    seasoning ? '调料' : '食材',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => _material(seasoning),
-                  child: const Text('添加'),
-                ),
+          LayoutBuilder(
+            builder: (context, constraints) => DropdownButtonFormField<String>(
+              isExpanded: true,
+              menuWidth: constraints.maxWidth,
+              initialValue: _difficulty,
+              decoration: const InputDecoration(labelText: '难度'),
+              items: [
+                for (final d in {
+                  ...['简单', '中等', '困难'],
+                  _difficulty,
+                })
+                  DropdownMenuItem(value: d, child: Text(d)),
               ],
+              onChanged: (v) => setState(() => _difficulty = v!),
             ),
-            for (final entry
-                in (seasoning ? _seasonings : _materials).asMap().entries)
-              Card(
-                child: ListTile(
-                  title: Text('${entry.value.name} ${entry.value.quantity}'),
-                  subtitle: Text(
-                    seasoning
-                        ? '${entry.value.stage} · 顺序 ${entry.value.sort}'
-                        : entry.value.remark,
-                  ),
-                  onTap: () => _material(seasoning, entry.key),
-                  trailing: IconButton(
-                    tooltip: '移除',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() {
-                      (seasoning ? _seasonings : _materials).removeAt(
-                        entry.key,
-                      );
-                      _renameReferences(entry.value.name, null, seasoning);
-                    }),
-                  ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '食材与调料',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-          ],
+              TextButton(
+                onPressed: _material,
+                child: const Text('新增'),
+              ),
+            ],
+          ),
+          for (final entry in _recipeItems)
+            Card(
+              child: ListTile(
+                title: Text('${entry.item.name} ${entry.item.quantity}'),
+                subtitle: Text(entry.seasoning ? '调料' : '食材'),
+                onTap: () => _material(entry),
+                trailing: IconButton(
+                  tooltip: '移除',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => setState(() {
+                    (entry.seasoning ? _seasonings : _materials).removeAt(
+                      entry.index,
+                    );
+                    _renameReferences(
+                      entry.item.name,
+                      null,
+                      entry.seasoning,
+                      false,
+                    );
+                  }),
+                ),
+              ),
+            ),
           Row(
             children: [
               Expanded(
@@ -336,14 +346,6 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
               TextButton(onPressed: _step, child: const Text('添加步骤')),
             ],
           ),
-          if (_steps.isEmpty && _seasonings.isNotEmpty)
-            OutlinedButton.icon(
-              onPressed: () => setState(
-                () => _steps.addAll(stepsFromSeasonings(_seasonings)),
-              ),
-              icon: const Icon(Icons.auto_fix_high),
-              label: const Text('按调料阶段和顺序生成步骤'),
-            ),
           for (final entry in _steps.asMap().entries)
             Card(
               child: Column(
@@ -397,4 +399,16 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       ),
     ),
   );
+}
+
+class _RecipeItemEntry {
+  const _RecipeItemEntry({
+    required this.item,
+    required this.index,
+    required this.seasoning,
+  });
+
+  final RecipeMaterial item;
+  final int index;
+  final bool seasoning;
 }

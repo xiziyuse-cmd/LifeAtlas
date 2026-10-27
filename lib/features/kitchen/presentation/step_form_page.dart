@@ -16,7 +16,7 @@ class StepFormPage extends StatefulWidget {
 }
 
 class _StepFormPageState extends State<StepFormPage> {
-  late final _name = TextEditingController(text: widget.step?.name ?? '准备阶段');
+  late final _name = TextEditingController(text: widget.step?.name ?? '步骤 1');
   late final _content = TextEditingController(text: widget.step?.content ?? '');
   late final _duration = TextEditingController(
     text: '${widget.step?.duration ?? 5}',
@@ -60,23 +60,6 @@ class _StepFormPageState extends State<StepFormPage> {
           controller: _name,
           decoration: const InputDecoration(labelText: '步骤名称'),
         ),
-        Wrap(
-          spacing: 6,
-          children: [
-            for (final stage in kitchenStages)
-              ActionChip(
-                label: Text(stage),
-                onPressed: () => setState(() {
-                  _name.text = stage;
-                  _seasonings.addAll(
-                    widget.seasonings
-                        .where((s) => s.stage == stage)
-                        .map((s) => s.name),
-                  );
-                }),
-              ),
-          ],
-        ),
         TextField(
           controller: _content,
           decoration: const InputDecoration(labelText: '步骤描述'),
@@ -90,30 +73,22 @@ class _StepFormPageState extends State<StepFormPage> {
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
-        const Text('使用食材'),
+        const Text('使用食材和调料'),
         Wrap(
           spacing: 8,
           children: [
-            for (final m in widget.materials)
+            for (final m in [...widget.materials, ...widget.seasonings])
               FilterChip(
                 label: Text(m.name),
-                selected: _materials.contains(m.name),
+                selected:
+                    _materials.contains(m.name) ||
+                    _seasonings.contains(m.name),
                 onSelected: (v) => setState(() {
-                  v ? _materials.add(m.name) : _materials.remove(m.name);
-                }),
-              ),
-          ],
-        ),
-        const Text('使用调料（按添加顺序展示）'),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final m in widget.seasonings)
-              FilterChip(
-                label: Text('${m.name} · ${m.sort}'),
-                selected: _seasonings.contains(m.name),
-                onSelected: (v) => setState(() {
-                  v ? _seasonings.add(m.name) : _seasonings.remove(m.name);
+                  final isSeasoning = widget.seasonings.any(
+                    (entry) => entry.name == m.name,
+                  );
+                  final selected = isSeasoning ? _seasonings : _materials;
+                  v ? selected.add(m.name) : selected.remove(m.name);
                 }),
               ),
           ],
