@@ -9,6 +9,56 @@ import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
 import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 
 void main() {
+  testWidgets(
+    'actual home calendar follows light and dark mode in every palette',
+    (tester) async {
+      final controller = AppController(_MemoryAppSettingsRepository());
+      await controller.initialize();
+      await tester.pumpWidget(LifeAtlasApp(controller: controller));
+      await tester.pumpAndSettle();
+      final panel = find.byKey(const ValueKey('home-calendar-panel'));
+      expect(panel, findsOneWidget);
+      for (final palette in AppThemePalette.values) {
+        await controller.setThemePalette(palette);
+        for (final preference in [
+          AppThemePreference.light,
+          AppThemePreference.dark,
+          AppThemePreference.light,
+        ]) {
+          await controller.setThemePreference(preference);
+          await tester.pumpAndSettle();
+          final decoration =
+              tester.widget<Container>(panel).decoration as BoxDecoration;
+          expect(
+            decoration.color,
+            preference == AppThemePreference.dark
+                ? const Color(0xFF171C19)
+                : Colors.white,
+            reason: '${palette.name} / ${preference.name}',
+          );
+          final date = DateTime.now();
+          final selected = find.byKey(
+            ValueKey(
+              'home-calendar-date-${DateTime(date.year, date.month, date.day).toIso8601String()}',
+            ),
+          );
+          final label = tester.widget<Text>(
+            find.descendant(of: selected, matching: find.text('${date.day}')),
+          );
+          expect(
+            label.style?.color,
+            preference == AppThemePreference.dark
+                ? const Color(0xFF171C19)
+                : Colors.white,
+          );
+          expect(tester.takeException(), isNull);
+        }
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    },
+  );
+
   testWidgets('kitchen module toggle adds and removes its destination', (
     tester,
   ) async {

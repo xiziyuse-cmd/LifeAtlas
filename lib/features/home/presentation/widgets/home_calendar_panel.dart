@@ -22,11 +22,18 @@ class HomeCalendarPanel extends StatelessWidget {
   final VoidCallback onToday;
   final ValueChanged<DateTime> onDateSelected;
 
-  static const _background = Color(0xFF171C19);
-  static const _surface = Color(0xFF222824);
-  static const _primaryText = Color(0xFFF1F5F2);
-  static const _secondaryText = Color(0xFF98A49D);
-  static const _todayAccent = Color(0xFFB7E4C7);
+  static bool _isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+  static Color _background(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF171C19) : Colors.white;
+  static Color _surface(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF222824) : const Color(0xFFF3F5F3);
+  static Color _primaryText(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFF1F5F2) : const Color(0xFF17251C);
+  static Color _secondaryText(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF98A49D) : const Color(0xFF59665E);
+  static Color _todayAccent(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFB7E4C7) : const Color(0xFF244B34);
   static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 
   @override
@@ -38,7 +45,7 @@ class HomeCalendarPanel extends StatelessWidget {
       key: const ValueKey('home-calendar-panel'),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: _background,
+        color: _background(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -66,7 +73,7 @@ class HomeCalendarPanel extends StatelessWidget {
                     child: Text(
                       weekday,
                       style: TextStyle(
-                        color: _secondaryText,
+                        color: _secondaryText(context),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -175,8 +182,8 @@ class _MonthHeader extends StatelessWidget {
         Expanded(
           child: Text(
             '${month.year}年 ${month.month}月',
-            style: const TextStyle(
-              color: HomeCalendarPanel._primaryText,
+            style: TextStyle(
+              color: HomeCalendarPanel._primaryText(context),
               fontSize: 18,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.2,
@@ -192,7 +199,7 @@ class _MonthHeader extends StatelessWidget {
         TextButton(
           onPressed: onToday,
           style: TextButton.styleFrom(
-            foregroundColor: HomeCalendarPanel._todayAccent,
+            foregroundColor: HomeCalendarPanel._todayAccent(context),
             minimumSize: const Size(38, 32),
             padding: const EdgeInsets.symmetric(horizontal: 7),
           ),
@@ -227,8 +234,8 @@ class _HeaderButton extends StatelessWidget {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       style: IconButton.styleFrom(
-        foregroundColor: HomeCalendarPanel._primaryText,
-        backgroundColor: HomeCalendarPanel._surface,
+        foregroundColor: HomeCalendarPanel._primaryText(context),
+        backgroundColor: HomeCalendarPanel._surface(context),
         minimumSize: const Size(32, 32),
       ),
       icon: Icon(icon, size: 19),
@@ -279,11 +286,11 @@ class _CalendarDay extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isSelected
-                      ? HomeCalendarPanel._todayAccent
+                      ? HomeCalendarPanel._todayAccent(context)
                       : Colors.transparent,
                   border: isToday && !isSelected
                       ? Border.all(
-                          color: HomeCalendarPanel._todayAccent,
+                          color: HomeCalendarPanel._todayAccent(context),
                           width: 1.4,
                         )
                       : null,
@@ -292,8 +299,8 @@ class _CalendarDay extends StatelessWidget {
                   '${date.day}',
                   style: TextStyle(
                     color: isSelected
-                        ? HomeCalendarPanel._background
-                        : HomeCalendarPanel._primaryText,
+                        ? HomeCalendarPanel._background(context)
+                        : HomeCalendarPanel._primaryText(context),
                     fontSize: 12,
                     fontWeight: isToday || isSelected
                         ? FontWeight.w700
@@ -349,8 +356,8 @@ class _MarkerLegend extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: const TextStyle(
-            color: HomeCalendarPanel._secondaryText,
+          style: TextStyle(
+            color: HomeCalendarPanel._secondaryText(context),
             fontSize: 11,
           ),
         ),
@@ -388,7 +395,7 @@ class _SelectedDaySummary extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: HomeCalendarPanel._surface,
+        color: HomeCalendarPanel._surface(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -398,8 +405,8 @@ class _SelectedDaySummary extends StatelessWidget {
             children: [
               Text(
                 '${data.date.month}月${data.date.day}日',
-                style: const TextStyle(
-                  color: HomeCalendarPanel._primaryText,
+                style: TextStyle(
+                  color: HomeCalendarPanel._primaryText(context),
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -407,8 +414,8 @@ class _SelectedDaySummary extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 data.hasAnyRecord ? '当天记录' : '暂无记录',
-                style: const TextStyle(
-                  color: HomeCalendarPanel._secondaryText,
+                style: TextStyle(
+                  color: HomeCalendarPanel._secondaryText(context),
                   fontSize: 10,
                 ),
               ),
@@ -421,8 +428,8 @@ class _SelectedDaySummary extends StatelessWidget {
                 : summaryParts.join(' · '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: HomeCalendarPanel._secondaryText,
+            style: TextStyle(
+              color: HomeCalendarPanel._secondaryText(context),
               fontSize: 11,
             ),
           ),
