@@ -141,9 +141,11 @@ String inventoryAvailability(
       )
       .toList();
   if (matches.isEmpty) return '缺少';
+  final requiredAmount = material.amount;
+  if (requiredAmount == null) return '已有 · 用量待确认';
   final sameUnit = matches.where((i) => i.unit.trim() == material.unit.trim());
   if (sameUnit.isEmpty) return '已有 · 单位待确认';
-  return sameUnit.fold<double>(0, (sum, i) => sum + i.amount) >= material.amount
+  return sameUnit.fold<double>(0, (sum, i) => sum + i.amount) >= requiredAmount
       ? '✓ 已有'
       : '数量不足';
 }

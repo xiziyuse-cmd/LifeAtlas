@@ -35,6 +35,221 @@ class _Ai implements KitchenAiService {
 }
 
 void main() {
+  testWidgets(
+    'saving steps auto fills foods spices and missing quantities without duplicates',
+    (tester) async {
+      final repository = _Repository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecipeFormPage(
+            repository: repository,
+            recipe: const Recipe(name: '自动菜谱'),
+          ),
+        ),
+      );
+      final scroll = find.byType(Scrollable).first;
+      await tester.scrollUntilVisible(
+        find.text('添加步骤'),
+        250,
+        scrollable: scroll,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('添加步骤'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, '步骤名称'), '切配');
+      await tester.enterText(
+        find.widgetWithText(TextField, '步骤描述'),
+        '鸡肉100g切块，加盐1勺和胡椒粉，腌制20分钟',
+      );
+      await tester.scrollUntilVisible(
+        find.text('保存步骤'),
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存步骤'));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView).first, const Offset(0, 700));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('胡椒粉'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('鸡肉 100g'), findsOneWidget);
+      expect(find.text('盐 1勺'), findsOneWidget);
+      expect(find.text('胡椒粉'), findsOneWidget);
+      final step = find.text('1. 切配');
+      await tester.scrollUntilVisible(
+        step,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(step);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('保存步骤'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存步骤'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('保存菜谱'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存菜谱'));
+      await tester.pumpAndSettle();
+      expect(repository.saved!.materials.single.quantity, '100g');
+      expect(repository.saved!.seasonings.map((m) => m.name), ['盐', '胡椒粉']);
+      expect(repository.saved!.seasonings.last.amount, isNull);
+      expect(repository.saved!.seasonings.last.unit, '');
+      expect(repository.saved!.steps.single.materials, ['鸡肉']);
+      expect(repository.saved!.steps.single.seasonings, ['盐', '胡椒粉']);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('manual name only entry saves without a fabricated amount', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecipeFormPage(
+          repository: repository,
+          recipe: const Recipe(
+            name: '名称测试',
+            steps: [RecipeStep(name: '准备', content: '切片', duration: 5)],
+          ),
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextButton, '新增'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, '新增'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '名称'), '香菇');
+    await tester.tap(find.widgetWithText(FilledButton, '确定'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('保存菜谱'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存菜谱'));
+    await tester.pumpAndSettle();
+    expect(repository.saved!.materials.single.amount, isNull);
+    expect(repository.saved!.materials.single.quantity, '');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'editing a blank extracted item does not silently add default units',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecipeFormPage(
+            repository: _Repository(),
+            recipe: const Recipe(
+              name: '空白测试',
+              seasonings: [RecipeMaterial(name: '胡椒粉')],
+            ),
+          ),
+        ),
+      );
+      await tester.scrollUntilVisible(
+        find.text('胡椒粉'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('胡椒粉'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '用量'))
+            .controller!
+            .text,
+        '',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, '单位'))
+            .controller!
+            .text,
+        '',
+      );
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('renaming a material only updates steps that referenced it', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecipeFormPage(
+          repository: repository,
+          recipe: const Recipe(
+            name: '关联测试',
+            materials: [RecipeMaterial(name: '鸡肉', amount: 100, unit: 'g')],
+            steps: [
+              RecipeStep(
+                name: '备料',
+                content: '切块',
+                duration: 5,
+                materials: ['鸡肉'],
+              ),
+              RecipeStep(
+                name: '等待',
+                content: '静置',
+                duration: 5,
+                parallelWithPrevious: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('鸡肉 100g'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('鸡肉 100g'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '名称'), '去骨鸡肉');
+    await tester.tap(find.widgetWithText(FilledButton, '确定'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('保存菜谱'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存菜谱'));
+    await tester.pumpAndSettle();
+    expect(repository.saved!.steps.first.materials, ['去骨鸡肉']);
+    expect(repository.saved!.steps.last.materials, isEmpty);
+    expect(repository.saved!.steps.last.parallelWithPrevious, true);
+  });
+
   const parallelRecipe = Recipe(
     name: '并行菜谱',
     materials: [RecipeMaterial(name: '鸡肉', amount: 100, unit: 'g')],

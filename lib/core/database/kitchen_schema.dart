@@ -88,3 +88,17 @@ Future<void> upgradeKitchenSchemaToV9(Database db) async {
     'ALTER TABLE recipe_step ADD COLUMN parallel_with_previous INTEGER NOT NULL DEFAULT 0 CHECK(parallel_with_previous IN (0, 1))',
   );
 }
+
+Future<void> upgradeKitchenSchemaToV10(Database db) async {
+  for (final table in ['recipe_material', 'recipe_seasoning']) {
+    final next = '${table}_v10';
+    await db.execute(
+      'CREATE TABLE $next (id INTEGER PRIMARY KEY AUTOINCREMENT, recipe_id INTEGER NOT NULL REFERENCES recipe(id) ON DELETE CASCADE, name TEXT NOT NULL, amount REAL CHECK(amount IS NULL OR amount > 0), unit TEXT NOT NULL, remark TEXT NOT NULL, stage TEXT NOT NULL, sort INTEGER NOT NULL)',
+    );
+    await db.execute(
+      'INSERT INTO $next (id, recipe_id, name, amount, unit, remark, stage, sort) SELECT id, recipe_id, name, amount, unit, remark, stage, sort FROM $table',
+    );
+    await db.execute('DROP TABLE $table');
+    await db.execute('ALTER TABLE $next RENAME TO $table');
+  }
+}

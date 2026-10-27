@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/kitchen_repository.dart';
 import '../domain/kitchen_models.dart';
+import '../domain/recipe_ingredient_extractor.dart';
 import 'kitchen_widgets.dart';
 import 'step_form_page.dart';
 
@@ -65,11 +66,12 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
         validate: (values) {
           final amount = double.tryParse(values[2]);
           if (values[1].isEmpty ||
-              values[3].isEmpty ||
-              amount == null ||
-              !amount.isFinite ||
-              amount <= 0) {
-            return '请填写名称、正数用量和单位';
+              (values[2].isNotEmpty &&
+                  (amount == null ||
+                      !amount.isFinite ||
+                      amount <= 0 ||
+                      values[3].isEmpty))) {
+            return '请填写名称；用量可留空，填写时需为正数并提供单位';
           }
           final duplicate = [
             ..._materials,
@@ -86,11 +88,12 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
     final seasoning = values[0] == '调料';
     final amount = double.tryParse(values[2]);
     if (values[1].isEmpty ||
-        values[3].isEmpty ||
-        amount == null ||
-        !amount.isFinite ||
-        amount <= 0) {
-      kitchenError(context, const FormatException('请填写名称、正数用量和单位'));
+        (values[2].isNotEmpty &&
+            (amount == null ||
+                !amount.isFinite ||
+                amount <= 0 ||
+                values[3].isEmpty))) {
+      kitchenError(context, const FormatException('请填写名称；用量可留空，填写时需为正数并提供单位'));
       return;
     }
     if ([
@@ -128,10 +131,13 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       final s = _steps[i];
       final materials = [...s.materials];
       final seasonings = [...s.seasonings];
+      final referenced =
+          oldName != null &&
+          (oldSeasoning ? seasonings : materials).contains(oldName);
       if (oldName != null) {
         (oldSeasoning ? seasonings : materials).remove(oldName);
       }
-      if (newName != null) {
+      if (newName != null && referenced) {
         final target = newSeasoning ? seasonings : materials;
         if (!target.contains(newName)) target.add(newName);
       }
@@ -162,13 +168,29 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       ),
     );
     if (step != null && mounted) {
+      final extracted = mergeStepIngredients(
+        step,
+        materials: _materials,
+        seasonings: _seasonings,
+      );
       setState(() {
+        _materials
+          ..clear()
+          ..addAll(extracted.materials);
+        _seasonings
+          ..clear()
+          ..addAll(extracted.seasonings);
         if (index == null) {
-          _steps.add(step);
+          _steps.add(extracted.step);
         } else {
-          _steps[index] = step;
+          _steps[index] = extracted.step;
         }
       });
+      if (extracted.changed > 0) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('已补充 ${extracted.changed} 项用料')));
+      }
     }
   }
 
@@ -344,7 +366,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
           for (final entry in _recipeItems)
             Card(
               child: ListTile(
-                title: Text('${entry.item.name} ${entry.item.quantity}'),
+                title: Text('${entry.item.name} ${entry.item.quantity}'.trim()),
                 subtitle: Text(entry.seasoning ? '调料' : '食材'),
                 onTap: () => _material(entry),
                 trailing: IconButton(

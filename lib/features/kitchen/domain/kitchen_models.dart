@@ -4,14 +4,14 @@ const kitchenStages = ['腌制', '准备阶段', '炒制阶段', '炖煮阶段',
 class RecipeMaterial {
   const RecipeMaterial({
     required this.name,
-    required this.amount,
-    required this.unit,
+    this.amount,
+    this.unit = '',
     this.remark = '',
     this.stage = '准备阶段',
     this.sort = 1,
   });
   final String name, unit, remark, stage;
-  final double amount;
+  final double? amount;
   final int sort;
   Map<String, Object?> toMap() => {
     'name': name,
@@ -23,14 +23,17 @@ class RecipeMaterial {
   };
   factory RecipeMaterial.fromMap(Map<String, Object?> m) => RecipeMaterial(
     name: m['name'] as String,
-    amount: (m['amount'] as num).toDouble(),
-    unit: m['unit'] as String,
+    amount: (m['amount'] as num?)?.toDouble(),
+    unit: m['unit'] as String? ?? '',
     remark: m['remark'] as String? ?? '',
     stage: m['stage'] as String? ?? '准备阶段',
     sort: m['sort'] as int? ?? 1,
   );
-  String get quantity =>
-      '${amount == amount.roundToDouble() ? amount.toInt() : amount}$unit';
+  String get quantity {
+    final value = amount;
+    if (value == null) return '';
+    return '${value == value.roundToDouble() ? value.toInt() : value}$unit';
+  }
 }
 
 class RecipeStep {
@@ -168,12 +171,12 @@ class Recipe {
       throw const FormatException('请填写菜名、分类、至少一项食材或调料，以及一个有效耗时的步骤');
     }
     for (final m in [...materials, ...seasonings]) {
+      final amount = m.amount;
       if (m.name.trim().isEmpty ||
-          m.unit.trim().isEmpty ||
-          !m.amount.isFinite ||
-          m.amount <= 0 ||
+          (amount != null &&
+              (!amount.isFinite || amount <= 0 || m.unit.trim().isEmpty)) ||
           m.sort < 1) {
-        throw const FormatException('食材和调料需要名称、正数用量、单位及正整数顺序');
+        throw const FormatException('请填写用料名称；用量可留空，填写时需为正数并提供单位');
       }
     }
     if (seasonings.any((s) => !kitchenStages.contains(s.stage)) ||

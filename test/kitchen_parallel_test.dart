@@ -165,7 +165,7 @@ void main() {
         await directory.delete();
       });
       final db = await upgraded.database;
-      expect(await db.getVersion(), 9);
+      expect(await db.getVersion(), AppDatabase.databaseVersion);
       for (final table in tables) {
         final rows = await db.query(table);
         final normalized = rows.map((row) {
