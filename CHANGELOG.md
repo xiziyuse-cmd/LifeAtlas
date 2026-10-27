@@ -12,8 +12,10 @@
 
 ### Validation
 
-- Dart 格式整理完成，`git diff --check` 通过。
-- Flutter 静态分析和 Android Release 构建均尝试启动，但超过两分钟没有任何输出，已中止；本版本 APK 尚未生成。
+- Flutter 静态分析无问题；Android Release APK 构建成功，包名 `com.example.lifeatlas`，版本 `1.4.2+18`，APK v2 签名校验通过。
+- APK：`build/app/outputs/flutter-apk/app-release.apk`，56,923,642 字节；SHA-256：`3FC6F4E1B6A4146FCC0ECD8365E6EE3661BFCFAB773C1A951772AD2EED864CC6`。
+- 自动化测试未运行：自动审批器拒绝了测试命令，因为本轮没有明确要求运行测试；已更新迁移与耗时测试用例，未做真机验收。
+- `git diff --check` 通过。
 
 ## [1.4.1] - 2026-09-09
 

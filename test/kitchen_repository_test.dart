@@ -11,7 +11,7 @@ import 'support/test_database.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'v5 database upgrades to kitchen schema without losing settings',
+    'v5 database upgrades without seeding recipes or losing settings',
     () async {
       sqfliteFfiInit();
       final directory = await Directory.systemTemp.createTemp(
@@ -47,14 +47,14 @@ void main() {
         await directory.delete();
       });
       final repository = KitchenRepository(database: upgraded);
-      expect(await repository.listRecipes(), hasLength(35));
+      expect(await repository.listRecipes(), isEmpty);
       expect(
         (await SqliteAppSettingsRepository(
           upgraded,
         ).load()).outfitModuleEnabled,
         true,
       );
-      expect(await (await upgraded.database).getVersion(), 7);
+      expect(await (await upgraded.database).getVersion(), 8);
     },
   );
   test('seasoning flow uses stage order and numeric addition order', () {
@@ -67,59 +67,122 @@ void main() {
     expect(steps.first.seasonings, ['油', '生抽']);
   });
   test(
-    'presets seed once, editing creates personal copy, records survive deletion',
+    'v8 migration clears recipes and related records but preserves inventory',
+    () async {
+      sqfliteFfiInit();
+      final directory = await Directory.systemTemp.createTemp(
+        'kitchen-v8-migration-',
+      );
+      final path = '${directory.path}/app.db';
+      final old = AppDatabase(factory: databaseFactoryFfi, databasePath: path);
+      final oldDb = await old.database;
+      final now = DateTime(2026, 10, 27).toIso8601String();
+      final recipeId = await oldDb.insert('recipe', {
+        'name': '旧菜谱',
+        'image': '',
+        'category': '["家常菜"]',
+        'difficulty': '简单',
+        'cook_time': 10,
+        'source_type': 'personal',
+        'create_time': now,
+        'update_time': now,
+      });
+      for (final table in ['recipe_material', 'recipe_seasoning']) {
+        await oldDb.insert(table, {
+          'recipe_id': recipeId,
+          'name': '鸡蛋',
+          'amount': 1,
+          'unit': '个',
+          'remark': '',
+          'stage': '准备阶段',
+          'sort': 1,
+        });
+      }
+      await oldDb.insert('recipe_step', {
+        'recipe_id': recipeId,
+        'step_name': '煎蛋',
+        'content': '加热后煎熟',
+        'duration': 10,
+        'sort': 0,
+        'materials': '[]',
+        'seasonings': '[]',
+        'image': '',
+        'video': '',
+      });
+      await oldDb.insert('cooking_record', {
+        'recipe_id': recipeId,
+        'recipe_name': '旧菜谱',
+        'image': '',
+        'score': 4,
+        'remark': '',
+        'create_time': now,
+      });
+      await oldDb.insert('ingredient_inventory', {
+        'name': '库存鸡蛋',
+        'amount': 3,
+        'unit': '个',
+        'remark': '',
+        'expire_date': null,
+        'update_time': now,
+        'purchase_date': '2026-10-27',
+        'shelf_life_days': 14,
+      });
+      await oldDb.setVersion(7);
+      await old.close();
+
+      final upgraded = AppDatabase(
+        factory: databaseFactoryFfi,
+        databasePath: path,
+      );
+      addTearDown(() async {
+        await upgraded.close();
+        await databaseFactoryFfi.deleteDatabase(path);
+        await directory.delete();
+      });
+      final repository = KitchenRepository(database: upgraded);
+      final db = await upgraded.database;
+      expect(await repository.listRecipes(), isEmpty);
+      for (final table in [
+        'recipe',
+        'recipe_material',
+        'recipe_seasoning',
+        'recipe_step',
+        'cooking_record',
+      ]) {
+        expect(await db.query(table), isEmpty, reason: table);
+      }
+      expect((await repository.listInventory()).single.name, '库存鸡蛋');
+      expect(await db.query('food_base_info'), isNotEmpty);
+      expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+    },
+  );
+
+  test(
+    'new recipes do not require preset data and sum step durations',
     () async {
       final db = await openTestAppDatabase();
       addTearDown(db.close);
       final repository = KitchenRepository(database: db);
-      final presets = await repository.listRecipes();
-      expect(presets, hasLength(35));
-      final original = presets.first;
+      expect(await repository.listRecipes(), isEmpty);
+
       final id = await repository.saveRecipe(
-        Recipe.fromMap(
-          {...original.toMap(), 'name': '我的汤'},
-          id: original.id,
-          sourceType: 'preset',
+        Recipe(
+          name: '我的菜谱',
+          cookTime: 999,
+          materials: const [RecipeMaterial(name: '鸡蛋', amount: 2, unit: '个')],
+          steps: const [
+            RecipeStep(name: '准备', content: '打蛋', duration: 4),
+            RecipeStep(name: '烹饪', content: '炒熟', duration: 8),
+          ],
         ),
       );
-      expect(id, isNot(original.id));
-      var recipes = await repository.listRecipes();
-      expect(recipes, hasLength(36));
+      final saved = (await repository.listRecipes()).single;
+      expect(saved.id, id);
+      expect(saved.totalDuration, 12);
+      expect(saved.toMap()['cookTime'], 12);
       expect(
-        recipes.firstWhere((r) => r.id == original.id).name,
-        original.name,
-      );
-      final personal = recipes.firstWhere((r) => r.id == id);
-      expect(
-        personal.steps.map((s) => s.name),
-        original.steps.map((s) => s.name),
-      );
-      expect(
-        await repository.saveRecipe(
-          Recipe.fromMap({...personal.toMap(), 'name': '改名'}, id: id),
-        ),
-        id,
-      );
-      await repository.saveRecord(
-        CookingRecord(
-          recipeId: id,
-          recipeName: '改名',
-          date: DateTime(2026, 9, 7),
-          score: 4,
-          image: '/photo.jpg',
-          remark: '好吃',
-        ),
-      );
-      recipes = await repository.listRecipes();
-      expect(recipes.firstWhere((r) => r.id == id).cookCount, 1);
-      await repository.deleteRecipe(id);
-      expect(await repository.listRecipes(), hasLength(35));
-      expect((await repository.listRecords()).single.recipeName, '改名');
-      await repository.deleteRecipe(original.id!);
-      expect(await repository.listRecipes(), hasLength(35));
-      expect(
-        await (await db.database).rawQuery('PRAGMA foreign_key_check'),
-        isEmpty,
+        (await (await db.database).query('recipe')).single['cook_time'],
+        12,
       );
     },
   );
