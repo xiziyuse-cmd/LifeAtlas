@@ -7,6 +7,7 @@ import 'kitchen_recommendation_page.dart';
 import 'kitchen_widgets.dart';
 import 'recipe_detail_page.dart';
 import 'recipe_form_page.dart';
+import 'shopping_list_page.dart';
 
 class KitchenPage extends StatefulWidget {
   const KitchenPage({
@@ -163,6 +164,13 @@ class _KitchenPageState extends State<KitchenPage> {
             ],
           ),
           const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () =>
+                _open(ShoppingListPage(repository: widget.repository)),
+            icon: const Icon(Icons.shopping_cart_outlined),
+            label: const Text('购物清单'),
+          ),
+          const SizedBox(height: 8),
           if (recipes.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 64),

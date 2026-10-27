@@ -2,11 +2,32 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/kitchen_models.dart';
+import '../domain/shopping_list.dart';
 
 class KitchenRepository {
   KitchenRepository({AppDatabase? database})
     : _database = database ?? AppDatabase();
   final AppDatabase _database;
+
+  Future<ShoppingListState> loadShoppingList() async {
+    final db = await _database.database;
+    final rows = await db.query(
+      'app_settings',
+      where: 'setting_key = ?',
+      whereArgs: ['kitchen_shopping_list'],
+    );
+    return rows.isEmpty
+        ? const ShoppingListState()
+        : ShoppingListState.decode(rows.single['setting_value'] as String);
+  }
+
+  Future<void> saveShoppingList(ShoppingListState state) async {
+    final db = await _database.database;
+    await db.insert('app_settings', {
+      'setting_key': 'kitchen_shopping_list',
+      'setting_value': state.encode(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
 
   Future<List<Recipe>> listRecipes() async {
     final db = await _database.database;
