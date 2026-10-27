@@ -68,7 +68,9 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
         item?.unit ?? 'g',
       ],
       numeric: {2},
-      choices: {0: ['食材', '调料']},
+      choices: {
+        0: ['食材', '调料'],
+      },
       validate: (values) {
         final amount = double.tryParse(values[2]);
         if (values[1].isEmpty ||
@@ -78,9 +80,10 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
             amount <= 0) {
           return '请填写名称、正数用量和单位';
         }
-        final duplicate = [..._materials, ..._seasonings].any(
-          (existing) => existing.name == values[1] && existing != item,
-        );
+        final duplicate = [
+          ..._materials,
+          ..._seasonings,
+        ].any((existing) => existing.name == values[1] && existing != item);
         if (duplicate) {
           return '名称已存在，请编辑已有条目';
         }
@@ -98,9 +101,10 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       kitchenError(context, const FormatException('请填写名称、正数用量和单位'));
       return;
     }
-    if ([..._materials, ..._seasonings].any(
-      (existing) => existing.name == values[1] && existing != item,
-    )) {
+    if ([
+      ..._materials,
+      ..._seasonings,
+    ].any((existing) => existing.name == values[1] && existing != item)) {
       kitchenError(context, const FormatException('名称已存在，请编辑已有条目'));
       return;
     }
@@ -117,7 +121,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       (seasoning ? _seasonings : _materials).add(updated);
       if (entry != null &&
           (item!.name != updated.name || oldSeasoning != seasoning)) {
-        _renameReferences(item?.name, updated.name, oldSeasoning, seasoning);
+        _renameReferences(item.name, updated.name, oldSeasoning, seasoning);
       }
     });
   }
@@ -244,9 +248,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
                   selected: _categories.contains(c),
                   selectedColor: const Color(0xFF26352D),
                   labelStyle: TextStyle(
-                    color: _categories.contains(c)
-                        ? Colors.white
-                        : null,
+                    color: _categories.contains(c) ? Colors.white : null,
                   ),
                   side: BorderSide(
                     color: _categories.contains(c)
@@ -282,19 +284,26 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
           ),
           const SizedBox(height: 12),
           LayoutBuilder(
-            builder: (context, constraints) => DropdownButtonFormField<String>(
-              isExpanded: true,
-              menuWidth: constraints.maxWidth,
-              initialValue: _difficulty,
+            builder: (context, constraints) => InputDecorator(
               decoration: const InputDecoration(labelText: '难度'),
-              items: [
-                for (final d in {
-                  ...['简单', '中等', '困难'],
-                  _difficulty,
-                })
-                  DropdownMenuItem(value: d, child: Text(d)),
-              ],
-              onChanged: (v) => setState(() => _difficulty = v!),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _difficulty,
+                  isDense: true,
+                  isExpanded: true,
+                  menuWidth: constraints.maxWidth,
+                  items: [
+                    for (final d in {
+                      ...['简单', '中等', '困难'],
+                      _difficulty,
+                    })
+                      DropdownMenuItem(value: d, child: Text(d)),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _difficulty = value);
+                  },
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -306,10 +315,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              TextButton(
-                onPressed: _material,
-                child: const Text('新增'),
-              ),
+              TextButton(onPressed: _material, child: const Text('新增')),
             ],
           ),
           for (final entry in _recipeItems)
