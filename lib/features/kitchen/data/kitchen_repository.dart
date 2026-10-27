@@ -49,6 +49,7 @@ class KitchenRepository {
                   (s) => {
                     ...s,
                     'name': s['step_name'],
+                    'parallelWithPrevious': s['parallel_with_previous'] == 1,
                     'materials': jsonDecode(s['materials'] as String),
                     'seasonings': jsonDecode(s['seasonings'] as String),
                   },
@@ -129,6 +130,7 @@ class KitchenRepository {
         'step_name': s.name,
         'content': s.content,
         'duration': s.duration,
+        'parallel_with_previous': i > 0 && s.parallelWithPrevious ? 1 : 0,
         'sort': i,
         'materials': jsonEncode(s.materials),
         'seasonings': jsonEncode(s.seasonings),

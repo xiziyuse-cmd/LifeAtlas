@@ -38,6 +38,7 @@ class RecipeStep {
     required this.name,
     required this.content,
     required this.duration,
+    this.parallelWithPrevious = false,
     this.materials = const [],
     this.seasonings = const [],
     this.image = '',
@@ -45,11 +46,13 @@ class RecipeStep {
   });
   final String name, content, image, video;
   final int duration;
+  final bool parallelWithPrevious;
   final List<String> materials, seasonings;
   Map<String, Object?> toMap() => {
     'name': name,
     'content': content,
     'duration': duration,
+    'parallelWithPrevious': parallelWithPrevious,
     'materials': materials,
     'seasonings': seasonings,
     'image': image,
@@ -59,12 +62,46 @@ class RecipeStep {
     name: m['name'] as String,
     content: m['content'] as String,
     duration: m['duration'] as int,
+    parallelWithPrevious: m['parallelWithPrevious'] == true,
     materials: List<String>.from(m['materials'] as List? ?? []),
     seasonings: List<String>.from(m['seasonings'] as List? ?? []),
     image: m['image'] as String? ?? '',
     video: m['video'] as String? ?? '',
   );
+
+  RecipeStep copyWith({bool? parallelWithPrevious}) => RecipeStep(
+    name: name,
+    content: content,
+    duration: duration,
+    parallelWithPrevious: parallelWithPrevious ?? this.parallelWithPrevious,
+    materials: materials,
+    seasonings: seasonings,
+    image: image,
+    video: video,
+  );
 }
+
+List<List<RecipeStep>> recipeStepGroups(List<RecipeStep> steps) {
+  final groups = <List<RecipeStep>>[];
+  for (final step in steps) {
+    if (groups.isEmpty || !step.parallelWithPrevious) {
+      groups.add([step]);
+    } else {
+      groups.last.add(step);
+    }
+  }
+  return groups;
+}
+
+int recipeDuration(List<RecipeStep> steps) => recipeStepGroups(steps).fold(
+  0,
+  (total, group) =>
+      total +
+      group.fold<int>(
+        0,
+        (longest, step) => step.duration > longest ? step.duration : longest,
+      ),
+);
 
 class Recipe {
   const Recipe({
@@ -86,7 +123,7 @@ class Recipe {
   final int cookTime, cookCount;
   final List<RecipeMaterial> materials, seasonings;
   final List<RecipeStep> steps;
-  int get totalDuration => steps.fold(0, (total, step) => total + step.duration);
+  int get totalDuration => recipeDuration(steps);
   Map<String, Object?> toMap() => {
     'name': name,
     'image': image,

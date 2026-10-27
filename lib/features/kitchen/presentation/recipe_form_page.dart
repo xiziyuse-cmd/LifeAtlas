@@ -139,6 +139,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
         name: s.name,
         content: s.content,
         duration: s.duration,
+        parallelWithPrevious: s.parallelWithPrevious,
         image: s.image,
         video: s.video,
         materials: materials,
@@ -153,6 +154,8 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       MaterialPageRoute(
         builder: (_) => StepFormPage(
           step: index == null ? null : _steps[index],
+          stepNumber: (index ?? _steps.length) + 1,
+          canParallel: (index ?? _steps.length) > 0,
           materials: _materials,
           seasonings: _seasonings,
         ),
@@ -169,6 +172,34 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
     }
   }
 
+  void _removeStep(int index) {
+    final removed = _steps.removeAt(index);
+    if (!removed.parallelWithPrevious && index < _steps.length) {
+      _steps[index] = _steps[index].copyWith(parallelWithPrevious: false);
+    }
+  }
+
+  void _moveStep(int index, int delta) {
+    final memberships = <RecipeStep, int>{};
+    final groups = recipeStepGroups(_steps);
+    for (var group = 0; group < groups.length; group++) {
+      for (final step in groups[group]) {
+        memberships[step] = group;
+      }
+    }
+    final moved = _steps.removeAt(index);
+    _steps.insert(index + delta, moved);
+    final ordered = [..._steps];
+    for (var i = 0; i < ordered.length; i++) {
+      final linked =
+          i > 0 &&
+          ordered[i] != moved &&
+          ordered[i - 1] != moved &&
+          memberships[ordered[i]] == memberships[ordered[i - 1]];
+      _steps[i] = ordered[i].copyWith(parallelWithPrevious: linked);
+    }
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
@@ -179,7 +210,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
           image: _image,
           categories: _categories.toList(),
           difficulty: _difficulty,
-          cookTime: _steps.fold(0, (total, step) => total + step.duration),
+          cookTime: recipeDuration(_steps),
           materials: _materials,
           seasonings: _seasonings,
           steps: _steps,
@@ -344,13 +375,19 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
               TextButton(onPressed: _step, child: const Text('添加步骤')),
             ],
           ),
+          Text(
+            '预计制作 ${recipeDuration(_steps)} 分钟',
+            key: const ValueKey('recipe-total-duration'),
+          ),
           for (final entry in _steps.asMap().entries)
             Card(
               child: Column(
                 children: [
                   ListTile(
                     title: Text('${entry.key + 1}. ${entry.value.name}'),
-                    subtitle: Text('耗时：${entry.value.duration}分钟'),
+                    subtitle: Text(
+                      '${entry.key > 0 && entry.value.parallelWithPrevious ? '并行 · ' : ''}${entry.value.duration}分钟',
+                    ),
                     onTap: () => _step(entry.key),
                   ),
                   Row(
@@ -361,8 +398,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
                         onPressed: entry.key == 0
                             ? null
                             : () => setState(() {
-                                final s = _steps.removeAt(entry.key);
-                                _steps.insert(entry.key - 1, s);
+                                _moveStep(entry.key, -1);
                               }),
                         icon: const Icon(Icons.arrow_upward),
                       ),
@@ -371,15 +407,13 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
                         onPressed: entry.key == _steps.length - 1
                             ? null
                             : () => setState(() {
-                                final s = _steps.removeAt(entry.key);
-                                _steps.insert(entry.key + 1, s);
+                                _moveStep(entry.key, 1);
                               }),
                         icon: const Icon(Icons.arrow_downward),
                       ),
                       IconButton(
                         tooltip: '移除步骤',
-                        onPressed: () =>
-                            setState(() => _steps.removeAt(entry.key)),
+                        onPressed: () => setState(() => _removeStep(entry.key)),
                         icon: const Icon(Icons.close),
                       ),
                     ],

@@ -54,7 +54,10 @@ void main() {
         ).load()).outfitModuleEnabled,
         true,
       );
-      expect(await (await upgraded.database).getVersion(), 8);
+      expect(
+        await (await upgraded.database).getVersion(),
+        AppDatabase.databaseVersion,
+      );
     },
   );
   test('seasoning flow uses stage order and numeric addition order', () {
@@ -127,6 +130,9 @@ void main() {
         'purchase_date': '2026-10-27',
         'shelf_life_days': 14,
       });
+      await oldDb.execute(
+        'ALTER TABLE recipe_step DROP COLUMN parallel_with_previous',
+      );
       await oldDb.setVersion(7);
       await old.close();
 

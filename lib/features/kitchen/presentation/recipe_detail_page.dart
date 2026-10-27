@@ -135,13 +135,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
-          for (var i = 0; i < recipe.steps.length; i++)
-            _step(
-              context,
-              recipe.steps[i],
-              i + 1,
-              i == recipe.steps.length - 1,
-            ),
+          ..._stepGroups(context, recipe.steps),
           const SizedBox(height: 16),
           if (recipe.sourceType == 'preset')
             FilledButton.icon(
@@ -158,6 +152,47 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         ],
       ),
     );
+  }
+
+  List<Widget> _stepGroups(BuildContext context, List<RecipeStep> steps) {
+    final result = <Widget>[];
+    var number = 0;
+    for (final group in recipeStepGroups(steps)) {
+      final children = <Widget>[
+        for (var i = 0; i < group.length; i++)
+          _step(context, group[i], ++number, i == group.length - 1),
+      ];
+      if (group.length == 1) {
+        result.add(children.single);
+      } else {
+        result.add(
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    '并行 · ${recipeDuration(group)} 分钟',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                ...children,
+              ],
+            ),
+          ),
+        );
+      }
+    }
+    return result;
   }
 
   Widget _section(

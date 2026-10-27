@@ -82,3 +82,9 @@ Future<void> upgradeKitchenSchemaToV8(Database db) async {
     await db.delete(table);
   }
 }
+
+Future<void> upgradeKitchenSchemaToV9(Database db) async {
+  await db.execute(
+    'ALTER TABLE recipe_step ADD COLUMN parallel_with_previous INTEGER NOT NULL DEFAULT 0 CHECK(parallel_with_previous IN (0, 1))',
+  );
+}

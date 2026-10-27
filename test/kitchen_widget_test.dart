@@ -8,6 +8,7 @@ import 'package:lifeatlas/features/kitchen/presentation/kitchen_page.dart';
 import 'package:lifeatlas/features/kitchen/presentation/inventory_form_dialog.dart';
 import 'package:lifeatlas/features/kitchen/presentation/recipe_form_page.dart';
 import 'package:lifeatlas/features/kitchen/presentation/recipe_detail_page.dart';
+import 'package:lifeatlas/features/kitchen/presentation/step_form_page.dart';
 
 class _Repository extends KitchenRepository {
   Recipe? saved;
@@ -34,6 +35,208 @@ class _Ai implements KitchenAiService {
 }
 
 void main() {
+  const parallelRecipe = Recipe(
+    name: '并行菜谱',
+    materials: [RecipeMaterial(name: '鸡肉', amount: 100, unit: 'g')],
+    steps: [
+      RecipeStep(name: '腌制', content: '等待入味', duration: 20),
+      RecipeStep(
+        name: '切菜',
+        content: '切好配菜',
+        duration: 22,
+        parallelWithPrevious: true,
+      ),
+      RecipeStep(name: '炒菜', content: '炒熟', duration: 5),
+    ],
+  );
+
+  testWidgets(
+    'first step hides parallel switch and later steps use short label',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: StepFormPage(materials: [], seasonings: []),
+        ),
+      );
+      expect(find.byType(SwitchListTile), findsNothing);
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: StepFormPage(
+            key: ValueKey('later-step'),
+            canParallel: true,
+            materials: [],
+            seasonings: [],
+          ),
+        ),
+      );
+      expect(find.text('并行'), findsOneWidget);
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        false,
+      );
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        true,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'step editing updates recipe total and persists parallel choice',
+    (tester) async {
+      final repository = _Repository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecipeFormPage(repository: repository, recipe: parallelRecipe),
+        ),
+      );
+      final total = find.byKey(const ValueKey('recipe-total-duration'));
+      await tester.scrollUntilVisible(
+        total,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('预计制作 27 分钟'), findsOneWidget);
+      final second = find.text('2. 切菜');
+      await tester.scrollUntilVisible(
+        second,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(second);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        true,
+      );
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('保存步骤'),
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('保存步骤'));
+      await tester.pumpAndSettle();
+      expect(find.text('预计制作 47 分钟'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('保存菜谱'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('保存菜谱'));
+      await tester.pumpAndSettle();
+      expect(repository.saved!.totalDuration, 47);
+      expect(repository.saved!.steps[1].parallelWithPrevious, false);
+    },
+  );
+
+  testWidgets('parallel preview shows group maximum and individual durations', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecipeDetailPage(
+          repository: _Repository(),
+          recipe: parallelRecipe,
+        ),
+      ),
+    );
+    await tester.scrollUntilVisible(
+      find.text('并行 · 22 分钟'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('预计制作 27 分钟'), findsOneWidget);
+    expect(find.text('20分钟'), findsOneWidget);
+    expect(find.text('22分钟'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'removing group leader does not join its successor to an earlier group',
+    (tester) async {
+      final repository = _Repository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecipeFormPage(
+            repository: repository,
+            recipe: Recipe(
+              name: '删除测试',
+              materials: parallelRecipe.materials,
+              steps: [
+                const RecipeStep(name: '备料', content: '准备', duration: 3),
+                ...parallelRecipe.steps,
+              ],
+            ),
+          ),
+        ),
+      );
+      final title = find.text('2. 腌制');
+      await tester.scrollUntilVisible(
+        title,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final card = find.ancestor(of: title, matching: find.byType(Card)).first;
+      final remove = find.descendant(
+        of: card,
+        matching: find.byTooltip('移除步骤'),
+      );
+      await tester.ensureVisible(remove);
+      await tester.pumpAndSettle();
+      await tester.tap(remove);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('保存菜谱'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('保存菜谱'));
+      await tester.pumpAndSettle();
+      expect(repository.saved!.steps.map((s) => s.name), ['备料', '切菜', '炒菜']);
+      expect(repository.saved!.steps[1].parallelWithPrevious, false);
+      expect(repository.saved!.totalDuration, 30);
+    },
+  );
+
+  testWidgets('moving a parallel step detaches it without accidental links', (
+    tester,
+  ) async {
+    final repository = _Repository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RecipeFormPage(repository: repository, recipe: parallelRecipe),
+      ),
+    );
+    final title = find.text('2. 切菜');
+    await tester.scrollUntilVisible(
+      title,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final card = find.ancestor(of: title, matching: find.byType(Card)).first;
+    final down = find.descendant(of: card, matching: find.byTooltip('下移'));
+    await tester.ensureVisible(down);
+    await tester.pumpAndSettle();
+    await tester.tap(down);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('保存菜谱'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('保存菜谱'));
+    await tester.pumpAndSettle();
+    expect(repository.saved!.steps.map((s) => s.name), ['腌制', '炒菜', '切菜']);
+    expect(repository.saved!.steps.any((s) => s.parallelWithPrevious), false);
+    expect(repository.saved!.totalDuration, 47);
+  });
+
   testWidgets('ingredient buttons set default units and save both types', (
     tester,
   ) async {

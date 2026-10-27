@@ -6,17 +6,25 @@ class StepFormPage extends StatefulWidget {
   const StepFormPage({
     super.key,
     this.step,
+    this.canParallel = false,
+    this.stepNumber = 1,
     required this.materials,
     required this.seasonings,
   });
   final RecipeStep? step;
+  final bool canParallel;
+  final int stepNumber;
   final List<RecipeMaterial> materials, seasonings;
   @override
   State<StepFormPage> createState() => _StepFormPageState();
 }
 
 class _StepFormPageState extends State<StepFormPage> {
-  late final _name = TextEditingController(text: widget.step?.name ?? '步骤 1');
+  late final _name = TextEditingController(
+    text: widget.step?.name ?? '步骤 ${widget.stepNumber}',
+  );
+  late bool _parallel =
+      widget.canParallel && (widget.step?.parallelWithPrevious ?? false);
   late final _content = TextEditingController(text: widget.step?.content ?? '');
   late final _duration = TextEditingController(
     text: '${widget.step?.duration ?? 5}',
@@ -73,6 +81,14 @@ class _StepFormPageState extends State<StepFormPage> {
           keyboardType: TextInputType.number,
         ),
         const SizedBox(height: 16),
+        if (widget.canParallel)
+          SwitchListTile(
+            key: const ValueKey('step-parallel-switch'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('并行'),
+            value: _parallel,
+            onChanged: (value) => setState(() => _parallel = value),
+          ),
         const Text('使用食材和调料'),
         Wrap(
           spacing: 8,
@@ -81,8 +97,7 @@ class _StepFormPageState extends State<StepFormPage> {
               FilterChip(
                 label: Text(m.name),
                 selected:
-                    _materials.contains(m.name) ||
-                    _seasonings.contains(m.name),
+                    _materials.contains(m.name) || _seasonings.contains(m.name),
                 onSelected: (v) => setState(() {
                   final isSeasoning = widget.seasonings.any(
                     (entry) => entry.name == m.name,
@@ -129,6 +144,7 @@ class _StepFormPageState extends State<StepFormPage> {
                 name: _name.text.trim(),
                 content: _content.text.trim(),
                 duration: d,
+                parallelWithPrevious: widget.canParallel && _parallel,
                 materials: _materials.toList(),
                 seasonings: _seasonings.toList(),
                 image: _image,
