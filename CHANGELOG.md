@@ -17,6 +17,7 @@
 - APK：`build/app/outputs/flutter-apk/app-release.apk`，56,923,642 字节；SHA-256：`3FC6F4E1B6A4146FCC0ECD8365E6EE3661BFCFAB773C1A951772AD2EED864CC6`。
 - 自动化测试未运行：自动审批器拒绝了测试命令，因为本轮没有明确要求运行测试；已更新迁移与耗时测试用例，未做真机验收。
 - `git diff --check` 通过。
+- 公共 GitHub 下载发布尚未完成：当前环境没有 GitHub 推送凭据，固定下载链接未更新。
 
 ## [1.4.1] - 2026-09-09
 
