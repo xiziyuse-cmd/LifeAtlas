@@ -6,7 +6,7 @@ import 'kitchen_schema.dart';
 
 class AppDatabase {
   static const _databaseName = 'life_atlas.db';
-  static const databaseVersion = 10;
+  static const databaseVersion = 11;
 
   AppDatabase({DatabaseFactory? factory, this.databasePath})
     : _databaseFactory = factory;
@@ -169,6 +169,7 @@ class AppDatabase {
     await upgradeKitchenSchemaToV8(database);
     await upgradeKitchenSchemaToV9(database);
     await upgradeKitchenSchemaToV10(database);
+    await upgradeKitchenSchemaToV11(database);
   }
 
   Future<void> _upgradeSchema(
@@ -202,6 +203,9 @@ class AppDatabase {
     }
     if (oldVersion < 10) {
       await upgradeKitchenSchemaToV10(database);
+    }
+    if (oldVersion < 11) {
+      await upgradeKitchenSchemaToV11(database);
     }
   }
 

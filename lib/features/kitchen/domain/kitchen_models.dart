@@ -1,4 +1,4 @@
-const kitchenCategories = ['家常菜', '早餐', '午餐', '晚餐', '汤类', '小吃', '烘焙'];
+const kitchenCategories = ['家常菜', '早餐', '汤类', '小吃', '烘焙'];
 const kitchenStages = ['腌制', '准备阶段', '炒制阶段', '炖煮阶段', '出锅前', '装盘'];
 
 class RecipeMaterial {

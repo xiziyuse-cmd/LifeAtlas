@@ -68,10 +68,12 @@ class _StepFormPageState extends State<StepFormPage> {
           controller: _name,
           decoration: const InputDecoration(labelText: '步骤名称'),
         ),
+        const SizedBox(height: 24),
         TextField(
           controller: _content,
           decoration: const InputDecoration(
             labelText: '步骤描述',
+            alignLabelWithHint: true,
             helperText: '保存时自动提取食材和调料',
           ),
           minLines: 3,

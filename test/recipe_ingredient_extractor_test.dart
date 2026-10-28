@@ -21,6 +21,18 @@ RecipeStep _step(String content) => RecipeStep(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
+    'line peppers and millet chili are extracted as seasonings without confusing millet',
+    () {
+      final items = _items('线椒20g切碎，加入小米辣2根和小米100g');
+      expect(items['线椒']!.seasoning, true);
+      expect(items['线椒']!.item.quantity, '20g');
+      expect(items['小米辣']!.seasoning, true);
+      expect(items['小米辣']!.item.quantity, '2根');
+      expect(items['小米']!.seasoning, false);
+      expect(items['小米']!.item.quantity, '100g');
+    },
+  );
+  test(
     'extracts food and seasonings with explicit amounts and blank quantities',
     () {
       final items = _items('鸡肉100g切块，加盐1勺和胡椒粉，腌制20分钟');
@@ -288,7 +300,7 @@ void main() {
         await dir.delete();
       });
       final db = await upgraded.database;
-      expect(await db.getVersion(), 10);
+      expect(await db.getVersion(), AppDatabase.databaseVersion);
       for (final table in tables) {
         expect(await db.query(table), snapshots[table], reason: table);
       }

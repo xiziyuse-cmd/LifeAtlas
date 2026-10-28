@@ -67,6 +67,11 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       await tester.pumpAndSettle();
+      await Scrollable.ensureVisible(
+        tester.element(find.text('保存步骤')),
+        alignment: .5,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('保存步骤'));
       await tester.pumpAndSettle();
       await tester.drag(find.byType(ListView).first, const Offset(0, 700));
@@ -77,8 +82,10 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      expect(find.text('鸡肉 100g'), findsOneWidget);
-      expect(find.text('盐 1勺'), findsOneWidget);
+      expect(find.text('鸡肉'), findsOneWidget);
+      expect(find.text('100g'), findsOneWidget);
+      expect(find.text('盐'), findsOneWidget);
+      expect(find.text('1勺'), findsOneWidget);
       expect(find.text('胡椒粉'), findsOneWidget);
       final step = find.text('1. 切配');
       await tester.scrollUntilVisible(
@@ -93,6 +100,11 @@ void main() {
         find.text('保存步骤'),
         200,
         scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await Scrollable.ensureVisible(
+        tester.element(find.text('保存步骤')),
+        alignment: .5,
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存步骤'));
@@ -227,12 +239,12 @@ void main() {
       ),
     );
     await tester.scrollUntilVisible(
-      find.text('鸡肉 100g'),
+      find.text('鸡肉'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('鸡肉 100g'));
+    await tester.tap(find.text('鸡肉'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '名称'), '去骨鸡肉');
     await tester.tap(find.widgetWithText(FilledButton, '确定'));
@@ -335,6 +347,11 @@ void main() {
         250,
         scrollable: find.byType(Scrollable).last,
       );
+      await Scrollable.ensureVisible(
+        tester.element(find.text('保存步骤')),
+        alignment: .5,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('保存步骤'));
       await tester.pumpAndSettle();
       expect(find.text('预计制作 47 分钟'), findsOneWidget);
@@ -350,27 +367,40 @@ void main() {
     },
   );
 
-  testWidgets('parallel preview shows group maximum and individual durations', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: RecipeDetailPage(
-          repository: _Repository(),
-          recipe: parallelRecipe,
+  testWidgets(
+    'parallel preview labels only the selected step beside its duration',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RecipeDetailPage(
+            repository: _Repository(),
+            recipe: parallelRecipe,
+          ),
         ),
-      ),
-    );
-    await tester.scrollUntilVisible(
-      find.text('并行 · 22 分钟'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('预计制作 27 分钟'), findsOneWidget);
-    expect(find.text('20分钟'), findsOneWidget);
-    expect(find.text('22分钟'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      );
+      await tester.scrollUntilVisible(
+        find.text('22分钟'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('预计制作 27 分钟'), findsOneWidget);
+      expect(find.text('20分钟'), findsOneWidget);
+      expect(find.text('22分钟'), findsOneWidget);
+      expect(find.text('并行'), findsOneWidget);
+      expect(find.text('并行 · 22 分钟'), findsNothing);
+      expect(
+        tester.getCenter(find.text('并行')).dx,
+        lessThan(tester.getCenter(find.text('22分钟')).dx),
+      );
+      expect(
+        (tester.getCenter(find.text('并行')).dy -
+                tester.getCenter(find.text('22分钟')).dy)
+            .abs(),
+        lessThan(4),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'removing group leader does not join its successor to an earlier group',
@@ -549,12 +579,15 @@ void main() {
         ),
       ),
     );
-    final entry = find.text('酱油 1小杯');
+    final entry = find.text('酱油');
     await tester.scrollUntilVisible(
       entry,
       250,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(tester.element(entry), alignment: .5);
+    await tester.pumpAndSettle();
     await tester.tap(entry);
     await tester.pumpAndSettle();
     final unit = find.widgetWithText(TextField, '单位');
@@ -569,7 +602,8 @@ void main() {
     expect(find.text('名称已存在，请编辑已有条目'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    expect(find.text('酱油 1小杯'), findsOneWidget);
+    expect(find.text('酱油'), findsOneWidget);
+    expect(find.text('1小杯'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

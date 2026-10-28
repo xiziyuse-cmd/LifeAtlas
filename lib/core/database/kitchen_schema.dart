@@ -1,5 +1,20 @@
 import 'package:sqflite/sqflite.dart';
 
+Future<void> upgradeKitchenSchemaToV11(Database db) async {
+  final now = DateTime.now().toIso8601String();
+  for (final name in ['线椒', '小米辣']) {
+    await db.insert('food_base_info', {
+      'name': name,
+      'category': '调料',
+      'default_shelf_life': 7,
+      'shelf_life_unit': 'day',
+      'storage_type': '冷藏',
+      'create_time': now,
+      'update_time': now,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+}
+
 Future<void> upgradeKitchenSchemaToV6(Database db) async {
   await db.execute(
     '''CREATE TABLE recipe (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT NOT NULL, category TEXT NOT NULL, difficulty TEXT NOT NULL, cook_time INTEGER NOT NULL, source_type TEXT NOT NULL, is_deleted INTEGER NOT NULL DEFAULT 0, create_time TEXT NOT NULL, update_time TEXT NOT NULL)''',

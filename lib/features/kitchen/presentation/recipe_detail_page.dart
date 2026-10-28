@@ -177,16 +177,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    '并行 · ${recipeDuration(group)} 分钟',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                ...children,
-              ],
+              children: [...children],
             ),
           ),
         );
@@ -278,6 +269,13 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
+                          if (step.parallelWithPrevious) ...[
+                            Text(
+                              '并行',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
                           const Icon(Icons.timer_outlined, size: 17),
                           const SizedBox(width: 4),
                           Text('${step.duration}分钟'),

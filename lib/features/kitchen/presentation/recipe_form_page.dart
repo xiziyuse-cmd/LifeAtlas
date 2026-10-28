@@ -15,10 +15,10 @@ class RecipeFormPage extends StatefulWidget {
 
 class _RecipeFormPageState extends State<RecipeFormPage> {
   late final _name = TextEditingController(text: widget.recipe?.name ?? '');
-  final _customCategory = TextEditingController();
   late String _image = widget.recipe?.image ?? '',
       _difficulty = widget.recipe?.difficulty ?? '简单';
-  late final _categories = <String>{...?widget.recipe?.categories};
+  late final _categories = <String>{...?widget.recipe?.categories}
+    ..removeAll(['午餐', '晚餐']);
   late final _materials = [...?widget.recipe?.materials];
   late final _seasonings = [...?widget.recipe?.seasonings];
   late final _steps = [...?widget.recipe?.steps];
@@ -42,17 +42,47 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
   @override
   void dispose() {
     _name.dispose();
-    _customCategory.dispose();
     super.dispose();
   }
 
-  void _addCustomCategory() {
-    final value = _customCategory.text.trim();
-    if (value.isEmpty) return;
-    setState(() {
-      _categories.add(value);
-      _customCategory.clear();
-    });
+  Future<void> _addCustomCategory() async {
+    var entered = '';
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新增分类'),
+        content: TextField(
+          onChanged: (value) => entered = value,
+          autofocus: true,
+          maxLength: 20,
+          decoration: const InputDecoration(labelText: '分类名称'),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (value) {
+            if (value.trim().isNotEmpty) Navigator.pop(context, value.trim());
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (entered.trim().isNotEmpty) {
+                Navigator.pop(context, entered.trim());
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    if (value == null || !mounted) return;
+    if (value == '午餐' || value == '晚餐') {
+      kitchenError(context, const FormatException('请使用其他分类名称'));
+      return;
+    }
+    setState(() => _categories.add(value));
   }
 
   Future<void> _material([_RecipeItemEntry? entry]) async {
@@ -155,6 +185,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
   }
 
   Future<void> _step([int? index]) async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     final step = await Navigator.push<RecipeStep>(
       context,
       MaterialPageRoute(
@@ -291,39 +322,32 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
                   label: Text(c),
                   showCheckmark: false,
                   selected: _categories.contains(c),
-                  selectedColor: const Color(0xFF26352D),
+                  selectedColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.primary,
                   labelStyle: TextStyle(
-                    color: _categories.contains(c) ? Colors.white : null,
+                    color: _categories.contains(c)
+                        ? Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                              : Theme.of(context).colorScheme.onPrimary
+                        : null,
                   ),
                   side: BorderSide(
                     color: _categories.contains(c)
-                        ? const Color(0xFF26352D)
+                        ? Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : Theme.of(context).colorScheme.primary
                         : Theme.of(context).colorScheme.outlineVariant,
                   ),
                   onSelected: (v) => setState(() {
                     v ? _categories.add(c) : _categories.remove(c);
                   }),
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _customCategory,
-                  decoration: const InputDecoration(
-                    labelText: '自定义分类',
-                    hintText: '输入分类名称',
-                  ),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _addCustomCategory(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonal(
+              ActionChip(
+                key: const ValueKey('add-recipe-category'),
+                tooltip: '新增分类',
+                label: const Text('+'),
                 onPressed: _addCustomCategory,
-                child: const Text('添加'),
               ),
             ],
           ),
@@ -363,29 +387,29 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
               TextButton(onPressed: _material, child: const Text('新增')),
             ],
           ),
-          for (final entry in _recipeItems)
-            Card(
-              child: ListTile(
-                title: Text('${entry.item.name} ${entry.item.quantity}'.trim()),
-                subtitle: Text(entry.seasoning ? '调料' : '食材'),
-                onTap: () => _material(entry),
-                trailing: IconButton(
-                  tooltip: '移除',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => setState(() {
-                    (entry.seasoning ? _seasonings : _materials).removeAt(
-                      entry.index,
-                    );
-                    _renameReferences(
-                      entry.item.name,
-                      null,
-                      entry.seasoning,
-                      false,
-                    );
-                  }),
-                ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  for (final entry in _recipeItems.where(
+                    (entry) => !entry.seasoning,
+                  ))
+                    _ingredient(entry),
+                  if (_materials.isNotEmpty && _seasonings.isNotEmpty)
+                    const Divider(
+                      key: ValueKey('recipe-form-ingredient-divider'),
+                      thickness: 1,
+                      height: 24,
+                    ),
+                  for (final entry in _recipeItems.where(
+                    (entry) => entry.seasoning,
+                  ))
+                    _ingredient(entry),
+                ],
               ),
             ),
+          ),
           Row(
             children: [
               Expanded(
@@ -406,9 +430,22 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
               child: Column(
                 children: [
                   ListTile(
-                    title: Text('${entry.key + 1}. ${entry.value.name}'),
-                    subtitle: Text(
-                      '${entry.key > 0 && entry.value.parallelWithPrevious ? '并行 · ' : ''}${entry.value.duration}分钟',
+                    title: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text('${entry.key + 1}. ${entry.value.name}'),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${entry.key > 0 && entry.value.parallelWithPrevious ? '并行 · ' : ''}${entry.value.duration}分钟',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(entry.value.content),
                     ),
                     onTap: () => _step(entry.key),
                   ),
@@ -452,6 +489,41 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
         ],
       ),
     ),
+  );
+
+  Widget _ingredient(_RecipeItemEntry entry) => Row(
+    children: [
+      Expanded(
+        child: InkWell(
+          onTap: () => _material(entry),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.item.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Text(
+                  entry.item.quantity,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      IconButton(
+        tooltip: '移除${entry.item.name}',
+        icon: const Icon(Icons.close, size: 18),
+        onPressed: () => setState(() {
+          (entry.seasoning ? _seasonings : _materials).removeAt(entry.index);
+          _renameReferences(entry.item.name, null, entry.seasoning, false);
+        }),
+      ),
+    ],
   );
 }
 

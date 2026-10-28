@@ -245,7 +245,7 @@ void main() {
       expect(loaded.recipeIds, state.recipeIds);
       expect(loaded.prepared, state.prepared);
       final db = await database.database;
-      expect(await db.getVersion(), 10);
+      expect(await db.getVersion(), AppDatabase.databaseVersion);
       expect(
         (await db.query(
           'app_settings',
