@@ -1,13 +1,18 @@
 import 'dart:convert';
 
+import 'season_tags.dart';
+import 'clothing_parameter.dart';
+
 class ClothingItem {
-  const ClothingItem({
+  ClothingItem({
     this.id,
     required this.name,
     required this.imagePath,
     this.brand,
     this.category,
-    this.seasonTags = const [],
+    this.brandId,
+    this.categoryId,
+    List<String> seasonTags = const [],
     this.color,
     this.material,
     this.size,
@@ -18,6 +23,7 @@ class ClothingItem {
     this.waistCircumference,
     this.hipCircumference,
     this.trouserLength,
+    Map<String, ClothingParameterValue> parameterValues = const {},
     this.purchasePrice,
     this.purchaseDate,
     this.notes,
@@ -27,13 +33,16 @@ class ClothingItem {
     this.maxWornTemperature,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : seasonTags = WardrobeSeasonTags.normalize(seasonTags),
+       parameterValues = Map.unmodifiable(parameterValues);
 
   final int? id;
   final String name;
   final String imagePath;
   final String? brand;
   final String? category;
+  final int? brandId;
+  final int? categoryId;
   final List<String> seasonTags;
   final String? color;
   final String? material;
@@ -45,6 +54,7 @@ class ClothingItem {
   final double? waistCircumference;
   final double? hipCircumference;
   final double? trouserLength;
+  final Map<String, ClothingParameterValue> parameterValues;
   final double? purchasePrice;
   final DateTime? purchaseDate;
   final String? notes;
@@ -62,6 +72,8 @@ class ClothingItem {
       'image_path': imagePath,
       'brand': brand,
       'category': category,
+      'brand_id': brandId,
+      'category_id': categoryId,
       'season_tags': jsonEncode(seasonTags),
       'color': color,
       'material': material,
@@ -85,16 +97,19 @@ class ClothingItem {
     };
   }
 
-  factory ClothingItem.fromMap(Map<String, Object?> map) {
-    final encodedSeasonTags = map['season_tags'] as String? ?? '[]';
-
+  factory ClothingItem.fromMap(
+    Map<String, Object?> map, {
+    Map<String, ClothingParameterValue> parameterValues = const {},
+  }) {
     return ClothingItem(
       id: map['id'] as int?,
       name: map['name'] as String,
       imagePath: map['image_path'] as String,
       brand: map['brand'] as String?,
       category: map['category'] as String?,
-      seasonTags: List<String>.from(jsonDecode(encodedSeasonTags) as List),
+      brandId: map['brand_id'] as int?,
+      categoryId: map['category_id'] as int?,
+      seasonTags: WardrobeSeasonTags.decodeStorage(map['season_tags']),
       color: map['color'] as String?,
       material: map['material'] as String?,
       size: map['size'] as String?,
@@ -105,6 +120,7 @@ class ClothingItem {
       waistCircumference: (map['waist_circumference'] as num?)?.toDouble(),
       hipCircumference: (map['hip_circumference'] as num?)?.toDouble(),
       trouserLength: (map['trouser_length'] as num?)?.toDouble(),
+      parameterValues: parameterValues,
       purchasePrice: (map['purchase_price'] as num?)?.toDouble(),
       purchaseDate: _dateTimeOrNull(map['purchase_date']),
       notes: map['notes'] as String?,
@@ -122,5 +138,67 @@ class ClothingItem {
       return null;
     }
     return DateTime.parse(value);
+  }
+
+  ClothingItem copyWith({
+    int? id,
+    String? name,
+    String? imagePath,
+    String? brand,
+    String? category,
+    int? brandId,
+    int? categoryId,
+    List<String>? seasonTags,
+    String? color,
+    String? material,
+    String? size,
+    double? clothingLength,
+    double? shoulderWidth,
+    double? chestCircumference,
+    double? sleeveLength,
+    double? waistCircumference,
+    double? hipCircumference,
+    double? trouserLength,
+    Map<String, ClothingParameterValue>? parameterValues,
+    double? purchasePrice,
+    DateTime? purchaseDate,
+    String? notes,
+    bool? isDeleted,
+    int? wearCount,
+    double? minWornTemperature,
+    double? maxWornTemperature,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return ClothingItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      imagePath: imagePath ?? this.imagePath,
+      brand: brand ?? this.brand,
+      category: category ?? this.category,
+      brandId: brandId ?? this.brandId,
+      categoryId: categoryId ?? this.categoryId,
+      seasonTags: seasonTags ?? this.seasonTags,
+      color: color ?? this.color,
+      material: material ?? this.material,
+      size: size ?? this.size,
+      clothingLength: clothingLength ?? this.clothingLength,
+      shoulderWidth: shoulderWidth ?? this.shoulderWidth,
+      chestCircumference: chestCircumference ?? this.chestCircumference,
+      sleeveLength: sleeveLength ?? this.sleeveLength,
+      waistCircumference: waistCircumference ?? this.waistCircumference,
+      hipCircumference: hipCircumference ?? this.hipCircumference,
+      trouserLength: trouserLength ?? this.trouserLength,
+      parameterValues: parameterValues ?? this.parameterValues,
+      purchasePrice: purchasePrice ?? this.purchasePrice,
+      purchaseDate: purchaseDate ?? this.purchaseDate,
+      notes: notes ?? this.notes,
+      isDeleted: isDeleted ?? this.isDeleted,
+      wearCount: wearCount ?? this.wearCount,
+      minWornTemperature: minWornTemperature ?? this.minWornTemperature,
+      maxWornTemperature: maxWornTemperature ?? this.maxWornTemperature,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }

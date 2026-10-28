@@ -13,12 +13,17 @@ class ModulesPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
         Text('功能板块', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        Text(
-          '开启板块后会在底部导航中新增入口；关闭不会删除已经保存的数据。',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
         const SizedBox(height: 16),
+        Card(
+          child: SwitchListTile(
+            key: const ValueKey('modules-kitchen-switch'),
+            secondary: const CircleAvatar(child: Icon(Icons.kitchen)),
+            title: const Text('厨房'),
+            subtitle: const Text('菜谱、食材库存与制作记录'),
+            value: controller.kitchenModuleEnabled,
+            onChanged: controller.setKitchenModuleEnabled,
+          ),
+        ),
         Card(
           clipBehavior: Clip.antiAlias,
           child: SwitchListTile(

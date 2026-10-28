@@ -1,0 +1,2994 @@
+[
+  {
+    "name": "西红柿炒鸡蛋",
+    "image": "assets/images/recipes/tomato-eggs.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 15,
+    "materials": [
+      {
+        "name": "鸡蛋",
+        "amount": 3,
+        "unit": "个",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "西红柿",
+        "amount": 2,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将鸡蛋和西红柿清洗处理，按用量备齐。",
+        "duration": 5,
+        "materials": [
+          "鸡蛋",
+          "西红柿"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 8,
+        "materials": [
+          "鸡蛋",
+          "西红柿"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "青椒土豆丝",
+    "image": "assets/images/recipes/pepper-potato.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 20,
+    "materials": [
+      {
+        "name": "土豆",
+        "amount": 2,
+        "unit": "个",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "青椒",
+        "amount": 1,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将土豆和青椒清洗处理，按用量备齐。",
+        "duration": 6,
+        "materials": [
+          "土豆",
+          "青椒"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 12,
+        "materials": [
+          "土豆",
+          "青椒"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "宫保鸡丁",
+    "image": "assets/images/recipes/kung-pao-chicken.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "中等",
+    "cookTime": 30,
+    "materials": [
+      {
+        "name": "鸡胸肉",
+        "amount": 300,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "花生米",
+        "amount": 50,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将鸡胸肉和花生米清洗处理，按用量备齐。",
+        "duration": 9,
+        "materials": [
+          "鸡胸肉",
+          "花生米"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 19,
+        "materials": [
+          "鸡胸肉",
+          "花生米"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "红烧肉",
+    "image": "assets/images/recipes/braised-pork.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "中等",
+    "cookTime": 70,
+    "materials": [
+      {
+        "name": "五花肉",
+        "amount": 500,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "冰糖",
+        "amount": 20,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将五花肉和冰糖清洗处理，按用量备齐。",
+        "duration": 21,
+        "materials": [
+          "五花肉",
+          "冰糖"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 47,
+        "materials": [
+          "五花肉",
+          "冰糖"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "麻婆豆腐",
+    "image": "assets/images/recipes/mapo-tofu.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "中等",
+    "cookTime": 25,
+    "materials": [
+      {
+        "name": "嫩豆腐",
+        "amount": 400,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "牛肉末",
+        "amount": 80,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将嫩豆腐和牛肉末清洗处理，按用量备齐。",
+        "duration": 8,
+        "materials": [
+          "嫩豆腐",
+          "牛肉末"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 15,
+        "materials": [
+          "嫩豆腐",
+          "牛肉末"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "鱼香肉丝",
+    "image": "assets/images/recipes/fish-fragrant-pork.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "中等",
+    "cookTime": 30,
+    "materials": [
+      {
+        "name": "猪里脊",
+        "amount": 250,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "木耳",
+        "amount": 50,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将猪里脊和木耳清洗处理，按用量备齐。",
+        "duration": 9,
+        "materials": [
+          "猪里脊",
+          "木耳"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 19,
+        "materials": [
+          "猪里脊",
+          "木耳"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "糖醋排骨",
+    "image": "assets/images/recipes/sweet-sour-ribs.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "中等",
+    "cookTime": 55,
+    "materials": [
+      {
+        "name": "猪肋排",
+        "amount": 500,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "白芝麻",
+        "amount": 5,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将猪肋排和白芝麻清洗处理，按用量备齐。",
+        "duration": 17,
+        "materials": [
+          "猪肋排",
+          "白芝麻"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 36,
+        "materials": [
+          "猪肋排",
+          "白芝麻"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "清蒸鲈鱼",
+    "image": "assets/images/recipes/steamed-fish.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 25,
+    "materials": [
+      {
+        "name": "鲈鱼",
+        "amount": 1,
+        "unit": "条",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "姜",
+        "amount": 15,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将鲈鱼和姜清洗处理，按用量备齐。",
+        "duration": 8,
+        "materials": [
+          "鲈鱼",
+          "姜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 15,
+        "materials": [
+          "鲈鱼",
+          "姜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "蒜蓉西兰花",
+    "image": "assets/images/recipes/garlic-broccoli.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 15,
+    "materials": [
+      {
+        "name": "西兰花",
+        "amount": 350,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "蒜",
+        "amount": 20,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将西兰花和蒜清洗处理，按用量备齐。",
+        "duration": 5,
+        "materials": [
+          "西兰花",
+          "蒜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 8,
+        "materials": [
+          "西兰花",
+          "蒜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "葱油拌面",
+    "image": "assets/images/recipes/scallion-noodles.jpg",
+    "categories": [
+      "早餐",
+      "午餐",
+      "小吃"
+    ],
+    "difficulty": "简单",
+    "cookTime": 20,
+    "materials": [
+      {
+        "name": "面条",
+        "amount": 250,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "小葱",
+        "amount": 40,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将面条和小葱清洗处理，按用量备齐。",
+        "duration": 6,
+        "materials": [
+          "面条",
+          "小葱"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 12,
+        "materials": [
+          "面条",
+          "小葱"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "皮蛋瘦肉粥",
+    "image": "assets/images/recipes/century-egg-congee.jpg",
+    "categories": [
+      "早餐",
+      "午餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 50,
+    "materials": [
+      {
+        "name": "大米",
+        "amount": 100,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "瘦肉",
+        "amount": 100,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将大米和瘦肉清洗处理，按用量备齐。",
+        "duration": 15,
+        "materials": [
+          "大米",
+          "瘦肉"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 33,
+        "materials": [
+          "大米",
+          "瘦肉"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "鸡蛋三明治",
+    "image": "assets/images/recipes/egg-sandwich.jpg",
+    "categories": [
+      "早餐",
+      "小吃"
+    ],
+    "difficulty": "简单",
+    "cookTime": 15,
+    "materials": [
+      {
+        "name": "吐司",
+        "amount": 4,
+        "unit": "片",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "鸡蛋",
+        "amount": 2,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将吐司和鸡蛋清洗处理，按用量备齐。",
+        "duration": 5,
+        "materials": [
+          "吐司",
+          "鸡蛋"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 8,
+        "materials": [
+          "吐司",
+          "鸡蛋"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "蔬菜煎饼",
+    "image": "assets/images/recipes/vegetable-pancake.jpg",
+    "categories": [
+      "早餐",
+      "小吃"
+    ],
+    "difficulty": "简单",
+    "cookTime": 20,
+    "materials": [
+      {
+        "name": "面粉",
+        "amount": 150,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "胡萝卜",
+        "amount": 60,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将面粉和胡萝卜清洗处理，按用量备齐。",
+        "duration": 6,
+        "materials": [
+          "面粉",
+          "胡萝卜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 12,
+        "materials": [
+          "面粉",
+          "胡萝卜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "鲜肉馄饨",
+    "image": "assets/images/recipes/wonton.jpg",
+    "categories": [
+      "早餐",
+      "午餐",
+      "小吃"
+    ],
+    "difficulty": "中等",
+    "cookTime": 45,
+    "materials": [
+      {
+        "name": "馄饨皮",
+        "amount": 30,
+        "unit": "张",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "猪肉末",
+        "amount": 250,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将馄饨皮和猪肉末清洗处理，按用量备齐。",
+        "duration": 14,
+        "materials": [
+          "馄饨皮",
+          "猪肉末"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 29,
+        "materials": [
+          "馄饨皮",
+          "猪肉末"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "扬州炒饭",
+    "image": "assets/images/recipes/yangzhou-fried-rice.jpg",
+    "categories": [
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 20,
+    "materials": [
+      {
+        "name": "米饭",
+        "amount": 300,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "鸡蛋",
+        "amount": 2,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将米饭和鸡蛋清洗处理，按用量备齐。",
+        "duration": 6,
+        "materials": [
+          "米饭",
+          "鸡蛋"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 12,
+        "materials": [
+          "米饭",
+          "鸡蛋"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "咖喱鸡肉饭",
+    "image": "assets/images/recipes/chicken-curry-rice.jpg",
+    "categories": [
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 40,
+    "materials": [
+      {
+        "name": "鸡腿肉",
+        "amount": 350,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "土豆",
+        "amount": 2,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将鸡腿肉和土豆清洗处理，按用量备齐。",
+        "duration": 12,
+        "materials": [
+          "鸡腿肉",
+          "土豆"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 26,
+        "materials": [
+          "鸡腿肉",
+          "土豆"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "香菇鸡肉饭",
+    "image": "assets/images/recipes/mushroom-chicken-rice.jpg",
+    "categories": [
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 45,
+    "materials": [
+      {
+        "name": "大米",
+        "amount": 200,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "鸡腿肉",
+        "amount": 300,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将大米和鸡腿肉清洗处理，按用量备齐。",
+        "duration": 14,
+        "materials": [
+          "大米",
+          "鸡腿肉"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 29,
+        "materials": [
+          "大米",
+          "鸡腿肉"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "红烧茄子",
+    "image": "assets/images/recipes/braised-eggplant.jpg",
+    "categories": [
+      "家常菜",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 25,
+    "materials": [
+      {
+        "name": "茄子",
+        "amount": 2,
+        "unit": "根",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "青椒",
+        "amount": 1,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将茄子和青椒清洗处理，按用量备齐。",
+        "duration": 8,
+        "materials": [
+          "茄子",
+          "青椒"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 15,
+        "materials": [
+          "茄子",
+          "青椒"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "冬瓜排骨汤",
+    "image": "assets/images/recipes/winter-melon-rib-soup.jpg",
+    "categories": [
+      "家常菜",
+      "汤类",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 70,
+    "materials": [
+      {
+        "name": "猪肋排",
+        "amount": 400,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "冬瓜",
+        "amount": 500,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将猪肋排和冬瓜清洗处理，按用量备齐。",
+        "duration": 21,
+        "materials": [
+          "猪肋排",
+          "冬瓜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炖煮阶段",
+        "content": "加入足量清水，以合适火候煮至食材成熟、汤味融合。",
+        "duration": 47,
+        "materials": [
+          "猪肋排",
+          "冬瓜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "紫菜蛋花汤",
+    "image": "assets/images/recipes/seaweed-egg-soup.jpg",
+    "categories": [
+      "家常菜",
+      "汤类"
+    ],
+    "difficulty": "简单",
+    "cookTime": 12,
+    "materials": [
+      {
+        "name": "紫菜",
+        "amount": 8,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "鸡蛋",
+        "amount": 2,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将紫菜和鸡蛋清洗处理，按用量备齐。",
+        "duration": 5,
+        "materials": [
+          "紫菜",
+          "鸡蛋"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炖煮阶段",
+        "content": "加入足量清水，以合适火候煮至食材成熟、汤味融合。",
+        "duration": 5,
+        "materials": [
+          "紫菜",
+          "鸡蛋"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "玉米胡萝卜汤",
+    "image": "assets/images/recipes/corn-carrot-soup.jpg",
+    "categories": [
+      "汤类",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 50,
+    "materials": [
+      {
+        "name": "甜玉米",
+        "amount": 1,
+        "unit": "根",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "胡萝卜",
+        "amount": 1,
+        "unit": "根",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将甜玉米和胡萝卜清洗处理，按用量备齐。",
+        "duration": 15,
+        "materials": [
+          "甜玉米",
+          "胡萝卜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炖煮阶段",
+        "content": "加入足量清水，以合适火候煮至食材成熟、汤味融合。",
+        "duration": 33,
+        "materials": [
+          "甜玉米",
+          "胡萝卜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "番茄牛腩汤",
+    "image": "assets/images/recipes/tomato-beef-soup.jpg",
+    "categories": [
+      "汤类",
+      "午餐",
+      "晚餐"
+    ],
+    "difficulty": "中等",
+    "cookTime": 90,
+    "materials": [
+      {
+        "name": "牛腩",
+        "amount": 500,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "西红柿",
+        "amount": 3,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将牛腩和西红柿清洗处理，按用量备齐。",
+        "duration": 27,
+        "materials": [
+          "牛腩",
+          "西红柿"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炖煮阶段",
+        "content": "加入足量清水，以合适火候煮至食材成熟、汤味融合。",
+        "duration": 61,
+        "materials": [
+          "牛腩",
+          "西红柿"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "菌菇豆腐汤",
+    "image": "assets/images/recipes/mushroom-tofu-soup.jpg",
+    "categories": [
+      "汤类",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 25,
+    "materials": [
+      {
+        "name": "嫩豆腐",
+        "amount": 300,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "混合菌菇",
+        "amount": 200,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将嫩豆腐和混合菌菇清洗处理，按用量备齐。",
+        "duration": 8,
+        "materials": [
+          "嫩豆腐",
+          "混合菌菇"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炖煮阶段",
+        "content": "加入足量清水，以合适火候煮至食材成熟、汤味融合。",
+        "duration": 15,
+        "materials": [
+          "嫩豆腐",
+          "混合菌菇"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "酸辣汤",
+    "image": "assets/images/recipes/hot-sour-soup.jpg",
+    "categories": [
+      "汤类",
+      "小吃"
+    ],
+    "difficulty": "中等",
+    "cookTime": 30,
+    "materials": [
+      {
+        "name": "嫩豆腐",
+        "amount": 200,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "木耳",
+        "amount": 50,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将嫩豆腐和木耳清洗处理，按用量备齐。",
+        "duration": 9,
+        "materials": [
+          "嫩豆腐",
+          "木耳"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炖煮阶段",
+        "content": "加入足量清水，以合适火候煮至食材成熟、汤味融合。",
+        "duration": 19,
+        "materials": [
+          "嫩豆腐",
+          "木耳"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "鲜虾蒸蛋",
+    "image": "assets/images/recipes/shrimp-egg-custard.jpg",
+    "categories": [
+      "家常菜",
+      "早餐",
+      "晚餐"
+    ],
+    "difficulty": "简单",
+    "cookTime": 20,
+    "materials": [
+      {
+        "name": "鸡蛋",
+        "amount": 3,
+        "unit": "个",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "鲜虾",
+        "amount": 8,
+        "unit": "只",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将鸡蛋和鲜虾清洗处理，按用量备齐。",
+        "duration": 6,
+        "materials": [
+          "鸡蛋",
+          "鲜虾"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 12,
+        "materials": [
+          "鸡蛋",
+          "鲜虾"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "韭菜盒子",
+    "image": "assets/images/recipes/chive-pockets.jpg",
+    "categories": [
+      "早餐",
+      "小吃"
+    ],
+    "difficulty": "中等",
+    "cookTime": 50,
+    "materials": [
+      {
+        "name": "面粉",
+        "amount": 300,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "韭菜",
+        "amount": 250,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将面粉和韭菜清洗处理，按用量备齐。",
+        "duration": 15,
+        "materials": [
+          "面粉",
+          "韭菜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 33,
+        "materials": [
+          "面粉",
+          "韭菜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "南瓜饼",
+    "image": "assets/images/recipes/pumpkin-cakes.jpg",
+    "categories": [
+      "早餐",
+      "小吃"
+    ],
+    "difficulty": "简单",
+    "cookTime": 35,
+    "materials": [
+      {
+        "name": "南瓜",
+        "amount": 300,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "糯米粉",
+        "amount": 180,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将南瓜和糯米粉清洗处理，按用量备齐。",
+        "duration": 11,
+        "materials": [
+          "南瓜",
+          "糯米粉"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 22,
+        "materials": [
+          "南瓜",
+          "糯米粉"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "葱香小饼",
+    "image": "assets/images/recipes/scallion-pancake.jpg",
+    "categories": [
+      "早餐",
+      "小吃"
+    ],
+    "difficulty": "简单",
+    "cookTime": 30,
+    "materials": [
+      {
+        "name": "面粉",
+        "amount": 250,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "小葱",
+        "amount": 30,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将面粉和小葱清洗处理，按用量备齐。",
+        "duration": 9,
+        "materials": [
+          "面粉",
+          "小葱"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "炒制阶段",
+        "content": "热锅加入食用油，依次放入主要食材，翻炒或煎制至成熟。",
+        "duration": 19,
+        "materials": [
+          "面粉",
+          "小葱"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "香蕉松饼",
+    "image": "assets/images/recipes/banana-pancake.jpg",
+    "categories": [
+      "早餐",
+      "烘焙"
+    ],
+    "difficulty": "简单",
+    "cookTime": 20,
+    "materials": [
+      {
+        "name": "香蕉",
+        "amount": 2,
+        "unit": "根",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "低筋面粉",
+        "amount": 120,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将香蕉和低筋面粉清洗处理，按用量备齐。",
+        "duration": 6,
+        "materials": [
+          "香蕉",
+          "低筋面粉"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 12,
+        "materials": [
+          "香蕉",
+          "低筋面粉"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "蔓越莓曲奇",
+    "image": "assets/images/recipes/cranberry-cookies.jpg",
+    "categories": [
+      "小吃",
+      "烘焙"
+    ],
+    "difficulty": "简单",
+    "cookTime": 45,
+    "materials": [
+      {
+        "name": "低筋面粉",
+        "amount": 180,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "蔓越莓干",
+        "amount": 60,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将低筋面粉和蔓越莓干清洗处理，按用量备齐。",
+        "duration": 14,
+        "materials": [
+          "低筋面粉",
+          "蔓越莓干"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 29,
+        "materials": [
+          "低筋面粉",
+          "蔓越莓干"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "戚风蛋糕",
+    "image": "assets/images/recipes/chiffon-cake.jpg",
+    "categories": [
+      "烘焙"
+    ],
+    "difficulty": "困难",
+    "cookTime": 75,
+    "materials": [
+      {
+        "name": "低筋面粉",
+        "amount": 90,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "鸡蛋",
+        "amount": 5,
+        "unit": "个",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将低筋面粉和鸡蛋清洗处理，按用量备齐。",
+        "duration": 23,
+        "materials": [
+          "低筋面粉",
+          "鸡蛋"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 50,
+        "materials": [
+          "低筋面粉",
+          "鸡蛋"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "葡式蛋挞",
+    "image": "assets/images/recipes/egg-tarts.jpg",
+    "categories": [
+      "小吃",
+      "烘焙"
+    ],
+    "difficulty": "中等",
+    "cookTime": 40,
+    "materials": [
+      {
+        "name": "蛋挞皮",
+        "amount": 12,
+        "unit": "个",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "淡奶油",
+        "amount": 120,
+        "unit": "ml",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将蛋挞皮和淡奶油清洗处理，按用量备齐。",
+        "duration": 12,
+        "materials": [
+          "蛋挞皮",
+          "淡奶油"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 26,
+        "materials": [
+          "蛋挞皮",
+          "淡奶油"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "蒜香面包",
+    "image": "assets/images/recipes/garlic-bread.jpg",
+    "categories": [
+      "早餐",
+      "烘焙"
+    ],
+    "difficulty": "中等",
+    "cookTime": 140,
+    "materials": [
+      {
+        "name": "高筋面粉",
+        "amount": 250,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "蒜",
+        "amount": 20,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将高筋面粉和蒜清洗处理，按用量备齐。",
+        "duration": 42,
+        "materials": [
+          "高筋面粉",
+          "蒜"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 96,
+        "materials": [
+          "高筋面粉",
+          "蒜"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "蓝莓玛芬",
+    "image": "assets/images/recipes/blueberry-muffins.jpg",
+    "categories": [
+      "早餐",
+      "烘焙"
+    ],
+    "difficulty": "简单",
+    "cookTime": 45,
+    "materials": [
+      {
+        "name": "低筋面粉",
+        "amount": 180,
+        "unit": "g",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "蓝莓",
+        "amount": 100,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将低筋面粉和蓝莓清洗处理，按用量备齐。",
+        "duration": 14,
+        "materials": [
+          "低筋面粉",
+          "蓝莓"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 29,
+        "materials": [
+          "低筋面粉",
+          "蓝莓"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  },
+  {
+    "name": "烤红薯",
+    "image": "assets/images/recipes/roasted-sweet-potatoes.jpg",
+    "categories": [
+      "小吃",
+      "烘焙"
+    ],
+    "difficulty": "简单",
+    "cookTime": 55,
+    "materials": [
+      {
+        "name": "红薯",
+        "amount": 3,
+        "unit": "个",
+        "remark": "清洗并按需要处理",
+        "stage": "准备阶段",
+        "sort": 1
+      },
+      {
+        "name": "黄油",
+        "amount": 10,
+        "unit": "g",
+        "remark": "提前备好",
+        "stage": "准备阶段",
+        "sort": 2
+      }
+    ],
+    "seasonings": [
+      {
+        "name": "食用油",
+        "amount": 15,
+        "unit": "ml",
+        "remark": "",
+        "stage": "炒制阶段",
+        "sort": 1
+      },
+      {
+        "name": "盐",
+        "amount": 2,
+        "unit": "g",
+        "remark": "按口味调整",
+        "stage": "出锅前",
+        "sort": 2
+      }
+    ],
+    "steps": [
+      {
+        "name": "准备阶段",
+        "content": "将红薯和黄油清洗处理，按用量备齐。",
+        "duration": 17,
+        "materials": [
+          "红薯",
+          "黄油"
+        ],
+        "seasonings": [],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "烘焙阶段",
+        "content": "混合食材并整形，放入预热好的烤箱烘烤至熟。",
+        "duration": 36,
+        "materials": [
+          "红薯",
+          "黄油"
+        ],
+        "seasonings": [
+          "食用油"
+        ],
+        "image": "",
+        "video": ""
+      },
+      {
+        "name": "出锅前",
+        "content": "加入盐调整味道，确认成熟后盛出装盘。",
+        "duration": 2,
+        "materials": [],
+        "seasonings": [
+          "盐"
+        ],
+        "image": "",
+        "video": ""
+      }
+    ]
+  }
+]
+
+
+

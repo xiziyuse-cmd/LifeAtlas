@@ -2,10 +2,94 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/app/app_controller.dart';
 import 'package:lifeatlas/app/life_atlas_app.dart';
+import 'package:lifeatlas/core/auth/ai_auth_session.dart';
 import 'package:lifeatlas/core/settings/app_settings.dart';
 import 'package:lifeatlas/core/settings/app_settings_repository.dart';
+import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
+import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 
 void main() {
+  testWidgets(
+    'actual home calendar follows light and dark mode in every palette',
+    (tester) async {
+      final controller = AppController(_MemoryAppSettingsRepository());
+      await controller.initialize();
+      await tester.pumpWidget(LifeAtlasApp(controller: controller));
+      await tester.pumpAndSettle();
+      final panel = find.byKey(const ValueKey('home-calendar-panel'));
+      expect(panel, findsOneWidget);
+      for (final palette in AppThemePalette.values) {
+        await controller.setThemePalette(palette);
+        for (final preference in [
+          AppThemePreference.light,
+          AppThemePreference.dark,
+          AppThemePreference.light,
+        ]) {
+          await controller.setThemePreference(preference);
+          await tester.pumpAndSettle();
+          final decoration =
+              tester.widget<Container>(panel).decoration as BoxDecoration;
+          expect(
+            decoration.color,
+            preference == AppThemePreference.dark
+                ? const Color(0xFF171C19)
+                : Colors.white,
+            reason: '${palette.name} / ${preference.name}',
+          );
+          final date = DateTime.now();
+          final selected = find.byKey(
+            ValueKey(
+              'home-calendar-date-${DateTime(date.year, date.month, date.day).toIso8601String()}',
+            ),
+          );
+          final label = tester.widget<Text>(
+            find.descendant(of: selected, matching: find.text('${date.day}')),
+          );
+          expect(
+            label.style?.color,
+            preference == AppThemePreference.dark
+                ? const Color(0xFF171C19)
+                : Colors.white,
+          );
+          expect(tester.takeException(), isNull);
+        }
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    },
+  );
+
+  testWidgets('kitchen module toggle adds and removes its destination', (
+    tester,
+  ) async {
+    final settings = _MemoryAppSettingsRepository();
+    final controller = AppController(settings);
+    await controller.initialize();
+    await tester.pumpWidget(
+      LifeAtlasApp(
+        controller: controller,
+        kitchenRepository: _EmptyKitchenRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-modules-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('modules-kitchen-switch')));
+    await tester.pumpAndSettle();
+    expect(settings.settings.kitchenModuleEnabled, true);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    await tester.tap(find.text('厨房'));
+    await tester.pumpAndSettle();
+    expect(find.text('菜谱'), findsOneWidget);
+    await controller.setKitchenModuleEnabled(false);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationDestination), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('profile module entry controls the dynamic bottom tab', (
     tester,
   ) async {
@@ -25,6 +109,8 @@ void main() {
     expect(find.byKey(const ValueKey('profile-outfit-switch')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('profile-modules-entry')));
     await tester.pumpAndSettle();
+    expect(find.text('开启板块后会在底部导航中新增入口；关闭不会删除已经保存的数据。'), findsNothing);
+    expect(find.text('衣柜、套装、穿搭记录与预购管理'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('modules-outfit-switch')));
     await tester.pumpAndSettle();
 
@@ -63,6 +149,28 @@ void main() {
     );
   });
 
+  testWidgets('settings theme preview changes and persists palette', (
+    tester,
+  ) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    await controller.initialize();
+    await tester.pumpWidget(LifeAtlasApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-theme-entry')));
+    await tester.pumpAndSettle();
+    expect(find.text('设置'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('settings-theme-entry')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('theme-milkPudding')));
+    await tester.pumpAndSettle();
+    expect(controller.themePalette, AppThemePalette.milkPudding);
+    expect(repository.settings.themePalette, AppThemePalette.milkPudding);
+    expect(find.text('✓ 当前使用'), findsOneWidget);
+  });
+
   testWidgets('bottom tab pages do not show a common app bar title', (
     tester,
   ) async {
@@ -80,9 +188,68 @@ void main() {
 
     expect(find.byType(AppBar), findsNothing);
   });
+
+  testWidgets('profile opens the AI service login page', (tester) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    final session = AiAuthSession(
+      authBaseUrl: 'https://example.test/v1/auth',
+      tokenStore: _MemoryAiTokenStore(),
+    );
+    addTearDown(session.dispose);
+    await controller.initialize();
+    await session.initialize();
+
+    await tester.pumpWidget(
+      LifeAtlasApp(controller: controller, aiAuthSession: session),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-ai-auth-entry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI 服务账号'), findsWidgets);
+    expect(find.byKey(const ValueKey('ai-auth-username')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ai-auth-password')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ai-auth-login')), findsOneWidget);
+  });
+
+  testWidgets('body profile saves gender selection', (tester) async {
+    final repository = _MemoryAppSettingsRepository();
+    final controller = AppController(repository);
+    await controller.initialize();
+
+    await tester.pumpWidget(LifeAtlasApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    final bodyEntry = find.byKey(const ValueKey('profile-body-entry'));
+    await tester.scrollUntilVisible(bodyEntry, 300);
+    await tester.pumpAndSettle();
+    await tester.tap(bodyEntry);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('profile-gender-female')));
+    await tester.pumpAndSettle();
+
+    expect(controller.profileGender, ProfileGender.female);
+    expect(repository.settings.profileGender, ProfileGender.female);
+    expect(find.text('穿搭中将显示内衣、裙装和连衣裙。'), findsOneWidget);
+  });
 }
 
 class _MemoryAppSettingsRepository implements AppSettingsRepository {
+  @override
+  Future<void> saveKitchenModuleEnabled(bool enabled) async {
+    settings = AppSettings(
+      themePreference: settings.themePreference,
+      themePalette: settings.themePalette,
+      outfitModuleEnabled: settings.outfitModuleEnabled,
+      kitchenModuleEnabled: enabled,
+      profileGender: settings.profileGender,
+    );
+  }
+
   AppSettings settings = const AppSettings();
 
   @override
@@ -92,7 +259,21 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveOutfitModuleEnabled(bool enabled) async {
     settings = AppSettings(
       themePreference: settings.themePreference,
+      themePalette: settings.themePalette,
       outfitModuleEnabled: enabled,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
+      profileGender: settings.profileGender,
+    );
+  }
+
+  @override
+  Future<void> saveProfileGender(ProfileGender gender) async {
+    settings = AppSettings(
+      themePreference: settings.themePreference,
+      themePalette: settings.themePalette,
+      outfitModuleEnabled: settings.outfitModuleEnabled,
+      profileGender: gender,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
     );
   }
 
@@ -100,7 +281,43 @@ class _MemoryAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveThemePreference(AppThemePreference preference) async {
     settings = AppSettings(
       themePreference: preference,
+      themePalette: settings.themePalette,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
       outfitModuleEnabled: settings.outfitModuleEnabled,
+      profileGender: settings.profileGender,
     );
   }
+
+  @override
+  Future<void> saveThemePalette(AppThemePalette palette) async {
+    settings = AppSettings(
+      themePreference: settings.themePreference,
+      themePalette: palette,
+      kitchenModuleEnabled: settings.kitchenModuleEnabled,
+      outfitModuleEnabled: settings.outfitModuleEnabled,
+      profileGender: settings.profileGender,
+    );
+  }
+}
+
+class _EmptyKitchenRepository extends KitchenRepository {
+  @override
+  Future<List<Recipe>> listRecipes() async => [];
+  @override
+  Future<List<InventoryItem>> listInventory() async => [];
+  @override
+  Future<List<CookingRecord>> listRecords() async => [];
+}
+
+class _MemoryAiTokenStore implements AiTokenStore {
+  String? value;
+
+  @override
+  Future<void> clear() async => value = null;
+
+  @override
+  Future<String?> read() async => value;
+
+  @override
+  Future<void> write(String value) async => this.value = value;
 }
