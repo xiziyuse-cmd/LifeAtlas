@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/developer_contact_service.dart';
 
@@ -16,83 +15,81 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
   final _content = TextEditingController();
   final _contact = TextEditingController();
   final _contentFocus = FocusNode();
-  String? _version;
-  String? _contentError;
-  bool _loading = true;
-  bool _sending = false;
-  String? _mailError;
+  String? _version, _contentError, _error;
+  bool _loading = true, _sending = false, _ready = false, _success = false;
 
   @override
   void initState() {
     super.initState();
-    _loadVersion();
+    _load();
   }
 
-  Future<void> _loadVersion() async {
-    setState(() => _loading = true);
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _ready = false;
+      _error = null;
+    });
     try {
       final version = await _service.loadVersion();
-      if (mounted) setState(() => _version = version);
+      final pending = await _service.loadPending();
+      if (!mounted) return;
+      setState(() {
+        _version = version;
+        _ready = true;
+        if (pending != null) {
+          _subject.text = pending.subject;
+          _content.text = pending.content;
+          _contact.text = pending.contact;
+        }
+      });
     } catch (_) {
-      if (mounted) setState(() => _version = null);
+      if (mounted) setState(() => _error = '版本或草稿读取失败，请重试');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  DeveloperFeedback? _feedback() {
-    if (_version == null) return null;
+  Future<void> _send() async {
+    if (!_ready || _sending) return;
     if (_content.text.trim().isEmpty) {
       setState(() => _contentError = '请填写反馈内容');
       _contentFocus.requestFocus();
-      return null;
+      return;
     }
-    setState(() => _contentError = null);
-    return DeveloperFeedback(
-      content: _content.text,
-      version: _version!,
-      subject: _subject.text,
-      contact: _contact.text,
-    );
-  }
-
-  void _notice(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Future<void> _send() async {
-    final feedback = _feedback();
-    if (feedback == null || _sending) return;
     FocusScope.of(context).unfocus();
     setState(() {
       _sending = true;
-      _mailError = null;
+      _error = null;
+      _success = false;
+      _contentError = null;
     });
     try {
-      final opened = await _service.openMail(feedback);
+      await _service.submit(
+        DeveloperFeedback(
+          content: _content.text,
+          version: _version!,
+          subject: _subject.text,
+          contact: _contact.text,
+        ),
+      );
       if (!mounted) return;
-      if (opened) {
-        _notice('已打开邮箱，请在邮箱中确认发送');
-      } else {
-        setState(() => _mailError = '未能打开邮箱，请安装并登录邮箱 App，或复制反馈后自行发送。');
+      setState(() {
+        _success = true;
+        _subject.clear();
+        _content.clear();
+        _contact.clear();
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _error = e is FeedbackSubmissionException
+              ? e.message
+              : '提交未确认，内容已保留，请重试',
+        );
       }
-    } catch (_) {
-      if (mounted) setState(() => _mailError = '打开邮箱失败，可重试或复制反馈后自行发送。');
     } finally {
       if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  Future<void> _copy() async {
-    final feedback = _feedback();
-    if (feedback == null) return;
-    try {
-      await Clipboard.setData(ClipboardData(text: feedback.copyText));
-      if (mounted) _notice('已复制收件人、反馈内容和版本号');
-    } catch (_) {
-      if (mounted) _notice('复制失败，请重试');
     }
   }
 
@@ -116,12 +113,11 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
             children: [
               Text('告诉我你的想法', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              const SelectableText(developerEmail),
-              const SizedBox(height: 8),
-              const Text('反馈会通过手机邮箱发送，自动附上软件版本。打开邮箱后确认发送即可。'),
+              const Text('反馈将直接提交给开发者，并附上软件版本。联系方式选填，方便回复。'),
               const SizedBox(height: 24),
               TextField(
                 controller: _subject,
+                enabled: _ready && !_sending,
                 textInputAction: TextInputAction.next,
                 maxLength: 80,
                 decoration: const InputDecoration(
@@ -132,11 +128,11 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
               const SizedBox(height: 12),
               TextField(
                 controller: _content,
+                enabled: _ready && !_sending,
                 focusNode: _contentFocus,
                 minLines: 5,
                 maxLines: 10,
                 maxLength: 4000,
-                textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   labelText: '反馈内容',
                   hintText: '请描述遇到的问题或你的建议',
@@ -147,6 +143,7 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
               const SizedBox(height: 12),
               TextField(
                 controller: _contact,
+                enabled: _ready && !_sending,
                 textInputAction: TextInputAction.done,
                 maxLength: 100,
                 decoration: const InputDecoration(
@@ -155,22 +152,21 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (_mailError != null) ...[
+              if (_error != null) ...[
                 Text(
-                  _mailError!,
+                  _error!,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 const SizedBox(height: 12),
               ],
+              if (_success) ...[
+                const Text('反馈已提交，感谢你的建议。', key: ValueKey('feedback-success')),
+                const SizedBox(height: 12),
+              ],
               FilledButton.icon(
-                onPressed: _version == null || _sending ? null : _send,
-                icon: const Icon(Icons.mail_outline),
-                label: Text(_sending ? '正在打开邮箱…' : '发送邮件'),
-              ),
-              TextButton.icon(
-                onPressed: _version == null || _sending ? null : _copy,
-                icon: const Icon(Icons.copy_outlined),
-                label: const Text('复制反馈内容'),
+                onPressed: _ready && !_sending ? _send : null,
+                icon: const Icon(Icons.send_outlined),
+                label: Text(_sending ? '正在提交…' : '提交反馈'),
               ),
             ],
           ),
@@ -180,12 +176,9 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: _loading
-                ? const Text('正在读取版本…')
-                : _version == null
-                ? TextButton(
-                    onPressed: _loadVersion,
-                    child: const Text('版本读取失败，点击重试'),
-                  )
+                ? const Text('正在读取版本和草稿…')
+                : !_ready
+                ? TextButton(onPressed: _load, child: const Text('读取失败，点击重试'))
                 : Text(
                     '当前版本：$_version',
                     style: Theme.of(context).textTheme.bodySmall,
