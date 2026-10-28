@@ -91,15 +91,20 @@ class _KitchenPageState extends State<KitchenPage> {
   }
 
   Future<void> _editInventory([InventoryItem? item]) async {
-    final foods = await widget.repository.listFoodBaseInfo();
-    if (!mounted) return;
-    final value = await showDialog<InventoryItem>(
-      context: context,
-      builder: (_) => InventoryFormDialog(item: item, foods: foods),
-    );
-    if (value == null || !mounted) return;
     try {
-      await widget.repository.saveInventory(value);
+      final foods = await widget.repository.listFoodBaseInfo();
+      if (!mounted) return;
+      final value = await Navigator.push<InventoryItem>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => InventoryFormDialog(
+            item: item,
+            foods: foods,
+            onSave: widget.repository.saveInventory,
+          ),
+        ),
+      );
+      if (value == null || !mounted) return;
       await _load();
     } catch (error) {
       if (mounted) kitchenError(context, error);

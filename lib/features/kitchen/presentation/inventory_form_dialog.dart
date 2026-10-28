@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import '../domain/kitchen_models.dart';
 
 class InventoryFormDialog extends StatefulWidget {
-  const InventoryFormDialog({super.key, this.item, required this.foods});
+  const InventoryFormDialog({
+    super.key,
+    this.item,
+    required this.foods,
+    this.onSave,
+  });
   final InventoryItem? item;
   final List<FoodBaseInfo> foods;
+  final Future<void> Function(InventoryItem)? onSave;
   @override
   State<InventoryFormDialog> createState() => _InventoryFormDialogState();
 }
@@ -13,6 +19,8 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
   late final TextEditingController name, amount, unit, shelfLife, remark;
   final _nameFocus = FocusNode();
   late DateTime purchaseDate;
+  bool _saving = false;
+  String? _error;
   @override
   void initState() {
     super.initState();
@@ -63,10 +71,12 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => purchaseDate = picked);
+    if (picked != null && mounted) setState(() => purchaseDate = picked);
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_saving) return;
+    _applyDefault();
     final parsedAmount = double.tryParse(amount.text);
     final days = shelfLife.text.trim().isEmpty
         ? null
@@ -77,25 +87,33 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
         !parsedAmount.isFinite ||
         parsedAmount < 0 ||
         (shelfLife.text.trim().isNotEmpty && (days == null || days <= 0))) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请填写名称、非负数量、单位及有效保质期')));
+      setState(() => _error = '请填写名称、非负数量、单位及有效保质期');
       return;
     }
-    Navigator.pop(
-      context,
-      InventoryItem(
-        id: widget.item?.id,
-        name: name.text,
-        amount: parsedAmount,
-        unit: unit.text,
-        remark: remark.text,
-        purchaseDate: purchaseDate,
-        shelfLifeDays: days,
-        expireDate: expiry,
-        updatedAt: DateTime.now(),
-      ),
+    final value = InventoryItem(
+      id: widget.item?.id,
+      name: name.text,
+      amount: parsedAmount,
+      unit: unit.text,
+      remark: remark.text,
+      purchaseDate: purchaseDate,
+      shelfLifeDays: days,
+      expireDate: expiry,
+      updatedAt: DateTime.now(),
     );
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave?.call(value);
+      if (mounted) Navigator.pop(context, value);
+    } catch (_) {
+      if (mounted) setState(() => _error = '库存保存失败，请重试，填写内容已保留');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -108,88 +126,176 @@ class _InventoryFormDialogState extends State<InventoryFormDialog> {
     super.dispose();
   }
 
+  Widget _section(String title, List<Widget> children) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    ),
+  );
+
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.item == null ? '新增库存' : '编辑库存'),
-    content: SizedBox(
-      width: 440,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              focusNode: _nameFocus,
-              textInputAction: TextInputAction.done,
-              onEditingComplete: () {
-                _applyDefault();
-                _nameFocus.unfocus();
-              },
-              decoration: const InputDecoration(
-                labelText: '食物名称',
-                prefixIcon: Icon(Icons.restaurant_outlined),
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_saving,
+    child: Scaffold(
+      appBar: AppBar(title: Text(widget.item == null ? '新增库存' : '编辑库存')),
+      body: Column(
+        children: [
+          Expanded(
+            child: AbsorbPointer(
+              absorbing: _saving,
+              child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _section('基本信息', [
+                    TextField(
+                      controller: name,
+                      focusNode: _nameFocus,
+                      textInputAction: TextInputAction.next,
+                      onEditingComplete: () {
+                        _applyDefault();
+                        FocusScope.of(context).nextFocus();
+                      },
+                      decoration: const InputDecoration(
+                        labelText: '食物名称',
+                        hintText: '例如：鸡蛋、牛奶',
+                        prefixIcon: Icon(Icons.restaurant_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextField(
+                            controller: amount,
+                            textInputAction: TextInputAction.next,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: '数量',
+                              hintText: '支持小数',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: unit,
+                            textInputAction: TextInputAction.next,
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(labelText: '单位'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        for (final value in [
+                          '个',
+                          'g',
+                          'kg',
+                          'ml',
+                          '袋',
+                          '盒',
+                          '瓶',
+                        ])
+                          ChoiceChip(
+                            label: Text(value),
+                            selected: unit.text == value,
+                            onSelected: (_) =>
+                                setState(() => unit.text = value),
+                          ),
+                      ],
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  _section('保质期', [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.shopping_bag_outlined),
+                      title: const Text('购入时间'),
+                      subtitle: Text(kitchenDate(purchaseDate)),
+                      trailing: const Icon(Icons.calendar_month),
+                      onTap: _pickDate,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: shelfLife,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: '保质期（天）',
+                        helperText: '可留空；填写后自动计算过期日期',
+                        prefixIcon: Icon(Icons.hourglass_bottom),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: '预计过期时间',
+                        prefixIcon: Icon(Icons.event_busy_outlined),
+                      ),
+                      child: Text(
+                        expiry == null ? '填写保质期后自动计算' : kitchenDate(expiry!),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  _section('备注（选填）', [
+                    TextField(
+                      controller: remark,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: '备注',
+                        hintText: '例如：放在冰箱冷藏层',
+                      ),
+                    ),
+                  ]),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
+          ),
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: amount,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '数量'),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: unit,
-                    decoration: const InputDecoration(labelText: '单位'),
-                  ),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: Text(_saving ? '保存中…' : '保存库存'),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.shopping_bag_outlined),
-              title: const Text('购入时间'),
-              subtitle: Text(kitchenDate(purchaseDate)),
-              trailing: const Icon(Icons.calendar_month),
-              onTap: _pickDate,
-            ),
-            TextField(
-              controller: shelfLife,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '保质期（天）',
-                prefixIcon: Icon(Icons.hourglass_bottom),
-              ),
-            ),
-            const SizedBox(height: 12),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: '预计过期时间',
-                prefixIcon: Icon(Icons.event_busy_outlined),
-              ),
-              child: Text(expiry == null ? '填写保质期后自动计算' : kitchenDate(expiry!)),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: remark,
-              maxLines: 2,
-              decoration: const InputDecoration(labelText: '备注'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
-      ),
-      FilledButton(onPressed: _save, child: const Text('保存')),
-    ],
   );
 }

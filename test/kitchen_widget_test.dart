@@ -656,7 +656,13 @@ void main() {
       ),
     );
     await tester.enterText(find.widgetWithText(TextField, '食物名称'), '鸡蛋');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.widgetWithText(TextField, '保质期（天）'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     final shelfField = tester.widget<TextField>(
       find.widgetWithText(TextField, '保质期（天）'),
