@@ -26,6 +26,9 @@ class _KitchenPageState extends State<KitchenPage> {
   List<Recipe> _recipes = [];
   List<InventoryItem> _inventory = [];
   bool _loading = true;
+  bool _shopping = false;
+  bool _loadingSelection = false;
+  final _selectedRecipes = <int>{};
   String? _error;
 
   List<Recipe> get _visibleRecipes {
@@ -67,6 +70,7 @@ class _KitchenPageState extends State<KitchenPage> {
       if (!mounted) return;
       setState(() {
         _recipes = results[0] as List<Recipe>;
+        _selectedRecipes.retainAll(_recipes.map((r) => r.id).whereType<int>());
         _inventory = results[1] as List<InventoryItem>;
         _loading = false;
         _error = null;
@@ -129,7 +133,81 @@ class _KitchenPageState extends State<KitchenPage> {
     ),
   );
 
-  Widget _recipesView() {
+  Future<void> _toggleShopping() async {
+    if (_shopping) {
+      setState(() => _shopping = false);
+      return;
+    }
+    setState(() => _loadingSelection = true);
+    try {
+      final saved = await widget.repository.loadShoppingList();
+      if (!mounted) return;
+      _search.clear();
+      setState(() {
+        _selectedRecipes
+          ..clear()
+          ..addAll(
+            saved.recipeIds.intersection(
+              _recipes.map((r) => r.id).whereType<int>().toSet(),
+            ),
+          );
+        _shopping = true;
+      });
+    } catch (error) {
+      if (mounted) kitchenError(context, '菜谱选择加载失败，请重试');
+    } finally {
+      if (mounted) setState(() => _loadingSelection = false);
+    }
+  }
+
+  void _selectRecipe(Recipe recipe) {
+    final id = recipe.id;
+    if (id == null) return;
+    setState(() {
+      _selectedRecipes.contains(id)
+          ? _selectedRecipes.remove(id)
+          : _selectedRecipes.add(id);
+    });
+  }
+
+  Widget _recipesView() => Column(
+    children: [
+      Expanded(child: _recipeGrid()),
+      if (_shopping)
+        SafeArea(
+          top: false,
+          minimum: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text('已选 ${_selectedRecipes.length} 道菜谱')),
+                  TextButton(
+                    onPressed: _toggleShopping,
+                    child: const Text('取消'),
+                  ),
+                ],
+              ),
+              FilledButton(
+                onPressed: _selectedRecipes.isEmpty
+                    ? null
+                    : () => _open(
+                        ShoppingListPage(
+                          repository: widget.repository,
+                          recipeIds: {..._selectedRecipes},
+                        ),
+                      ),
+                child: const Text('生成购物清单'),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+
+  Widget _recipeGrid() {
     final recipes = _visibleRecipes;
     return RefreshIndicator(
       onRefresh: _load,
@@ -161,16 +239,22 @@ class _KitchenPageState extends State<KitchenPage> {
                 icon: const Icon(Icons.add),
                 tooltip: '新建菜谱',
               ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: _loadingSelection ? null : _toggleShopping,
+                isSelected: _shopping,
+                icon: const Text('购'),
+                selectedIcon: Text(
+                  '购',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                ),
+                tooltip: _shopping ? '退出菜谱多选' : '多选菜谱购买',
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () =>
-                _open(ShoppingListPage(repository: widget.repository)),
-            icon: const Icon(Icons.shopping_cart_outlined),
-            label: const Text('购物清单'),
-          ),
-          const SizedBox(height: 8),
           if (recipes.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 64),
@@ -201,18 +285,43 @@ class _KitchenPageState extends State<KitchenPage> {
                     return Card(
                       clipBehavior: Clip.antiAlias,
                       child: InkWell(
-                        onTap: () => _open(
-                          RecipeDetailPage(
-                            recipe: recipe,
-                            repository: widget.repository,
-                          ),
-                        ),
+                        key: ValueKey('recipe-card-${recipe.id}'),
+                        onTap: _shopping
+                            ? () => _selectRecipe(recipe)
+                            : () => _open(
+                                RecipeDetailPage(
+                                  recipe: recipe,
+                                  repository: widget.repository,
+                                ),
+                              ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            KitchenImage(
-                              recipe.image,
-                              height: constraints.maxWidth / 3 - 16,
+                            Stack(
+                              children: [
+                                KitchenImage(
+                                  recipe.image,
+                                  height: constraints.maxWidth / 3 - 16,
+                                ),
+                                if (_shopping)
+                                  Positioned(
+                                    top: 0,
+                                    right: 0,
+                                    child: Material(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surface,
+                                      shape: const CircleBorder(),
+                                      child: Checkbox(
+                                        value: _selectedRecipes.contains(
+                                          recipe.id,
+                                        ),
+                                        semanticLabel: '选择${recipe.name}',
+                                        onChanged: (_) => _selectRecipe(recipe),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             Padding(
                               padding: const EdgeInsets.all(6),

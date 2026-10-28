@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/core/database/app_database.dart';
 import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
+import 'package:lifeatlas/features/kitchen/data/kitchen_ai_service.dart';
 import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 import 'package:lifeatlas/features/kitchen/domain/shopping_list.dart';
 import 'package:lifeatlas/features/kitchen/presentation/shopping_list_page.dart';
+import 'package:lifeatlas/features/kitchen/presentation/kitchen_page.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 const _recipes = [
@@ -37,6 +39,8 @@ class _Repository extends KitchenRepository {
   @override
   Future<List<Recipe>> listRecipes() async => recipes;
   @override
+  Future<List<InventoryItem>> listInventory() async => [];
+  @override
   Future<ShoppingListState> loadShoppingList() async => state;
   @override
   Future<void> saveShoppingList(ShoppingListState value) async {
@@ -45,7 +49,112 @@ class _Repository extends KitchenRepository {
   }
 }
 
+class _Ai implements KitchenAiService {
+  @override
+  Future<List<Recipe>> recommend(
+    List<InventoryItem> inventory,
+    String instruction,
+  ) async => [];
+}
+
 void main() {
+  testWidgets(
+    'purchase button selects in place, search retains selection, generation has no second picker',
+    (tester) async {
+      final repository = _Repository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: KitchenPage(repository: repository, aiService: _Ai()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('购物清单'), findsNothing);
+      expect(find.text('生成购物清单'), findsNothing);
+      expect(
+        tester.getCenter(find.text('购')).dx,
+        greaterThan(tester.getCenter(find.byTooltip('新建菜谱')).dx),
+      );
+      await tester.tap(find.text('购'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ShoppingListPage), findsNothing);
+      expect(find.byType(Checkbox), findsNWidgets(2));
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '生成购物清单'))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byKey(const ValueKey('recipe-card-1')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '香菇');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('recipe-card-1')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('recipe-card-2')));
+      await tester.pumpAndSettle();
+      expect(find.text('已选 2 道菜谱'), findsOneWidget);
+      await tester.tap(find.text('生成购物清单'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ShoppingListPage), findsOneWidget);
+      expect(find.text('250g'), findsOneWidget);
+      expect(find.text('选择菜谱（已选2道）'), findsNothing);
+      expect(repository.state.recipeIds, {1, 2});
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.text('已选 2 道菜谱'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(find.text('生成购物清单'), findsNothing);
+      expect(find.byType(Checkbox), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'purchase mode restores last selection and clears search to show all cards on narrow screen',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = _Repository()
+        ..state = const ShoppingListState(recipeIds: {1, 999});
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: KitchenPage(repository: repository, aiService: _Ai()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '土豆');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('购'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '',
+      );
+      expect(find.byType(Checkbox), findsNWidgets(2));
+      expect(find.text('已选 1 道菜谱'), findsOneWidget);
+      expect(tester.getBottomRight(find.text('生成购物清单')).dy, lessThan(640));
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.pumpAndSettle();
+      expect(find.text('已选 0 道菜谱'), findsOneWidget);
+      await tester.tap(find.text('购'));
+      await tester.pumpAndSettle();
+      expect(find.text('生成购物清单'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
   test('decimal totals stay readable', () {
     final items = buildShoppingList(const [
       Recipe(

@@ -6,8 +6,9 @@ import '../domain/shopping_list.dart';
 import 'kitchen_widgets.dart';
 
 class ShoppingListPage extends StatefulWidget {
-  const ShoppingListPage({super.key, required this.repository});
+  const ShoppingListPage({super.key, required this.repository, this.recipeIds});
   final KitchenRepository repository;
+  final Set<int>? recipeIds;
 
   @override
   State<ShoppingListPage> createState() => _ShoppingListPageState();
@@ -39,7 +40,7 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
       final saved = await widget.repository.loadShoppingList();
       if (!mounted) return;
       _recipes = recipes;
-      final ids = saved.recipeIds.intersection(
+      final ids = (widget.recipeIds ?? saved.recipeIds).intersection(
         recipes.map((r) => r.id).whereType<int>().toSet(),
       );
       final validKeys = _items(ids).map((item) => item.key).toSet();
@@ -108,13 +109,19 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                OutlinedButton.icon(
-                  onPressed: _saving || _recipes.isEmpty
-                      ? null
-                      : _chooseRecipes,
-                  icon: const Icon(Icons.playlist_add_check),
-                  label: Text('选择菜谱（已选${_selection.recipeIds.length}道）'),
-                ),
+                if (widget.recipeIds == null)
+                  OutlinedButton.icon(
+                    onPressed: _saving || _recipes.isEmpty
+                        ? null
+                        : _chooseRecipes,
+                    icon: const Icon(Icons.playlist_add_check),
+                    label: Text('选择菜谱（已选${_selection.recipeIds.length}道）'),
+                  ),
+                if (widget.recipeIds != null)
+                  Text(
+                    '已选 ${_selection.recipeIds.length} 道菜谱',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 if (_selection.recipeIds.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
