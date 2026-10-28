@@ -7,6 +7,7 @@ import '../../modules/presentation/modules_page.dart';
 import 'ai_auth_page.dart';
 import 'body_profile_page.dart';
 import 'settings_page.dart';
+import 'contact_developer_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key, required this.controller, this.aiAuthSession});
@@ -170,10 +171,16 @@ class ProfilePage extends StatelessWidget {
                 },
               ),
               const Divider(height: 1),
-              const ListTile(
-                leading: Icon(Icons.support_agent_outlined),
-                title: Text('联系开发者'),
-                subtitle: Text('后续阶段实现'),
+              ListTile(
+                leading: const Icon(Icons.support_agent_outlined),
+                title: const Text('联系开发者'),
+                subtitle: const Text('问题反馈与功能建议'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ContactDeveloperPage(),
+                  ),
+                ),
               ),
             ],
           ),
