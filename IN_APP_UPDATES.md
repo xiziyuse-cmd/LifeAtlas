@@ -64,3 +64,8 @@ App：`lib/features/updates/app_update_service.dart`、`lib/features/updates/app
 ### 2.1.1 验证结果
 
 提交 `78b565c4a711f7f0294f24ad4efe6097a9fed275`：126项Flutter测试、17项代理测试、4项发布脚本测试、全项目静态分析及Android Release验证构建通过。工作流：<https://github.com/xiziyuse-cmd/LifeAtlas/actions/runs/40829252141>。后台37项测试和构建通过，已发布。CI已确认跳过私钥读取和正式发布，未绕过托管授权拦截。签名备份已另行保存，未进入源码。
+
+
+### 2026-10-29 托管授权已完成
+
+用户明确同意上述签名、密码、初始化服务凭据传输和指定工作流授权。私有后台初始化成功，证书为上述5335开头的固定证书，网关已升级。LIFEATLAS_AUTO_RELEASE=true，开始正式构建、GitHub发布及更新同步验收。之前待授权记录作为历史保留。
