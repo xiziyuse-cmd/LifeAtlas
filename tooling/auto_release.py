@@ -34,6 +34,22 @@ def oidc():
     with HTTP.open(request, timeout=30) as response:
         token = json.load(response)['value']
     mask(token)
+    # Log only public claim comparisons; never print the bearer token or signature.
+    header, claims = [json.loads(base64.urlsafe_b64decode(p + '=' * (-len(p) % 4))) for p in token.split('.')[:2]]
+    expected_ref = os.environ['GITHUB_REF']
+    expected = {'iss': 'https://token.actions.githubusercontent.com', 'aud': AUDIENCE,
+        'repository': REPO, 'repository_id': '1319364551', 'repository_owner_id': '268181846',
+        'actor_id': '268181846', 'ref': expected_ref, 'event_name': os.environ['GITHUB_EVENT_NAME'],
+        'sub': f'repo:{REPO}:ref:{expected_ref}',
+        'workflow_ref': f'{REPO}/.github/workflows/skincare-validation.yml@{expected_ref}',
+        'sha': os.environ['GITHUB_SHA']}
+    print('OIDC claim checks: ' + json.dumps({key: str(claims.get(key)) == value for key, value in expected.items()}), flush=True)
+    print('OIDC format: ' + json.dumps({'alg': header.get('alg'), 'typ': header.get('typ'),
+        'run_id_numeric': str(claims.get('run_id', '')).isdigit(),
+        'run_attempt_numeric': str(claims.get('run_attempt', '')).isdigit(),
+        'lifetime_seconds': claims.get('exp', 0) - claims.get('iat', 0),
+        'age_seconds': int(time.time()) - claims.get('iat', 0),
+        'not_before_delta': claims.get('nbf', 0) - int(time.time())}), flush=True)
     return token
 
 def ci(operation, body=None, *, upload=None, upload_id=None, part=None):
