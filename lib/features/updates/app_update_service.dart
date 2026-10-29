@@ -72,8 +72,13 @@ class UpdateCancelled implements Exception {
 }
 
 class AppUpdateService {
-  AppUpdateService({HttpClient? client}) : _client = client ?? HttpClient();
+  AppUpdateService({
+    HttpClient? client,
+    Future<Directory> Function()? temporaryDirectory,
+  }) : _client = client ?? HttpClient(),
+       _temporaryDirectory = temporaryDirectory ?? getTemporaryDirectory;
   final HttpClient _client;
+  final Future<Directory> Function() _temporaryDirectory;
   static const _channel = MethodChannel('lifeatlas/updates');
   static final endpoint = Uri.parse(
     const String.fromEnvironment(
@@ -132,7 +137,7 @@ class AppUpdateService {
     void Function(int, int) onProgress,
   ) async {
     _cancelled = false;
-    final dir = Directory('${(await getTemporaryDirectory()).path}/updates');
+    final dir = Directory('${(await _temporaryDirectory()).path}/updates');
     await dir.create(recursive: true);
     // Keep at most one installer. A cancelled or corrupt download cannot be installed.
     for (final entry in dir.listSync()) {
