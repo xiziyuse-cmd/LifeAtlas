@@ -33,6 +33,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('美国官网'), findsWidgets);
       expect(find.byType(TextField), findsNWidgets(2)); // search and name only
+      await tester.scrollUntilVisible(
+        find.text('已核对地区、产品版本和包装说明一致'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('已核对地区、产品版本和包装说明一致'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
