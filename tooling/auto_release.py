@@ -22,6 +22,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 HTTP = urllib.request.build_opener(NoRedirect)
+HTTP.addheaders = [('User-Agent', 'LifeAtlasReleasePublisher/2.1')]
 
 def mask(value):
     print('::add-mask::' + value, flush=True)
