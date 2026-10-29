@@ -60,3 +60,7 @@ App：`lib/features/updates/app_update_service.dart`、`lib/features/updates/app
 自动审批阻止向私有管理网站传输签名私钥、密码和服务访问凭据，要求明确授权具体资料及接收地址。固定签名已经生成并备份；托管初始化尚未确认成功。当前 `LIFEATLAS_AUTO_RELEASE=false`，CI 只构建验证包，不请求签名、不发布正式版本。
 
 待授权目的地：用户所有且仅自己可见的 `https://lifeatlas-ai-console.xiziyuse.chatgpt.site`；用途为加密保存 LifeAtlas 固定签名，并仅向 `xiziyuse-cmd/LifeAtlas` 指定所有者、分支和工作流的短期 GitHub 身份提供签名配置。初始化和授权完成后启用自动发布，无需用户手动上传。
+
+### 2.1.1 验证结果
+
+提交 `78b565c4a711f7f0294f24ad4efe6097a9fed275`：126项Flutter测试、17项代理测试、4项发布脚本测试、全项目静态分析及Android Release验证构建通过。工作流：<https://github.com/xiziyuse-cmd/LifeAtlas/actions/runs/40829252141>。后台37项测试和构建通过，已发布。CI已确认跳过私钥读取和正式发布，未绕过托管授权拦截。签名备份已另行保存，未进入源码。
