@@ -7,10 +7,12 @@ class QuickRecordBar extends StatefulWidget {
     super.key,
     required this.onImagePressed,
     required this.onSend,
+    this.imageTooltip = '添加图片',
   });
 
   final VoidCallback onImagePressed;
   final QuickRecordSender onSend;
+  final String imageTooltip;
 
   @override
   State<QuickRecordBar> createState() => _QuickRecordBarState();
@@ -67,7 +69,7 @@ class _QuickRecordBarState extends State<QuickRecordBar> {
         children: [
           IconButton(
             key: const ValueKey('home-ai-image-button'),
-            tooltip: '添加图片',
+            tooltip: widget.imageTooltip,
             onPressed: _isSending ? null : widget.onImagePressed,
             color: colorScheme.onSurfaceVariant,
             icon: const Icon(Icons.add_photo_alternate_outlined),

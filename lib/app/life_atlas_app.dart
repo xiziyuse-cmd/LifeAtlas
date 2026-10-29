@@ -1,13 +1,41 @@
 import 'package:flutter/material.dart';
 
+import '../core/auth/ai_auth_session.dart';
 import '../core/theme/app_theme.dart';
+import '../features/kitchen/data/kitchen_repository.dart';
+import '../features/kitchen/data/kitchen_ai_service.dart';
+import '../features/home/data/home_repository.dart';
 import '../features/navigation/presentation/app_shell.dart';
+import '../features/wardrobe/data/clothing_image_parameter_service.dart';
+import '../features/wardrobe/data/preorder_analysis_service.dart';
+import '../features/wardrobe/data/wardrobe_image_service.dart';
+import '../features/wardrobe/data/wardrobe_repository.dart';
 import 'app_controller.dart';
 
 class LifeAtlasApp extends StatelessWidget {
-  const LifeAtlasApp({super.key, required this.controller});
+  const LifeAtlasApp({
+    super.key,
+    required this.controller,
+    this.aiAuthSession,
+    this.kitchenRepository,
+    this.kitchenAiService,
+    this.homeRepository,
+    this.wardrobeRepository,
+    this.wardrobeImageService,
+    this.clothingImageParameterService =
+        const UnconfiguredClothingImageParameterService(),
+    this.preorderAnalysisService = const UnconfiguredPreorderAnalysisService(),
+  });
 
   final AppController controller;
+  final AiAuthSession? aiAuthSession;
+  final KitchenRepository? kitchenRepository;
+  final KitchenAiService? kitchenAiService;
+  final HomeRepository? homeRepository;
+  final WardrobeRepository? wardrobeRepository;
+  final WardrobeImageService? wardrobeImageService;
+  final ClothingImageParameterService clothingImageParameterService;
+  final PreorderAnalysisService preorderAnalysisService;
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +45,20 @@ class LifeAtlasApp extends StatelessWidget {
         return MaterialApp(
           title: 'LifeAtlas',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
+          theme: AppTheme.light(controller.themePalette),
+          darkTheme: AppTheme.dark(controller.themePalette),
           themeMode: controller.themePreference.themeMode,
-          home: AppShell(controller: controller),
+          home: AppShell(
+            controller: controller,
+            aiAuthSession: aiAuthSession,
+            kitchenRepository: kitchenRepository,
+            kitchenAiService: kitchenAiService,
+            homeRepository: homeRepository,
+            wardrobeRepository: wardrobeRepository,
+            wardrobeImageService: wardrobeImageService,
+            clothingImageParameterService: clothingImageParameterService,
+            preorderAnalysisService: preorderAnalysisService,
+          ),
         );
       },
     );

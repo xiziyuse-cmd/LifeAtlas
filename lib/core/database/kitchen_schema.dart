@@ -1,0 +1,119 @@
+import 'package:sqflite/sqflite.dart';
+
+Future<void> upgradeKitchenSchemaToV11(Database db) async {
+  final now = DateTime.now().toIso8601String();
+  for (final name in ['线椒', '小米辣']) {
+    await db.insert('food_base_info', {
+      'name': name,
+      'category': '调料',
+      'default_shelf_life': 7,
+      'shelf_life_unit': 'day',
+      'storage_type': '冷藏',
+      'create_time': now,
+      'update_time': now,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+}
+
+Future<void> upgradeKitchenSchemaToV6(Database db) async {
+  await db.execute(
+    '''CREATE TABLE recipe (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, image TEXT NOT NULL, category TEXT NOT NULL, difficulty TEXT NOT NULL, cook_time INTEGER NOT NULL, source_type TEXT NOT NULL, is_deleted INTEGER NOT NULL DEFAULT 0, create_time TEXT NOT NULL, update_time TEXT NOT NULL)''',
+  );
+  for (final table in ['recipe_material', 'recipe_seasoning']) {
+    await db.execute(
+      '''CREATE TABLE $table (id INTEGER PRIMARY KEY AUTOINCREMENT, recipe_id INTEGER NOT NULL REFERENCES recipe(id) ON DELETE CASCADE, name TEXT NOT NULL, amount REAL NOT NULL CHECK(amount > 0), unit TEXT NOT NULL, remark TEXT NOT NULL, stage TEXT NOT NULL, sort INTEGER NOT NULL)''',
+    );
+  }
+  await db.execute(
+    '''CREATE TABLE recipe_step (id INTEGER PRIMARY KEY AUTOINCREMENT, recipe_id INTEGER NOT NULL REFERENCES recipe(id) ON DELETE CASCADE, step_name TEXT NOT NULL, content TEXT NOT NULL, duration INTEGER NOT NULL, sort INTEGER NOT NULL, materials TEXT NOT NULL, seasonings TEXT NOT NULL, image TEXT NOT NULL, video TEXT NOT NULL)''',
+  );
+  await db.execute(
+    '''CREATE TABLE ingredient_inventory (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, amount REAL NOT NULL CHECK(amount >= 0), unit TEXT NOT NULL, remark TEXT NOT NULL, expire_date TEXT, update_time TEXT NOT NULL)''',
+  );
+  await db.execute(
+    '''CREATE TABLE cooking_record (id INTEGER PRIMARY KEY AUTOINCREMENT, recipe_id INTEGER NOT NULL REFERENCES recipe(id), recipe_name TEXT NOT NULL, image TEXT NOT NULL, score INTEGER NOT NULL CHECK(score BETWEEN 1 AND 5), remark TEXT NOT NULL, create_time TEXT NOT NULL)''',
+  );
+  await db.execute(
+    'CREATE INDEX cooking_record_recipe ON cooking_record(recipe_id)',
+  );
+}
+
+Future<void> upgradeKitchenSchemaToV7(Database db) async {
+  await db.execute('''CREATE TABLE food_base_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL,
+    default_shelf_life INTEGER NOT NULL CHECK(default_shelf_life > 0),
+    shelf_life_unit TEXT NOT NULL DEFAULT 'day',
+    storage_type TEXT NOT NULL,
+    create_time TEXT NOT NULL,
+    update_time TEXT NOT NULL
+  )''');
+  await db.execute(
+    'ALTER TABLE ingredient_inventory ADD COLUMN purchase_date TEXT',
+  );
+  await db.execute(
+    'ALTER TABLE ingredient_inventory ADD COLUMN shelf_life_days INTEGER',
+  );
+  await db.execute(
+    'CREATE INDEX ingredient_inventory_expiry ON ingredient_inventory(expire_date)',
+  );
+  final now = DateTime.now().toIso8601String();
+  final foods = <(String, String, int, String)>[
+    ('牛奶', '乳制品', 7, '冷藏'),
+    ('鸡蛋', '蛋类', 30, '冷藏'),
+    ('西红柿', '蔬菜', 7, '冷藏'),
+    ('土豆', '蔬菜', 30, '阴凉干燥'),
+    ('青椒', '蔬菜', 7, '冷藏'),
+    ('鸡胸肉', '肉类', 2, '冷藏'),
+    ('猪肉', '肉类', 2, '冷藏'),
+    ('豆腐', '豆制品', 3, '冷藏'),
+    ('面包', '主食', 5, '常温'),
+    ('酸奶', '乳制品', 14, '冷藏'),
+    ('苹果', '水果', 14, '冷藏'),
+    ('香蕉', '水果', 5, '常温'),
+  ];
+  for (final food in foods) {
+    await db.insert('food_base_info', {
+      'name': food.$1,
+      'category': food.$2,
+      'default_shelf_life': food.$3,
+      'shelf_life_unit': 'day',
+      'storage_type': food.$4,
+      'create_time': now,
+      'update_time': now,
+    });
+  }
+}
+
+Future<void> upgradeKitchenSchemaToV8(Database db) async {
+  for (final table in [
+    'cooking_record',
+    'recipe_step',
+    'recipe_material',
+    'recipe_seasoning',
+    'recipe',
+  ]) {
+    await db.delete(table);
+  }
+}
+
+Future<void> upgradeKitchenSchemaToV9(Database db) async {
+  await db.execute(
+    'ALTER TABLE recipe_step ADD COLUMN parallel_with_previous INTEGER NOT NULL DEFAULT 0 CHECK(parallel_with_previous IN (0, 1))',
+  );
+}
+
+Future<void> upgradeKitchenSchemaToV10(Database db) async {
+  for (final table in ['recipe_material', 'recipe_seasoning']) {
+    final next = '${table}_v10';
+    await db.execute(
+      'CREATE TABLE $next (id INTEGER PRIMARY KEY AUTOINCREMENT, recipe_id INTEGER NOT NULL REFERENCES recipe(id) ON DELETE CASCADE, name TEXT NOT NULL, amount REAL CHECK(amount IS NULL OR amount > 0), unit TEXT NOT NULL, remark TEXT NOT NULL, stage TEXT NOT NULL, sort INTEGER NOT NULL)',
+    );
+    await db.execute(
+      'INSERT INTO $next (id, recipe_id, name, amount, unit, remark, stage, sort) SELECT id, recipe_id, name, amount, unit, remark, stage, sort FROM $table',
+    );
+    await db.execute('DROP TABLE $table');
+    await db.execute('ALTER TABLE $next RENAME TO $table');
+  }
+}

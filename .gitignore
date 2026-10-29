@@ -52,3 +52,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Release tooling and private signing material
+__pycache__/
+*.pyc
+*.p12
+*.jks
+*.keystore
+/update-metadata.json
