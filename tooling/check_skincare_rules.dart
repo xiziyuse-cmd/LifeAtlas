@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:lifeatlas/features/skincare/data/beauty_barcode_service.dart';
 import 'package:lifeatlas/features/skincare/domain/skincare_models.dart';
 import 'package:lifeatlas/features/skincare/domain/skincare_rules.dart';
 
@@ -160,5 +161,44 @@ void main() {
   check(
     SkinExecution.fromJson(entry.toJson()).steps.first.name == '视黄醇',
     '历史快照往返',
+  );
+  final community = BeautyBarcodeService.parse('12345678', {
+    'status': 1,
+    'product': {
+      'code': '12345678',
+      'product_type': 'beauty',
+      'product_name': '社区面霜',
+      'ingredients_text': '按原包装待核对',
+    },
+  });
+  check(
+    community != null &&
+        community.evidence == 'community' &&
+        !community.trusted,
+    '公开库保持社区来源，不能自动视为已核实',
+  );
+  check(
+    BeautyBarcodeService.parse('12345678', {'status': 0}) == null,
+    '未收录条码返回空结果',
+  );
+  check(
+    BeautyBarcodeService.parse('12345678', {
+          'status': 1,
+          'product': {'code': '87654321', 'product_name': '误匹配'},
+        }) ==
+        null,
+    '条码不符拒绝匹配',
+  );
+  check(
+    BeautyBarcodeService.parse('12345678', {
+          'status': 1,
+          'product': {
+            'code': '12345678',
+            'product_type': 'food',
+            'product_name': '非护肤品',
+          },
+        }) ==
+        null,
+    '排除其他商品类型',
   );
 }

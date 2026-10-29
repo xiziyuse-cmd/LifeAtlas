@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../data/skincare_repository.dart';
+import '../data/beauty_barcode_service.dart';
 import '../data/skincare_ai_service.dart';
 import '../domain/skincare_models.dart';
 
@@ -108,9 +109,35 @@ class _SkinProductPageState extends State<SkinProductPage> {
         choose(product);
         query.text = product.name;
         await search(product.name);
+        if (results.isEmpty && product.brand.isNotEmpty) {
+          query.text = product.brand;
+          await search(product.brand);
+        }
       }
     } catch (e) {
       if (mounted) setState(() => error = '识别失败：$e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> lookupBarcode() async {
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final product = await BeautyBarcodeService().lookup(query.text.trim());
+      if (mounted) {
+        if (product == null) {
+          setState(() => error = '公开库也未收录，可拍摄包装或先记录名称');
+        } else {
+          choose(product);
+          query.clear();
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '在线查询失败：$e');
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -189,6 +216,12 @@ class _SkinProductPageState extends State<SkinProductPage> {
           if (p == null || query.text.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Text('产品库候选 · 请核对地区与包装'),
+            if (RegExp(r'^\d{8,14}$').hasMatch(query.text.trim()) &&
+                results.isEmpty)
+              OutlinedButton(
+                onPressed: busy ? null : lookupBarcode,
+                child: const Text('在 Open Beauty Facts 查询此条码'),
+              ),
             for (final result in results)
               Card(
                 child: ListTile(

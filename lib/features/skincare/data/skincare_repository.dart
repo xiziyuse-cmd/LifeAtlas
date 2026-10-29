@@ -50,16 +50,23 @@ class SkincareRepository {
   Future<List<SkinProduct>> search(String query, {bool barcode = false}) async {
     final db = await _database.database;
     final q = query.trim().toLowerCase();
+    final tokens = q.isEmpty ? [''] : q.split(RegExp(r'\s+')).take(6).toList();
     final rows = await db.query(
       'skincare_catalog',
       where: barcode
           ? 'barcode = ? AND barcode != ?'
-          : "search_text LIKE ? ESCAPE '\\'",
+          : List.filled(
+              tokens.length,
+              "search_text LIKE ? ESCAPE '\\'",
+            ).join(' AND '),
       whereArgs: barcode
           ? [q, '']
-          : [
-              '%${q.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%',
-            ],
+          : tokens
+                .map(
+                  (token) =>
+                      '%${token.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%',
+                )
+                .toList(),
       limit: 40,
     );
     return rows

@@ -9,6 +9,9 @@ on:
       - 'test/skincare*'
       - 'pubspec.*'
   workflow_dispatch:
+concurrency:
+  group: skincare-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
