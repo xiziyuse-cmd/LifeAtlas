@@ -49,9 +49,18 @@ def ci(operation, body=None, *, upload=None, upload_id=None, part=None):
             with HTTP.open(request, timeout=90) as response:
                 return json.load(response)
         except urllib.error.HTTPError as error:
+            content_type = error.headers.get('Content-Type', '').split(';')[0]
+            detail = ''
+            if content_type == 'application/json':
+                try:
+                    message = json.load(error).get('error', '')
+                    if isinstance(message, str) and len(message) <= 200:
+                        detail = ': ' + message
+                except (ValueError, AttributeError):
+                    pass
             error.close()
             if error.code not in (409, 429, 500, 502, 503, 504) or attempt == 2:
-                raise RuntimeError(f'Update service refused operation {operation} (HTTP {error.code})') from None
+                raise RuntimeError(f'Update service refused operation {operation} (HTTP {error.code}, {content_type}){detail}') from None
         except (TimeoutError, urllib.error.URLError):
             if attempt == 2:
                 raise RuntimeError('Update service connection failed') from None
