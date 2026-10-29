@@ -38,7 +38,9 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
     setState(() => _busy = true);
     try {
       final info = await _service.deviceInfo();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       _build = info['build'] as int;
       _sdk = info['sdk'] as int;
       setState(() => _current = '${info['version']}（$_build）');
@@ -48,9 +50,13 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
         await _check();
       }
     } catch (e) {
-      if (mounted) setState(() => _message = _error(e));
+      if (mounted) {
+        setState(() => _message = _error(e));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -70,7 +76,9 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
     });
     try {
       final release = await _service.check();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _release = release;
         _apk = null;
@@ -84,15 +92,21 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
             : '';
       });
     } catch (e) {
-      if (mounted) setState(() => _message = _error(e));
+      if (mounted) {
+        setState(() => _message = _error(e));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
   Future<void> _download() async {
     final release = _release;
-    if (release == null) return;
+    if (release == null) {
+      return;
+    }
     setState(() {
       _busy = true;
       _progress = 0;
@@ -100,35 +114,49 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
     });
     try {
       final file = await _service.download(release, (a, b) {
-        if (mounted) setState(() => _progress = a / b);
+        if (mounted) {
+          setState(() => _progress = a / b);
+        }
       });
-      if (mounted)
+      if (mounted) {
         setState(() {
           _apk = file;
           _message = '安装包校验通过，可以开始安装';
         });
+      }
     } catch (e) {
-      if (mounted) setState(() => _message = _error(e));
+      if (mounted) {
+        setState(() => _message = _error(e));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
   Future<void> _install() async {
-    if (_apk == null || _release == null) return;
+    if (_apk == null || _release == null) {
+      return;
+    }
     setState(() => _busy = true);
     try {
       final status = await _service.install(_apk!, _release!);
-      if (mounted)
+      if (mounted) {
         setState(
           () => _message = status == 'permissionRequired'
               ? '请在系统页面允许 LifeAtlas 安装应用，返回后再次点击“安装更新”。'
               : '已打开系统安装页面，请确认安装；取消后可以重试。',
         );
+      }
     } catch (e) {
-      if (mounted) setState(() => _message = _error(e));
+      if (mounted) {
+        setState(() => _message = _error(e));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -212,7 +240,9 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
 
 class AppUpdatePrompt {
   static Future<void> check(BuildContext context) async {
-    if (!AppUpdateService.supported) return;
+    if (!AppUpdateService.supported) {
+      return;
+    }
     final service = AppUpdateService();
     try {
       final info = await service.deviceInfo();
@@ -220,8 +250,9 @@ class AppUpdatePrompt {
       if (!context.mounted ||
           release == null ||
           !release.isNewerThan(info['build'] as int) ||
-          release.minSdk > (info['sdk'] as int))
+          release.minSdk > (info['sdk'] as int)) {
         return;
+      }
       final accepted = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(

@@ -19,8 +19,12 @@ class AppRelease {
   final Uri url;
   static AppRelease? parse(Map<String, dynamic> data, Uri endpoint) {
     final value = data['release'];
-    if (value == null) return null;
-    if (value is! Map<String, dynamic>) throw const FormatException('更新信息格式错误');
+    if (value == null) {
+      return null;
+    }
+    if (value is! Map<String, dynamic>) {
+      throw const FormatException('更新信息格式错误');
+    }
     final url = Uri.tryParse(
       value['url'] is String ? value['url'] as String : '',
     );
@@ -46,8 +50,9 @@ class AppRelease {
         url.path != endpoint.path ||
         url.userInfo.isNotEmpty ||
         url.fragment.isNotEmpty ||
-        url.queryParameters['download'] != '1')
+        url.queryParameters['download'] != '1') {
       throw const FormatException('更新信息不完整或下载地址无效');
+    }
     return AppRelease(
       version: value['version'] as String,
       build: value['build'] as int,
@@ -86,8 +91,9 @@ class AppUpdateService {
   Future<AppRelease?> check() async {
     if (endpoint.scheme != 'https' ||
         endpoint.host.isEmpty ||
-        endpoint.userInfo.isNotEmpty)
+        endpoint.userInfo.isNotEmpty) {
       throw StateError('更新服务地址无效');
+    }
     return (() async {
       final request = await _client.getUrl(endpoint);
       request.followRedirects = false;
@@ -99,11 +105,14 @@ class AppUpdateService {
       final bytes = <int>[];
       await for (final chunk in response) {
         bytes.addAll(chunk);
-        if (bytes.length > 32768) throw const FormatException('更新信息过大');
+        if (bytes.length > 32768) {
+          throw const FormatException('更新信息过大');
+        }
       }
       final data = jsonDecode(utf8.decode(bytes));
-      if (data is! Map<String, dynamic>)
+      if (data is! Map<String, dynamic>) {
         throw const FormatException('更新信息格式错误');
+      }
       return AppRelease.parse(data, endpoint);
     })().timeout(const Duration(seconds: 20));
   }
@@ -127,7 +136,9 @@ class AppUpdateService {
     await dir.create(recursive: true);
     // Keep at most one installer. A cancelled or corrupt download cannot be installed.
     for (final entry in dir.listSync()) {
-      if (entry is File) await entry.delete();
+      if (entry is File) {
+        await entry.delete();
+      }
     }
     final target = File('${dir.path}/update-${release.build}.apk');
     final partial = File('${target.path}.part');
@@ -138,35 +149,54 @@ class AppUpdateService {
           .timeout(const Duration(seconds: 20));
       _request = request;
       request.followRedirects = false;
-      if (_cancelled) throw const UpdateCancelled();
+      if (_cancelled) {
+        throw const UpdateCancelled();
+      }
       final response = await request.close().timeout(
         const Duration(seconds: 30),
       );
-      if (response.statusCode != 200) throw StateError('下载失败，请重新检查更新');
+      if (response.statusCode != 200) {
+        throw StateError('下载失败，请重新检查更新');
+      }
       if (response.contentLength != -1 &&
-          response.contentLength != release.size)
+          response.contentLength != release.size) {
         throw StateError('安装包大小与版本信息不一致');
+      }
       sink = partial.openWrite();
       var received = 0;
       await for (final chunk in response.timeout(const Duration(seconds: 30))) {
-        if (_cancelled) throw const UpdateCancelled();
+        if (_cancelled) {
+          throw const UpdateCancelled();
+        }
         received += chunk.length;
-        if (received > release.size) throw StateError('安装包大小不正确');
+        if (received > release.size) {
+          throw StateError('安装包大小不正确');
+        }
         sink.add(chunk);
         await sink.flush();
         onProgress(received, release.size);
       }
       await sink.close();
       sink = null;
-      if (_cancelled) throw const UpdateCancelled();
-      if (received != release.size) throw StateError('安装包下载不完整');
+      if (_cancelled) {
+        throw const UpdateCancelled();
+      }
+      if (received != release.size) {
+        throw StateError('安装包下载不完整');
+      }
       await partial.rename(target.path);
       await _verify(target, release);
       return target;
     } catch (_) {
-      if (sink != null) await sink.close();
-      if (await partial.exists()) await partial.delete();
-      if (await target.exists()) await target.delete();
+      if (sink != null) {
+        await sink.close();
+      }
+      if (await partial.exists()) {
+        await partial.delete();
+      }
+      if (await target.exists()) {
+        await target.delete();
+      }
       rethrow;
     } finally {
       _request = null;
