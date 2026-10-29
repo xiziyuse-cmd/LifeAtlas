@@ -713,3 +713,14 @@
 - 自动发布身份联调：仅记录公开声明的匹配结果与时效差值，令牌始终脱敏。
 
 - 兼容 GitHub 带不可变仓库/所有者ID的精确 OIDC subject；仍严格限定身份、分支和工作流。
+
+
+### 2.1.1 正式发布验收（2026-10-29）
+
+- 正式源码提交：`5a6d0a4059cc7fa1851b1940a01b8a1c17600c99`。
+- 工作流成功：<https://github.com/xiziyuse-cmd/LifeAtlas/actions/runs/40833847388>；固定签名读取、126项Flutter测试、17项代理测试、4项发布脚本测试、静态分析、Android Release构建、GitHub发布和更新同步均成功。
+- GitHub最新正式版本：<https://github.com/xiziyuse-cmd/LifeAtlas/releases/tag/v2.1.1>。应用内更新网关已启用同一2.1.1+29。
+- 实际下载网关APK核验：77,335,782字节；SHA-256 `afd4472d5ac6cef997a02bde493ff6d46a2dc424ce080daf4d8399fa27ef77e1`，与GitHub资源摘要一致；包名com.example.lifeatlas、版本2.1.1、构建29、minSdk24；apksigner验证通过，证书为5335开头的固定证书。
+- 发布器已修复Cloudflare默认Python请求标识拦截；后台兼容GitHub带不可变所有者/仓库ID的精确subject，仍严格校验所有受限声明。后台37项测试、TypeScript和构建通过，已部署。
+- 模拟App请求标识访问更新接口200；线上护肤Turbo开关已开启。未来版本由流水线自动上传，无需用户管理安装包。
+- 未执行Android真机安装/覆盖升级和本地数据迁移；新固定签名不能覆盖旧调试签名。保留旧应用。当前环境无微信发送能力，未发送微信。

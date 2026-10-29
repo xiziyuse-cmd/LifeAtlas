@@ -103,3 +103,6 @@ lifeatlas/
 固定发布签名已生成并备份，自动托管等待明确授权；当前CI只生成验证包，不发布正式更新。已核验 1.4.10 与旧 2.0.0 包调试签名不同，不能保留数据直接覆盖；不要通过卸载解决。GitHub 正式 Release 与功能分支提交分开管理。
 
 2.1.1 自动发布：GitHub 构建通过后自动使用固定签名、创建 Release 并同步 App 更新入口，用户无需上传 APK；旧调试签名的首次迁移仍单独处理。
+
+
+2.1.1+29 已完成固定签名正式发布和应用内更新同步：[GitHub正式版](https://github.com/xiziyuse-cmd/LifeAtlas/releases/tag/v2.1.1)。126项Flutter测试及Release构建通过；首次旧调试签名迁移仍需单独处理，保留旧应用。详见 `IN_APP_UPDATES.md` 正式发布验收。
