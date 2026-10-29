@@ -13,6 +13,14 @@ class AppController extends ChangeNotifier {
   bool _outfitModuleEnabled = false;
   ProfileGender _profileGender = ProfileGender.unspecified;
   bool _initialized = false;
+  bool _skincareModuleEnabled = false;
+  bool get skincareModuleEnabled => _skincareModuleEnabled;
+  Future<void> setSkincareModuleEnabled(bool enabled) async {
+    await _settingsRepository.saveSkincareModuleEnabled(enabled);
+    _skincareModuleEnabled = enabled;
+    notifyListeners();
+  }
+
   bool _kitchenModuleEnabled = false;
   bool get kitchenModuleEnabled => _kitchenModuleEnabled;
   Future<void> setKitchenModuleEnabled(bool enabled) async {
@@ -33,6 +41,7 @@ class AppController extends ChangeNotifier {
     _themePalette = settings.themePalette;
     _outfitModuleEnabled = settings.outfitModuleEnabled;
     _kitchenModuleEnabled = settings.kitchenModuleEnabled;
+    _skincareModuleEnabled = settings.skincareModuleEnabled;
     _profileGender = settings.profileGender;
     _initialized = true;
     notifyListeners();

@@ -8,6 +8,7 @@ abstract interface class AppSettingsRepository {
 
   Future<void> saveOutfitModuleEnabled(bool enabled);
   Future<void> saveKitchenModuleEnabled(bool enabled);
+  Future<void> saveSkincareModuleEnabled(bool enabled);
 
   Future<void> saveProfileGender(ProfileGender gender);
 }

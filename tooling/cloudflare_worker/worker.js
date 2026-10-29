@@ -1,3 +1,4 @@
+import { SKIN_IDENTIFY_PROMPT, SKIN_PLAN_PROMPT, skinImage, skinInput, skinIdentified, skinPlanned } from './skincare.js';
 import { KITCHEN_PROMPT, normalizeKitchenInput, normalizeKitchenResult } from './kitchen.js';
 
 const DEFAULT_ARK_BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
@@ -141,7 +142,9 @@ async function handleRequest(request, env) {
     request.method === 'POST' &&
     url.pathname === '/v1/wardrobe/preorder-analysis';
   const isKitchenRecommendation = request.method === 'POST' && url.pathname === '/v1/kitchen/recommend';
-  if (!isImageAnalysis && !isPreorderAnalysis && !isKitchenRecommendation) {
+  const isSkinImage = request.method === 'POST' && url.pathname === '/v1/skincare/identify';
+  const isSkinPlan = request.method === 'POST' && url.pathname === '/v1/skincare/plan';
+  if (!isImageAnalysis && !isPreorderAnalysis && !isKitchenRecommendation && !isSkinImage && !isSkinPlan) {
     return jsonResponse(404, { message: '接口不存在' });
   }
 
@@ -169,6 +172,13 @@ async function handleRequest(request, env) {
     normalizeEnv(env.ARK_BASE_URL) || DEFAULT_ARK_BASE_URL
   ).replace(/\/$/, '');
 
+  if (isSkinImage || isSkinPlan) {
+    const input = isSkinPlan ? skinInput(body) : null;
+    const content = isSkinImage ? [{type:'text',text:'请提取此包装资料'}, {type:'image_url',image_url:{url:skinImage(body),detail:'high'}}] : JSON.stringify(input);
+    const result = await requestArk({arkApiKey,arkBaseUrl,serviceName:'护肤助手',requestBody:{model:isSkinImage?imageModel:textModel,messages:[{role:'system',content:isSkinImage?SKIN_IDENTIFY_PROMPT:SKIN_PLAN_PROMPT},{role:'user',content}],temperature:0.1,max_tokens:5000,response_format:{type:'json_object'}}});
+    const data=extractModelJson(result);
+    return jsonResponse(200,{...(isSkinImage?skinIdentified(data):skinPlanned(data,input)),promptVersion:'skincare-v1',model:result.model,usage:result.usage||null});
+  }
   if (isKitchenRecommendation) {
     const input = normalizeKitchenInput(body);
     const result = await requestArk({ arkApiKey, arkBaseUrl, serviceName: '厨房推荐', requestBody: {

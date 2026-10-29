@@ -1,0 +1,37 @@
+name: Skincare validation and Android APK
+on:
+  push:
+    branches: [feature/skincare-v2]
+  pull_request:
+    paths:
+      - 'lib/features/skincare/**'
+      - 'lib/core/database/skincare_schema.dart'
+      - 'test/skincare*'
+      - 'pubspec.*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: node --test tooling/cloudflare_worker/*.test.mjs
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LifeAtlas-2.0.0-android
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

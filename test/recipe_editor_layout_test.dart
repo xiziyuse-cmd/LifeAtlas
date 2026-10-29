@@ -280,7 +280,7 @@ void main() {
         await directory.delete();
       });
       final current = await upgraded.database;
-      expect(await current.getVersion(), 11);
+      expect(await current.getVersion(), AppDatabase.databaseVersion);
       for (final table in tables) {
         expect(await current.query(table), before[table]);
       }

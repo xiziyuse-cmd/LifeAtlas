@@ -240,6 +240,9 @@ void main() {
 
 class _MemoryAppSettingsRepository implements AppSettingsRepository {
   @override
+  Future<void> saveSkincareModuleEnabled(bool enabled) async {}
+
+  @override
   Future<void> saveKitchenModuleEnabled(bool enabled) async {
     settings = AppSettings(
       themePreference: settings.themePreference,

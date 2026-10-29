@@ -59,6 +59,7 @@ class AppSettings {
     this.themePreference = AppThemePreference.system,
     this.outfitModuleEnabled = false,
     this.kitchenModuleEnabled = false,
+    this.skincareModuleEnabled = false,
     this.profileGender = ProfileGender.unspecified,
     this.themePalette = AppThemePalette.defaultTheme,
   });
@@ -66,6 +67,7 @@ class AppSettings {
   final AppThemePreference themePreference;
   final bool outfitModuleEnabled;
   final bool kitchenModuleEnabled;
+  final bool skincareModuleEnabled;
   final ProfileGender profileGender;
   final AppThemePalette themePalette;
 }

@@ -58,7 +58,14 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
       where: 'module_key = ?',
       whereArgs: ['kitchen'],
     );
+    final skinRows = await database.query(
+      'module_settings',
+      where: 'module_key = ?',
+      whereArgs: ['skincare'],
+    );
     return AppSettings(
+      skincareModuleEnabled:
+          skinRows.isNotEmpty && skinRows.first['enabled'] == 1,
       kitchenModuleEnabled:
           kitchenRows.isNotEmpty && kitchenRows.first['enabled'] == 1,
       themePreference: AppThemePreference.fromStorage(themeValue),
@@ -117,6 +124,14 @@ class SqliteAppSettingsRepository implements AppSettingsRepository {
     final db = await _appDatabase.database;
     await db.insert('module_settings', {
       'module_key': 'kitchen',
+      'enabled': enabled ? 1 : 0,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> saveSkincareModuleEnabled(bool enabled) async {
+    await (await _appDatabase.database).insert('module_settings', {
+      'module_key': 'skincare',
       'enabled': enabled ? 1 : 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }

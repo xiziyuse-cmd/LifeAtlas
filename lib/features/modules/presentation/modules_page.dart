@@ -16,6 +16,17 @@ class ModulesPage extends StatelessWidget {
         const SizedBox(height: 16),
         Card(
           child: SwitchListTile(
+            key: const ValueKey('modules-skincare-switch'),
+            secondary: const CircleAvatar(child: Icon(Icons.spa)),
+            title: const Text('护肤'),
+            subtitle: const Text('个人护肤规划、护肤柜与每日护理'),
+            value: controller.skincareModuleEnabled,
+            onChanged: controller.setSkincareModuleEnabled,
+          ),
+        ),
+
+        Card(
+          child: SwitchListTile(
             key: const ValueKey('modules-kitchen-switch'),
             secondary: const CircleAvatar(child: Icon(Icons.kitchen)),
             title: const Text('厨房'),
