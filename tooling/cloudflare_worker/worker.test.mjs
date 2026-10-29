@@ -149,3 +149,20 @@ test('preorder input is constrained to allowed fields and limits', () => {
   assert.deepEqual(input.wardrobe[0], { name: '已有衣服', parameters: {} });
   assert.equal(input.userInstruction, '请分析');
 });
+
+test('skincare health exposes independent Turbo configuration and disabled routes stop before model calls', async () => {
+  const config = {
+    image: {model:'legacy-image',enabled:true},
+    preorder: {model:'legacy-text',enabled:true},
+    kitchen: {model:'legacy-kitchen',enabled:false},
+    skincare: {model:'doubao-seed-2-1-turbo-260628',enabled:false},
+  };
+  const env = {LIFEATLAS_FEATURE_CONFIG:JSON.stringify(config)};
+  const health = await (await worker.fetch(new Request('https://example.test/health'), env)).json();
+  assert.deepEqual(health.features, config);
+  for (const action of ['identify','plan']) {
+    const response = await worker.fetch(new Request(`https://example.test/v1/skincare/${action}`,{method:'POST',body:'{}'}),env);
+    assert.equal(response.status,503);
+    assert.equal((await response.json()).code,'FEATURE_DISABLED');
+  }
+});

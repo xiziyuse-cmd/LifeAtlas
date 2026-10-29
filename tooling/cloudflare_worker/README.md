@@ -57,3 +57,9 @@ flutter build apk --release --dart-define=LIFEATLAS_AI_PROXY_URL=https://<你的
 ## 护肤接口（2.0.0）
 
 新增 POST `/v1/skincare/identify`（包装图片）及 `/v1/skincare/plan`（档案和产品列表）。复用既有短期令牌校验、服务端 ARK_API_KEY 与模型配置，不新增客户端密钥。需重新部署 Worker 后才可在线调用。客户端将未部署接口明确提示，并保留本地规则方案。照片识别仅提取可见信息，不能升级为已核实资料；客户端再次校验产品ID和护理规则。
+
+### 护肤模型与独立开关（2026-10-29）
+
+护肤包装识别和计划生成统一默认使用 `doubao-seed-2-1-turbo-260628`（Doubao-Seed-2.1-turbo）。可用 `ARK_SKINCARE_MODEL` 覆盖默认模型。
+管理网站「功能与模型」新增「护肤识别与规划」开关；服务端读取 `LIFEATLAS_FEATURE_CONFIG.skincare` 的 `model` 与 `enabled`，关闭时两个接口均返回 `503 / FEATURE_DISABLED`，不会请求模型。旧三项配置升级时保留原配置，补充护肤默认值。
+管理网站已提供代理自动备份及升级流程。使用旧线上代理时，在新版网站保存功能设置才会部署护肤接口及开关逻辑。App 无需因本次模型路由变更重新安装。

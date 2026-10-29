@@ -91,13 +91,16 @@ export default {
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
-  const imageModel = normalizeEnv(env.ARK_MODEL) || DEFAULT_IMAGE_MODEL;
-  const textModel = normalizeEnv(env.ARK_TEXT_MODEL) || DEFAULT_TEXT_MODEL;
+  const featureConfig = lifeatlasFeatureConfig(env);
+  const imageModel = featureConfig.image.model;
+  const textModel = url.pathname === '/v1/kitchen/recommend' ? featureConfig.kitchen.model : featureConfig.preorder.model;
 
   if (request.method === 'GET' && url.pathname === '/health') {
     return jsonResponse(200, {
       status: 'ok',
       models: { image: imageModel, text: textModel },
+      featureManagement: 1,
+      features: featureConfig,
     });
   }
 
@@ -148,6 +151,10 @@ async function handleRequest(request, env) {
     return jsonResponse(404, { message: '接口不存在' });
   }
 
+  const featureId = (isSkinImage || isSkinPlan) ? 'skincare' : isImageAnalysis ? 'image' : isPreorderAnalysis ? 'preorder' : 'kitchen';
+  if (!featureConfig[featureId].enabled) {
+    return jsonResponse(503, { message: '此 AI 功能已在管理页停用', code: 'FEATURE_DISABLED' });
+  }
   const arkApiKey = normalizeEnv(env.ARK_API_KEY);
   const authConfiguration = inspectAuthConfig(env);
   if (!arkApiKey || !authConfiguration.config) {
@@ -175,7 +182,7 @@ async function handleRequest(request, env) {
   if (isSkinImage || isSkinPlan) {
     const input = isSkinPlan ? skinInput(body) : null;
     const content = isSkinImage ? [{type:'text',text:'请提取此包装资料'}, {type:'image_url',image_url:{url:skinImage(body),detail:'high'}}] : JSON.stringify(input);
-    const result = await requestArk({arkApiKey,arkBaseUrl,serviceName:'护肤助手',requestBody:{model:isSkinImage?imageModel:textModel,messages:[{role:'system',content:isSkinImage?SKIN_IDENTIFY_PROMPT:SKIN_PLAN_PROMPT},{role:'user',content}],temperature:0.1,max_tokens:5000,response_format:{type:'json_object'}}});
+    const result = await requestArk({arkApiKey,arkBaseUrl,serviceName:'护肤助手',requestBody:{model:featureConfig.skincare.model,messages:[{role:'system',content:isSkinImage?SKIN_IDENTIFY_PROMPT:SKIN_PLAN_PROMPT},{role:'user',content}],temperature:0.1,max_tokens:5000,response_format:{type:'json_object'}}});
     const data=extractModelJson(result);
     return jsonResponse(200,{...(isSkinImage?skinIdentified(data):skinPlanned(data,input)),promptVersion:'skincare-v1',model:result.model,usage:result.usage||null});
   }
@@ -708,3 +715,21 @@ export const __test = {
   issueTokenPair,
   verifyToken,
 };
+
+// LifeAtlas feature management v2
+function lifeatlasFeatureConfig(env) {
+ const config = {
+  skincare: { model: normalizeEnv(env.ARK_SKINCARE_MODEL) || DEFAULT_TEXT_MODEL, enabled: true },
+  image: { model: normalizeEnv(env.ARK_MODEL) || DEFAULT_IMAGE_MODEL, enabled: true },
+  preorder: { model: normalizeEnv(env.ARK_TEXT_MODEL) || DEFAULT_TEXT_MODEL, enabled: true },
+  kitchen: { model: normalizeEnv(env.ARK_TEXT_MODEL) || DEFAULT_TEXT_MODEL, enabled: true },
+ };
+ if (!env.LIFEATLAS_FEATURE_CONFIG) return config;
+ const saved = JSON.parse(env.LIFEATLAS_FEATURE_CONFIG);
+ for (const id of ['image', 'preorder', 'kitchen', 'skincare']) {
+  const item = saved[id] || (id === 'skincare' ? config[id] : null);
+  if (!item || typeof item.enabled !== 'boolean' || typeof item.model !== 'string' || !/^[a-zA-Z0-9_.:-]{1,150}$/.test(item.model)) throw new Error('Invalid feature configuration');
+  config[id] = {model: item.model, enabled: item.enabled};
+ }
+ return config;
+}
