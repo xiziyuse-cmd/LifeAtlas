@@ -36,6 +36,18 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Read release version
+        shell: bash
+        run: |
+          python - <<'PYVERSION'
+          import os, re
+          from pathlib import Path
+          version = re.search(r'^version:\s*(\d+\.\d+\.\d+)\+(\d+)\s*$', Path('pubspec.yaml').read_text(), re.M)
+          if not version:
+              raise SystemExit('Invalid app version')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write(f'LIFEATLAS_VERSION={version[1]}\nLIFEATLAS_BUILD={version[2]}\n')
+          PYVERSION
       - name: Prepare fixed release signing
         shell: bash
         run: |
@@ -56,7 +68,7 @@ jobs:
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
-          name: LifeAtlas-2.1.0-android-validation
+          name: LifeAtlas-${{ env.LIFEATLAS_VERSION }}-android-validation
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
@@ -66,13 +78,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk LifeAtlas-2.1.0.apk
-          sha256sum LifeAtlas-2.1.0.apk > LifeAtlas-2.1.0.apk.sha256
-          if gh release view v2.1.0 >/dev/null 2>&1; then
-            echo "Version v2.1.0 is already published; keep it immutable."
+          cp build/app/outputs/flutter-apk/app-release.apk "LifeAtlas-$LIFEATLAS_VERSION.apk"
+          sha256sum "LifeAtlas-$LIFEATLAS_VERSION.apk" > "LifeAtlas-$LIFEATLAS_VERSION.apk.sha256"
+          if gh release view "v$LIFEATLAS_VERSION" >/dev/null 2>&1; then
+            echo "Version $LIFEATLAS_VERSION is already published; keep it immutable."
             exit 0
           fi
-          gh release create v2.1.0 LifeAtlas-2.1.0.apk LifeAtlas-2.1.0.apk.sha256 --target "$GITHUB_SHA" --title "LifeAtlas v2.1.0" --notes-file UPDATE_RELEASE_NOTES.md
+          gh release create "v$LIFEATLAS_VERSION" "LifeAtlas-$LIFEATLAS_VERSION.apk" "LifeAtlas-$LIFEATLAS_VERSION.apk.sha256" --target "$GITHUB_SHA" --title "LifeAtlas v$LIFEATLAS_VERSION" --notes-file UPDATE_RELEASE_NOTES.md
       - name: Remove signing material
         if: always()
         shell: bash
