@@ -1,6 +1,6 @@
 # 应用内更新
 
-版本：2.1.0+28。保留护肤模块，不改变个人数据库。自动检查每次启动一次，失败不打断使用；手动入口为“我的 → 关于与更新”。
+版本：2.1.1+29。保留护肤模块，不改变个人数据库。自动检查每次启动一次，失败不打断使用；手动入口为“我的 → 关于与更新”。
 
 ## 服务与管理
 
@@ -12,7 +12,7 @@
 
 App 下载到私有缓存更新目录，拒绝跨域下载和重定向；校验长度和 SHA-256 后，Android PackageManager 再核对包名、实际版本、最低系统及当前签名。只对更新目录使用 FileProvider 临时读权限。签名不一致时不调用安装器，并保留现有数据。申请安装来源权限后用户返回页面再次点击安装。安装成功由系统处理，下次启动读取真实版本。此次不支持静默安装、强制升级、断点续传或签名轮换。
 
-正式构建必须使用固定签名。GitHub Actions Secrets：
+旧版手工签名配置（2.1.0；2.1.1 已改用自动托管）：
 - LIFEATLAS_RELEASE_KEYSTORE_BASE64
 - LIFEATLAS_RELEASE_STORE_PASSWORD
 - LIFEATLAS_RELEASE_KEY_ALIAS
@@ -43,3 +43,20 @@ App 下载到私有缓存更新目录，拒绝跨域下载和重定向；校验�
 App：`lib/features/updates/app_update_service.dart`、`lib/features/updates/app_update_page.dart`、`lib/features/profile/presentation/profile_page.dart`、`lib/features/navigation/presentation/app_shell.dart`；Android：`MainActivity.kt`、`AndroidManifest.xml`、`res/xml/update_paths.xml`、`build.gradle.kts`；测试与发布：`test/app_update_test.dart`、`.github/workflows/skincare-validation.yml`、`pubspec.yaml`；文档：`README.md`、`REQUIREMENTS.md`、`CHANGELOG.md`、`IN_APP_UPDATES.md`、`UPDATE_RELEASE_NOTES.md`。
 
 网站：`lib/app-updates.mjs`、`lib/update-gateway.mjs`、`lib/update-auth.ts`、`app/update-management.tsx`、`app/api/updates/`、`app/downloads/page.tsx`、`app/console.tsx`、`app/globals.css`、`cloudflare-env.d.ts`、`test/app-updates.test.mjs`。
+
+
+## 2.1.1 自动发布
+
+用户只在 App 内检查、下载并确认安装。无需在管理网站上传 APK。流水线由指定仓库所有者的 push/手动运行触发，使用 GitHub OIDC 短期身份读取加密托管的固定签名，完成测试、构建和证书校验后自动创建 GitHub Release，再分片同步到更新服务、校验并启用活动版本。管理页手工上传仅作维护备用。
+
+身份校验固定到仓库ID、所有者ID、分支、工作流文件及事件类型；拒绝 PR、Fork、其他工作流、过期/篡改令牌。签名在现有后台加密保存，初始化后禁止覆盖，不写入源码或安装包。临时 CI 私钥在任务结束清理。新增 `tooling/auto_release.py` 和 `tooling/test_auto_release.py`。
+
+新固定正式证书 SHA-256：`5335ab3092b5a61d7f2dd1ac81efb36c6c6e4f02a7630dabff2db44f331685d2`。它是今后版本的固定签名，不匹配历史调试签名；旧应用仍需保留，不能假称保留数据直接覆盖。
+
+自动发布同一版本不覆盖不同内容，更新服务拒绝同构建号冲突。App 包名仍为 `com.example.lifeatlas`，未更改数据库、未删除旧应用。
+
+### 托管授权待确认
+
+自动审批阻止向私有管理网站传输签名私钥、密码和服务访问凭据，要求明确授权具体资料及接收地址。固定签名已经生成并备份；托管初始化尚未确认成功。当前 `LIFEATLAS_AUTO_RELEASE=false`，CI 只构建验证包，不请求签名、不发布正式版本。
+
+待授权目的地：用户所有且仅自己可见的 `https://lifeatlas-ai-console.xiziyuse.chatgpt.site`；用途为加密保存 LifeAtlas 固定签名，并仅向 `xiziyuse-cmd/LifeAtlas` 指定所有者、分支和工作流的短期 GitHub 身份提供签名配置。初始化和授权完成后启用自动发布，无需用户手动上传。

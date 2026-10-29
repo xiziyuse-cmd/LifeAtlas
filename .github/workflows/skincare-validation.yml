@@ -1,7 +1,14 @@
 name: LifeAtlas validation and Android APK
 on:
   push:
-    branches: [feature/skincare-v2]
+    branches: [feature/skincare-v2, main]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.*'
+      - 'tooling/**'
+      - '.github/workflows/skincare-validation.yml'
+      - 'UPDATE_RELEASE_NOTES.md'
   pull_request:
     paths:
       - 'lib/**'
@@ -14,18 +21,17 @@ on:
 concurrency:
   group: skincare-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
+env:
+  # Enable only after signing custody authorization and initialization.
+  LIFEATLAS_AUTO_RELEASE: 'false'
 permissions:
   contents: write
+  id-token: write
 jobs:
   validate:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      LIFEATLAS_RELEASE_KEYSTORE_BASE64: ${{ secrets.LIFEATLAS_RELEASE_KEYSTORE_BASE64 }}
-      LIFEATLAS_RELEASE_STORE_PASSWORD: ${{ secrets.LIFEATLAS_RELEASE_STORE_PASSWORD }}
-      LIFEATLAS_RELEASE_KEY_ALIAS: ${{ secrets.LIFEATLAS_RELEASE_KEY_ALIAS }}
-      LIFEATLAS_RELEASE_KEY_PASSWORD: ${{ secrets.LIFEATLAS_RELEASE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -48,44 +54,31 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as output:
               output.write(f'LIFEATLAS_VERSION={version[1]}\nLIFEATLAS_BUILD={version[2]}\n')
           PYVERSION
-      - name: Prepare fixed release signing
-        shell: bash
-        run: |
-          if [[ -n "$LIFEATLAS_RELEASE_KEYSTORE_BASE64" ]]; then
-            test -n "$LIFEATLAS_RELEASE_STORE_PASSWORD"
-            test -n "$LIFEATLAS_RELEASE_KEY_ALIAS"
-            test -n "$LIFEATLAS_RELEASE_KEY_PASSWORD"
-            echo "$LIFEATLAS_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/lifeatlas-release.jks"
-            echo "LIFEATLAS_RELEASE_STORE_FILE=$RUNNER_TEMP/lifeatlas-release.jks" >> "$GITHUB_ENV"
-          else
-            echo "LIFEATLAS_ALLOW_DEBUG_RELEASE=true" >> "$GITHUB_ENV"
-            echo "::warning::Fixed release signing is not configured. APK is validation-only and will not be published."
-          fi
+      - name: Load fixed signing through GitHub identity
+        if: github.event_name != 'pull_request' && env.LIFEATLAS_AUTO_RELEASE == 'true'
+        run: python tooling/auto_release.py prepare-signing
+      - name: Configure validation-only signing
+        if: github.event_name == 'pull_request' || env.LIFEATLAS_AUTO_RELEASE != 'true'
+        run: echo "LIFEATLAS_ALLOW_DEBUG_RELEASE=true" >> "$GITHUB_ENV"
+      - run: python -m unittest discover -s tooling -p 'test_auto_release.py'
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
       - run: node --test tooling/cloudflare_worker/*.test.mjs
       - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: LifeAtlas-${{ env.LIFEATLAS_VERSION }}-android-validation
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-
-      - name: Publish signed release
-        if: github.event_name == 'push' && env.LIFEATLAS_RELEASE_KEYSTORE_BASE64 != ''
+      - name: Automatically publish and synchronize the App update
+        if: github.event_name != 'pull_request' && env.LIFEATLAS_AUTO_RELEASE == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          cp build/app/outputs/flutter-apk/app-release.apk "LifeAtlas-$LIFEATLAS_VERSION.apk"
-          sha256sum "LifeAtlas-$LIFEATLAS_VERSION.apk" > "LifeAtlas-$LIFEATLAS_VERSION.apk.sha256"
-          if gh release view "v$LIFEATLAS_VERSION" >/dev/null 2>&1; then
-            echo "Version $LIFEATLAS_VERSION is already published; keep it immutable."
-            exit 0
-          fi
-          gh release create "v$LIFEATLAS_VERSION" "LifeAtlas-$LIFEATLAS_VERSION.apk" "LifeAtlas-$LIFEATLAS_VERSION.apk.sha256" --target "$GITHUB_SHA" --title "LifeAtlas v$LIFEATLAS_VERSION" --notes-file UPDATE_RELEASE_NOTES.md
-      - name: Remove signing material
+        run: python tooling/auto_release.py publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LifeAtlas-${{ env.LIFEATLAS_VERSION }}-android-${{ env.LIFEATLAS_AUTO_RELEASE == 'true' && 'release' || 'validation' }}
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            update-metadata.json
+          if-no-files-found: error
+      - name: Remove temporary signing material
         if: always()
         shell: bash
-        run: rm -f "$RUNNER_TEMP/lifeatlas-release.jks"
+        run: rm -f "$RUNNER_TEMP/lifeatlas-release.p12"
