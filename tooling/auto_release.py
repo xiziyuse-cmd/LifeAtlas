@@ -43,7 +43,9 @@ def oidc():
         'sub': f'repo:{REPO}:ref:{expected_ref}',
         'workflow_ref': f'{REPO}/.github/workflows/skincare-validation.yml@{expected_ref}',
         'sha': os.environ['GITHUB_SHA']}
-    print('OIDC claim checks: ' + json.dumps({key: str(claims.get(key)) == value for key, value in expected.items()}), flush=True)
+    checks = {key: str(claims.get(key)) == value for key, value in expected.items()}
+    checks['sub'] = claims.get('sub') in (expected['sub'], f'repo:xiziyuse-cmd@268181846/LifeAtlas@1319364551:ref:{expected_ref}')
+    print('OIDC claim checks: ' + json.dumps(checks), flush=True)
     print('OIDC format: ' + json.dumps({'alg': header.get('alg'), 'typ': header.get('typ'),
         'subject': str(claims.get('sub', ''))[:512],
         'run_id_numeric': str(claims.get('run_id', '')).isdigit(),
