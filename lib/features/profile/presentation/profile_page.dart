@@ -5,6 +5,7 @@ import '../../../core/auth/ai_auth_session.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../modules/presentation/modules_page.dart';
 import 'ai_auth_page.dart';
+import '../../updates/app_update_page.dart';
 import 'body_profile_page.dart';
 import 'settings_page.dart';
 import 'contact_developer_page.dart';
@@ -144,6 +145,15 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        ListTile(
+          leading: const Icon(Icons.system_update_outlined),
+          title: const Text('关于与更新'),
+          subtitle: const Text('查看版本、检查应用更新'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const AppUpdatePage()),
+          ),
+        ),
         Text('更多', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Card(

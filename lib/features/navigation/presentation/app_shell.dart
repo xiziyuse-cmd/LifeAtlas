@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/app_controller.dart';
+import '../../updates/app_update_page.dart';
 import '../../../core/auth/ai_auth_session.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/config/ai_service_config.dart';
@@ -118,6 +119,11 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdatePrompt.check(context);
+      }
+    });
     widget.controller.addListener(_syncSkinModule);
     _initializeSkinReminders();
     _wardrobeRepository = widget.wardrobeRepository ?? WardrobeRepository();
