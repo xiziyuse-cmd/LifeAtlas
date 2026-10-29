@@ -45,6 +45,7 @@ def oidc():
         'sha': os.environ['GITHUB_SHA']}
     print('OIDC claim checks: ' + json.dumps({key: str(claims.get(key)) == value for key, value in expected.items()}), flush=True)
     print('OIDC format: ' + json.dumps({'alg': header.get('alg'), 'typ': header.get('typ'),
+        'subject': str(claims.get('sub', ''))[:512],
         'run_id_numeric': str(claims.get('run_id', '')).isdigit(),
         'run_attempt_numeric': str(claims.get('run_attempt', '')).isdigit(),
         'lifetime_seconds': claims.get('exp', 0) - claims.get('iat', 0),
