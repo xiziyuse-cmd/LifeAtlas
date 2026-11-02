@@ -212,7 +212,7 @@ void main() {
       );
       addTearDown(upgraded.close);
       final db = await upgraded.database;
-      expect(await db.getVersion(), 12);
+      expect(await db.getVersion(), AppDatabase.databaseVersion);
       expect(
         (await db.query(
           'app_settings',

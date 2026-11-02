@@ -172,6 +172,7 @@ class AppDatabase {
     await upgradeKitchenSchemaToV10(database);
     await upgradeKitchenSchemaToV11(database);
     await createSkincareSchema(database);
+    await upgradeKitchenSchemaToV13(database);
   }
 
   Future<void> _upgradeSchema(

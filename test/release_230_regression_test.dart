@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lifeatlas/core/database/app_database.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:lifeatlas/features/kitchen/data/recipe_cloud_sync.dart';
 import 'package:lifeatlas/core/network/mobile_api.dart';
 import 'package:lifeatlas/core/database/date_key_codec.dart';
 import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
@@ -34,8 +38,95 @@ class FixtureApi extends MobileApi {
   }
 }
 
+class SyncFixtureApi extends MobileApi {
+  SyncFixtureApi({required super.database, required this.repository});
+  final KitchenRepository repository;
+  final sent = <String>[];
+  bool fail = false;
+  bool editWhileSending = false;
+  @override
+  Future<Map<String, dynamic>> call(
+    String action, [
+    Map<String, Object?> data = const {},
+  ]) async {
+    if (action == 'catalog') return {'recipes': [], 'next': null};
+    if (fail) throw StateError('网络断开');
+    if (action == 'upsert') {
+      sent.add((data['recipe'] as Map)['name'] as String);
+      if (editWhileSending) {
+        editWhileSending = false;
+        await repository.saveRecipe(
+          Recipe.fromMap({
+            ...dish.toMap(),
+            'name': '同步期间的新编辑',
+          }, id: data['recipeId'] as int),
+        );
+      }
+    }
+    return {'synced': true};
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'v12 upgrade preserves recipe identity, ingredients and local settings',
+    () async {
+      sqfliteFfiInit();
+      final directory = await Directory.systemTemp.createTemp('lifeatlas-v13-');
+      final path = '${directory.path}/lifeatlas.db';
+      final old = AppDatabase(factory: databaseFactoryFfi, databasePath: path);
+      final repo = KitchenRepository(database: old);
+      final id = await repo.saveRecipe(dish);
+      final connection = await old.database;
+      await connection.execute('DROP TABLE recipe_sync_queue');
+      for (final column in [
+        'owner_id',
+        'public_id',
+        'public_revision',
+        'public_active',
+      ]) {
+        await connection.execute('ALTER TABLE recipe DROP COLUMN $column');
+      }
+      await connection.setVersion(12);
+      await old.close();
+      final upgraded = AppDatabase(
+        factory: databaseFactoryFfi,
+        databasePath: path,
+      );
+      addTearDown(() async {
+        await upgraded.close();
+        await databaseFactoryFfi.deleteDatabase(path);
+        await directory.delete();
+      });
+      final value = (await KitchenRepository(
+        database: upgraded,
+      ).listRecipes()).single;
+      expect(value.id, id);
+      expect(value.name, dish.name);
+      expect(value.materials.single.amount, 2);
+      expect(await (await upgraded.database).getVersion(), 13);
+    },
+  );
+  test(
+    'failed sync keeps local data and retry sends edits made during a request',
+    () async {
+      final db = await openTestAppDatabase();
+      addTearDown(db.close);
+      final repo = KitchenRepository(database: db);
+      await repo.saveRecipe(dish);
+      final api = SyncFixtureApi(database: db, repository: repo)..fail = true;
+      final sync = RecipeCloudSync(repository: repo, api: api);
+      expect(await sync.synchronize(), contains('待同步'));
+      expect((await repo.listRecipes()).single.name, dish.name);
+      expect(await (await db.database).query('recipe_sync_queue'), isNotEmpty);
+      api.fail = false;
+      api.editWhileSending = true;
+      await sync.synchronize();
+      expect(api.sent, ['我的菜', '同步期间的新编辑']);
+      expect(await (await db.database).query('recipe_sync_queue'), isEmpty);
+    },
+  );
   test(
     'anonymous identity persists locally and private rows are scoped to owner',
     () async {
