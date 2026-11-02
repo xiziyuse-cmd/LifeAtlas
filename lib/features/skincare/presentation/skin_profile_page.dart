@@ -188,10 +188,11 @@ class _SkinProfilePageState extends State<SkinProfilePage> {
                 selected: states.contains(value),
                 onSelected: (selected) => setState(() {
                   if (selected) {
-                    if (value == '稳定')
+                    if (value == '稳定') {
                       states.clear();
-                    else
+                    } else {
                       states.remove('稳定');
+                    }
                     states.add(value);
                   } else {
                     states.remove(value);
@@ -264,14 +265,15 @@ class _SkinProfilePageState extends State<SkinProfilePage> {
                             : null,
                       ),
                       onPressed: () => setState(() {
-                        if (goals.contains(goal))
+                        if (goals.contains(goal)) {
                           goals.remove(goal);
-                        else if (goals.length < 3)
+                        } else if (goals.length < 3) {
                           goals.add(goal);
-                        else
+                        } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('最多选择三个目标')),
                           );
+                        }
                       }),
                       child: Row(
                         children: [

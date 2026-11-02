@@ -33,8 +33,9 @@ class KitchenRepository {
         'app_settings',
         where: 'setting_key = ?',
         whereArgs: [key],
-      )).isNotEmpty)
+      )).isNotEmpty) {
         return;
+      }
       if ((await tx.query('recipe', columns: ['id'], limit: 1)).isEmpty) {
         for (final recipe in recipes) {
           await _save(tx, recipe, source: 'preset');
