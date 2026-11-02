@@ -43,6 +43,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<ClothingRecommendation> _recommendations = const [];
   bool _isWeatherLoading = true;
   bool _weatherBusy = false;
+  int _weatherRevision = 0;
   Timer? _weatherTimer;
 
   @override
@@ -110,9 +111,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Future<void> _loadWeather() async {
     if (_weatherBusy) return;
     _weatherBusy = true;
+    final revision = _weatherRevision;
     try {
       final weather = await _weatherService.getCurrentWeather();
-      if (!mounted) {
+      if (!mounted || revision != _weatherRevision) {
         return;
       }
       setState(() {
@@ -122,15 +124,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       });
       await _loadRecommendations();
     } on Object catch (error) {
-      if (!mounted) {
+      if (!mounted || revision != _weatherRevision) {
         return;
       }
       setState(() {
+        _weather = null;
         _isWeatherLoading = false;
         _weatherError = error.toString().replaceFirst('Bad state: ', '');
       });
     } finally {
       _weatherBusy = false;
+      if (mounted && revision != _weatherRevision) {
+        unawaited(_loadWeather());
+      }
     }
   }
 
@@ -219,7 +225,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               );
               if (mounted) {
-                setState(() => _isWeatherLoading = true);
+                _weatherRevision++;
+                setState(() {
+                  _weather = null;
+                  _weatherError = null;
+                  _isWeatherLoading = true;
+                });
                 await _loadWeather();
               }
             },
