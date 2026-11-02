@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/weather_model.dart';
-import 'weather_attribution.dart';
 
 class HomeWeatherCard extends StatelessWidget {
   const HomeWeatherCard({
@@ -100,7 +99,7 @@ class HomeWeatherCard extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const WeatherAttribution(),
+                  Text('来源：和风天气', style: textTheme.bodySmall),
                 ],
               ),
             ),

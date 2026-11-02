@@ -16,8 +16,11 @@ class QWeatherService implements WeatherService {
   final MobileApi api;
   final DateTime Function() clock;
 
-  Future<HourlyForecast> getHourlyWeather({bool forceRefresh = false}) async {
-    final city = await selectedCity();
+  Future<HourlyForecast> getHourlyWeather({
+    bool forceRefresh = false,
+    Map<String, dynamic>? citySnapshot,
+  }) async {
+    final city = citySnapshot ?? await selectedCity();
     if (city == null) throw StateError('请选择城市，或使用当前位置');
     final key = 'weather_hourly_v1_${city['id']}';
     HourlyForecast? cached;
@@ -92,9 +95,12 @@ class QWeatherService implements WeatherService {
         timeLimit: Duration(seconds: 20),
       ),
     );
-    return searchCities(
+    final matches = await searchCities(
       '${position.longitude.toStringAsFixed(2)},${position.latitude.toStringAsFixed(2)}',
     );
+    return matches
+        .map((city) => {...city, 'selectionSource': 'location'})
+        .toList();
   }
 
   @override
@@ -102,8 +108,9 @@ class QWeatherService implements WeatherService {
     double? latitude,
     double? longitude,
     bool forceRefresh = false,
+    Map<String, dynamic>? citySnapshot,
   }) async {
-    final city = await selectedCity();
+    final city = citySnapshot ?? await selectedCity();
     if (city == null) {
       throw StateError('请选择城市，或使用当前位置');
     }

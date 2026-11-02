@@ -16,6 +16,7 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
   final query = TextEditingController();
   List<Map<String, dynamic>> cities = [];
   WeatherModel? weather;
+  Map<String, dynamic>? activeCity;
   HourlyForecast? hourly;
   String? hourlyError;
   bool hourlyLoading = false;
@@ -54,7 +55,10 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
 
   Future<void> _fetch({bool forceRefresh = false}) async {
     final request = ++revision;
+    final city = await service.selectedCity();
+    if (!mounted || request != revision) return;
     setState(() {
+      activeCity = city;
       hourlyLoading = true;
       hourlyError = null;
     });
@@ -64,6 +68,7 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
         try {
           final value = await service.getCurrentWeather(
             forceRefresh: forceRefresh,
+            citySnapshot: city,
           );
           if (mounted && request == revision) {
             setState(() {
@@ -83,6 +88,7 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
         try {
           final value = await service.getHourlyWeather(
             forceRefresh: forceRefresh,
+            citySnapshot: city,
           );
           if (mounted && request == revision) setState(() => hourly = value);
         } catch (e) {
@@ -100,6 +106,17 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
       })(),
     ]);
   }
+
+  Future<void> _search() => _run(() async {
+    final list = await service.searchCities(query.text);
+    if (mounted) {
+      setState(
+        () => cities = list
+            .map((city) => {...city, 'selectionSource': 'manual'})
+            .toList(),
+      );
+    }
+  });
 
   Future<void> _load({bool forceRefresh = false}) =>
       _run(() => _fetch(forceRefresh: forceRefresh));
@@ -120,43 +137,40 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        TextField(
-          controller: query,
-          decoration: const InputDecoration(
-            labelText: '城市名称',
-            hintText: '如：成都、上海',
-          ),
-          onSubmitted: (_) => _run(() async {
-            final list = await service.searchCities(query.text);
-            if (mounted) setState(() => cities = list);
-          }),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
+        Row(
           children: [
-            FilledButton.icon(
-              onPressed: busy
-                  ? null
-                  : () => _run(() async {
-                      final list = await service.searchCities(query.text);
-                      if (mounted) setState(() => cities = list);
-                    }),
-              icon: const Icon(Icons.search),
-              label: const Text('搜索城市'),
+            Expanded(
+              child: TextField(
+                controller: query,
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  labelText: '城市名称',
+                  hintText: '如：成都、上海',
+                ),
+                onSubmitted: (_) => _search(),
+              ),
             ),
-            OutlinedButton.icon(
-              onPressed: busy
-                  ? null
-                  : () => _run(() async {
-                      final list = await service.locate();
-                      if (mounted) setState(() => cities = list);
-                    }),
-              icon: const Icon(Icons.my_location),
-              label: const Text('使用当前位置'),
+            const SizedBox(width: 8),
+            IconButton.filled(
+              tooltip: '搜索城市',
+              onPressed: busy ? null : _search,
+              icon: const Icon(Icons.search),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: busy
+                ? null
+                : () => _run(() async {
+                    final list = await service.locate();
+                    if (mounted) setState(() => cities = list);
+                  }),
+            icon: const Icon(Icons.my_location),
+            label: const Text('使用当前位置'),
+          ),
         ),
         if (busy) const LinearProgressIndicator(),
         if (error != null)
@@ -181,9 +195,23 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    weather!.region,
-                    style: Theme.of(context).textTheme.titleLarge,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          weather!.region,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      if (activeCity?['selectionSource'] == 'location')
+                        const Icon(
+                          Icons.my_location,
+                          key: ValueKey('weather-location-indicator'),
+                          semanticLabel: '当前位置',
+                          size: 18,
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -215,7 +243,7 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
                         onPressed: busy
                             ? null
                             : () => _load(forceRefresh: true),
-                        child: const Text('刷新天气'),
+                        child: const Text('刷新'),
                       ),
                     ],
                   ),
@@ -228,18 +256,19 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
             alignment: Alignment.centerRight,
             child: OutlinedButton(
               onPressed: busy ? null : () => _load(forceRefresh: true),
-              child: const Text('刷新天气'),
+              child: const Text('刷新'),
             ),
           ),
         const SizedBox(height: 16),
         Text('逐小时天气', style: Theme.of(context).textTheme.titleLarge),
         if (hourlyLoading) const LinearProgressIndicator(),
         if (hourlyError != null) Text('小时预报暂不可用：$hourlyError'),
-        if (hourly != null) ...[
+        if (activeCity != null)
           Text(
-            '城市时间 · ${hourly!.zone}',
+            '${activeCity?['region'] ?? activeCity?['name'] ?? weather?.region ?? ''} · 当地时间',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+        if (hourly != null) ...[
           if (hourly!.cached) Text('缓存预报 · ${hourly!.warning}'),
           for (var day = 0; day < 2; day++) _hourlyDay(context, day),
         ],
@@ -271,10 +300,10 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
             children: [
               for (final entry in entries)
                 SizedBox(
-                  width: 92,
+                  width: 64,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
+                      horizontal: 2,
                       vertical: 8,
                     ),
                     child: Column(
