@@ -35,8 +35,9 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
       await work();
       if (mounted) setState(() => error = null);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => error = e.toString().replaceFirst('Bad state: ', ''));
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -49,11 +50,12 @@ class _WeatherDetailPageState extends State<WeatherDetailPage> {
   Future<void> _choose(Map<String, dynamic> city) => _run(() async {
     await service.selectCity(city);
     final value = await service.getCurrentWeather();
-    if (mounted)
+    if (mounted) {
       setState(() {
         weather = value;
         cities = [];
       });
+    }
   });
   @override
   Widget build(BuildContext context) => Scaffold(

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import '../../../core/network/mobile_api.dart';
@@ -111,10 +110,7 @@ class RecipeCloudSync {
       }
       await repository.applyPublicRecipes(all);
     } catch (e) {
-      failure = [
-        if (failure != null) failure,
-        '公共菜谱暂未刷新：${_message(e)}',
-      ].join('；');
+      failure = [?failure, '公共菜谱暂未刷新：${_message(e)}'].join('；');
     }
     return failure ?? '菜谱已同步 · 公共库已更新';
   }

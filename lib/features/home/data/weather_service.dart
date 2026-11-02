@@ -29,8 +29,9 @@ class QWeatherService implements WeatherService {
       throw StateError('请打开系统定位，或手动搜索城市');
     }
     var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied)
+    if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+    }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       throw StateError('未获定位授权，可手动搜索城市');
