@@ -53,6 +53,7 @@ void main() {
       await repo.saveRecipe(
         const Recipe(
           name: '我的菜谱',
+          materials: [RecipeMaterial(name: '青菜', amount: 100, unit: 'g')],
           steps: [RecipeStep(name: '准备', content: '洗净', duration: 1)],
         ),
       );
@@ -90,6 +91,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.widgetWithText(FilterChip, '干燥'),
         250,
+        scrollable: find.byType(Scrollable).first,
       );
       await tester.tap(find.widgetWithText(FilterChip, '干燥'));
       await tester.pumpAndSettle();
@@ -114,12 +116,20 @@ void main() {
         isFalse,
       );
       final goal = find.byKey(const ValueKey('goal-保湿补水'));
-      await tester.scrollUntilVisible(goal, 200);
+      await tester.scrollUntilVisible(
+        goal,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       final before = tester.getRect(goal);
       await tester.tap(goal);
       await tester.pumpAndSettle();
       expect(tester.getRect(goal), before);
-      await tester.scrollUntilVisible(find.text('保存档案'), 250);
+      await tester.scrollUntilVisible(
+        find.text('保存档案'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('保存档案'));
       await tester.pumpAndSettle();
       expect(result!.states.toSet(), {'干燥', '泛红'});

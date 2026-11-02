@@ -448,9 +448,16 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.enterText(find.byType(TextField), '香菇');
     await tester.pumpAndSettle();
-    expect(find.text('土豆鸡肉'), findsNothing);
-    expect(find.text('香菇鸡肉'), findsOneWidget);
-    await tester.tap(find.text('香菇鸡肉'));
+    final picker = find.byType(AlertDialog);
+    expect(
+      find.descendant(of: picker, matching: find.text('土豆鸡肉')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: picker, matching: find.text('香菇鸡肉')),
+      findsOneWidget,
+    );
+    await tester.tap(find.descendant(of: picker, matching: find.text('香菇鸡肉')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('确定（1）'));
     await tester.pumpAndSettle();

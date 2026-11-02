@@ -4,6 +4,7 @@ on:
     branches: [feature/skincare-v2, main]
     paths:
       - 'lib/**'
+      - 'test/**'
       - 'android/**'
       - 'pubspec.*'
       - 'tooling/**'
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - 'lib/**'
+      - 'test/**'
       - 'android/**'
       - '.github/workflows/skincare-validation.yml'
       - 'lib/core/database/skincare_schema.dart'
