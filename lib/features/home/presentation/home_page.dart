@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../data/weather_service.dart';
+import '../../../core/database/date_key_codec.dart';
 import '../data/home_repository.dart';
 import '../domain/home_day_data.dart';
 import '../domain/weather_model.dart';
@@ -9,6 +11,7 @@ import '../../wardrobe/domain/models/clothing_recommendation.dart';
 import '../../wardrobe/presentation/widgets/local_clothing_image.dart';
 import 'widgets/home_calendar_panel.dart';
 import 'widgets/home_weather_card.dart';
+import 'weather_detail_page.dart';
 import 'widgets/quick_record_bar.dart';
 
 class HomePage extends StatefulWidget {
@@ -29,22 +32,18 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  final WeatherService _weatherService = const MockWeatherService();
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  final QWeatherService _weatherService = QWeatherService();
+  String? _weatherError;
 
   late DateTime _focusedMonth;
   late DateTime _selectedDate;
-  WeatherModel _weather = const WeatherModel(
-    icon: '☁️',
-    status: '多云',
-    currentTemperature: 26,
-    minTemperature: 22,
-    maxTemperature: 30,
-    isSimulated: true,
-  );
+  WeatherModel? _weather;
   Map<DateTime, HomeDayData> _days = const {};
   List<ClothingRecommendation> _recommendations = const [];
   bool _isWeatherLoading = true;
+  bool _weatherBusy = false;
+  Timer? _weatherTimer;
 
   @override
   void initState() {
@@ -52,9 +51,30 @@ class _HomePageState extends State<HomePage> {
     final today = _dateOnly(DateTime.now());
     _focusedMonth = DateTime(today.year, today.month);
     _selectedDate = today;
-    _days = _mockDaysForMonth(_focusedMonth);
+    _days = widget.homeRepository == null
+        ? _mockDaysForMonth(_focusedMonth)
+        : const {};
     _loadMonth();
     _loadWeather();
+    WidgetsBinding.instance.addObserver(this);
+    _weatherTimer = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => _loadWeather(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _weatherTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadWeather();
+    }
   }
 
   @override
@@ -88,6 +108,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadWeather() async {
+    if (_weatherBusy) return;
+    _weatherBusy = true;
     try {
       final weather = await _weatherService.getCurrentWeather();
       if (!mounted) {
@@ -96,25 +118,33 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _weather = weather;
         _isWeatherLoading = false;
+        _weatherError = null;
       });
       await _loadRecommendations();
-    } on Object {
+    } on Object catch (error) {
       if (!mounted) {
         return;
       }
-      setState(() => _isWeatherLoading = false);
+      setState(() {
+        _isWeatherLoading = false;
+        _weatherError = error.toString().replaceFirst('Bad state: ', '');
+      });
+    } finally {
+      _weatherBusy = false;
     }
   }
 
   Future<void> _loadRecommendations() async {
     final repository = widget.wardrobeRepository;
-    if (repository == null) {
+    if (repository == null ||
+        _weather == null ||
+        _weather!.date != DateKeyCodec.encode(DateTime.now())) {
       return;
     }
     try {
       final recommendations = await repository.recommendForTemperature(
-        minTemperature: _weather.minTemperature,
-        maxTemperature: _weather.maxTemperature,
+        minTemperature: _weather!.minTemperature,
+        maxTemperature: _weather!.maxTemperature,
         limit: 4,
       );
       if (!mounted) {
@@ -180,12 +210,52 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
         children: [
-          HomeWeatherCard(
-            weather: _weather,
-            isLoading: _isWeatherLoading,
-            recommendationNames: _recommendations
-                .map((recommendation) => recommendation.item.name)
-                .toList(growable: false),
+          InkWell(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => WeatherDetailPage(service: _weatherService),
+                ),
+              );
+              if (mounted) {
+                setState(() => _isWeatherLoading = true);
+                await _loadWeather();
+              }
+            },
+            child: _weather == null
+                ? Container(
+                    key: const ValueKey('home-weather-bar'),
+                    constraints: const BoxConstraints(minHeight: 72),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.cloud_outlined),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _isWeatherLoading
+                                ? '正在获取天气…'
+                                : (_weatherError ?? '点击选择城市并获取真实天气'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                  )
+                : HomeWeatherCard(
+                    weather: _weather!,
+                    isLoading: _isWeatherLoading,
+                    recommendationNames: _recommendations
+                        .map((r) => r.item.name)
+                        .toList(),
+                  ),
           ),
           const SizedBox(height: 8),
           Expanded(

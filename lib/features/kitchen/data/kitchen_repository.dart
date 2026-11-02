@@ -1,52 +1,17 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/kitchen_models.dart';
 import '../domain/shopping_list.dart';
+import 'community_images.dart';
 
 class KitchenRepository {
   KitchenRepository({AppDatabase? database})
     : _database = database ?? AppDatabase();
   final AppDatabase _database;
 
-  /// Bootstrap once. Never replace an existing or deliberately deleted recipe.
-  Future<void> initializePresets() async {
-    final db = await _database.database;
-    const key = 'kitchen_presets_repair_2_2';
-    final done = await db.query(
-      'app_settings',
-      where: 'setting_key = ?',
-      whereArgs: [key],
-    );
-    if (done.isNotEmpty) return;
-    final data =
-        jsonDecode(
-              await rootBundle.loadString('assets/data/preset_recipes.json'),
-            )
-            as List;
-    final recipes = data
-        .map((v) => Recipe.fromMap(Map<String, dynamic>.from(v as Map)))
-        .toList();
-    await db.transaction((tx) async {
-      if ((await tx.query(
-        'app_settings',
-        where: 'setting_key = ?',
-        whereArgs: [key],
-      )).isNotEmpty) {
-        return;
-      }
-      if ((await tx.query('recipe', columns: ['id'], limit: 1)).isEmpty) {
-        for (final recipe in recipes) {
-          await _save(tx, recipe, source: 'preset');
-        }
-      }
-      await tx.insert('app_settings', {
-        'setting_key': key,
-        'setting_value': '1',
-      });
-    });
-  }
+  // Retained for compatibility; fixed preset import was retired in 2.3.0.
+  Future<void> initializePresets() async {}
 
   Future<ShoppingListState> loadShoppingList() async {
     final db = await _database.database;
@@ -68,10 +33,23 @@ class KitchenRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<String> _owner(DatabaseExecutor tx) async {
+    final rows = await tx.query(
+      'app_settings',
+      where: 'setting_key = ?',
+      whereArgs: ['mobile_identity_v1'],
+    );
+    return rows.isEmpty
+        ? ''
+        : (jsonDecode(rows.first['setting_value'] as String) as Map)['ownerId']
+              as String;
+  }
+
   Future<List<Recipe>> listRecipes() async {
     final db = await _database.database;
     final rows = await db.rawQuery(
-      'SELECT r.*, (SELECT COUNT(*) FROM cooking_record c WHERE c.recipe_id = r.id) AS cook_count FROM recipe r WHERE is_deleted = 0 ORDER BY id DESC',
+      'SELECT r.*, (SELECT COUNT(*) FROM cooking_record c WHERE c.recipe_id = r.id) AS cook_count FROM recipe r WHERE is_deleted = 0 AND (source_type != \'public\' OR public_active = 1) AND (source_type = \'public\' OR owner_id = ? OR owner_id = \'\') ORDER BY id DESC',
+      [await _owner(db)],
     );
     final result = <Recipe>[];
     for (final row in rows) {
@@ -128,6 +106,25 @@ class KitchenRepository {
   Future<int> saveRecipe(Recipe recipe) async {
     recipe.validate();
     final db = await _database.database;
+    if (recipe.id != null) {
+      final current = await db.query(
+        'recipe',
+        where: 'id = ?',
+        whereArgs: [recipe.id],
+      );
+      if (current.isNotEmpty &&
+          current.first['source_type'] == 'public' &&
+          recipe.image.isNotEmpty) {
+        recipe = Recipe.fromMap(
+          {
+            ...recipe.toMap(),
+            'image': await CommunityImages.personalCopy(recipe.image),
+          },
+          id: recipe.id,
+          sourceType: recipe.sourceType,
+        );
+      }
+    }
     return db.transaction(
       (tx) => _save(
         tx,
@@ -152,6 +149,7 @@ class KitchenRepository {
       'cook_time': recipe.totalDuration,
       'source_type': source,
       'update_time': now,
+      'owner_id': source == 'public' ? '' : await _owner(tx),
     };
     var id = recipe.id;
     if (id != null) {
@@ -160,8 +158,17 @@ class KitchenRepository {
         where: 'id = ? AND is_deleted = 0',
         whereArgs: [id],
       );
-      if (current.isEmpty) throw StateError('菜谱已删除，请返回刷新');
-      if (copyPreset && current.first['source_type'] == 'preset') id = null;
+      if (current.isEmpty) {
+        throw StateError('菜谱已删除，请返回刷新');
+      }
+      if (current.first['owner_id'] != '' &&
+          current.first['owner_id'] != await _owner(tx)) {
+        throw StateError('无法编辑其他用户的菜谱');
+      }
+      if (copyPreset &&
+          ['preset', 'public'].contains(current.first['source_type'])) {
+        id = null;
+      }
     }
     if (id == null) {
       id = await tx.insert('recipe', {...values, 'create_time': now});
@@ -198,17 +205,84 @@ class KitchenRepository {
         'video': s.video,
       });
     }
+    if (source != 'public') {
+      await tx.rawInsert(
+        'INSERT OR REPLACE INTO recipe_sync_queue(recipe_id,deleted,version) VALUES(?,0,?)',
+        [id, now],
+      );
+    }
     return id;
+  }
+
+  Future<void> applyPublicRecipes(List<Map<String, dynamic>> values) async {
+    final recipes = values.map((v) {
+      final r = Recipe.fromMap(v, sourceType: 'public');
+      r.validate();
+      return r;
+    }).toList();
+    final db = await _database.database;
+    await db.transaction((tx) async {
+      await tx.update(
+        'recipe',
+        {'public_active': 0},
+        where: 'source_type = ?',
+        whereArgs: ['public'],
+      );
+      for (var i = 0; i < values.length; i++) {
+        final v = values[i],
+            old = await tx.query(
+              'recipe',
+              where: 'public_id = ? AND source_type = ?',
+              whereArgs: [v['publicId'], 'public'],
+              limit: 1,
+            );
+        final r = Recipe.fromMap(
+          recipes[i].toMap(),
+          id: old.isEmpty ? null : old.first['id'] as int,
+          sourceType: 'public',
+        );
+        if (old.isNotEmpty && old.first['is_deleted'] == 1) {
+          continue;
+        }
+        final id = await _save(tx, r, source: 'public', copyPreset: false);
+        await tx.update(
+          'recipe',
+          {
+            'public_id': v['publicId'],
+            'public_revision': v['revision'],
+            'public_active': 1,
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+    });
   }
 
   Future<void> deleteRecipe(int id) async {
     final db = await _database.database;
-    await db.update(
-      'recipe',
-      {'is_deleted': 1},
-      where: 'id = ? AND source_type != ?',
-      whereArgs: [id, 'preset'],
-    );
+    await db.transaction((tx) async {
+      final rows = await tx.query('recipe', where: 'id = ?', whereArgs: [id]);
+      if (rows.isEmpty) {
+        return;
+      }
+      if (rows.first['owner_id'] != '' &&
+          rows.first['owner_id'] != await _owner(tx)) {
+        throw StateError('无法删除其他用户的菜谱');
+      }
+      await tx.update(
+        'recipe',
+        {'is_deleted': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (rows.first['source_type'] != 'public') {
+        await tx.rawInsert(
+          'INSERT OR REPLACE INTO recipe_sync_queue(recipe_id,deleted,version) VALUES(?,1,?)',
+          [id, DateTime.now().toIso8601String()],
+        );
+      }
+    });
   }
 
   Future<List<InventoryItem>>

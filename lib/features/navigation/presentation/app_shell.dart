@@ -10,6 +10,7 @@ import '../../skincare/data/skincare_ai_service.dart';
 import '../../skincare/application/skincare_reminders.dart';
 import '../../skincare/presentation/skincare_page.dart';
 import '../../kitchen/data/kitchen_repository.dart';
+import '../../kitchen/data/recipe_cloud_sync.dart';
 import '../../kitchen/data/kitchen_ai_service.dart';
 import '../../kitchen/presentation/kitchen_page.dart';
 import '../../home/data/home_repository.dart';
@@ -204,6 +205,9 @@ class _AppShellState extends State<AppShell> {
           page: KitchenPage(
             key: const PageStorageKey('kitchen'),
             repository: _kitchenRepository,
+            cloudSync: widget.kitchenRepository == null
+                ? RecipeCloudSync(repository: _kitchenRepository)
+                : null,
             aiService: _kitchenAiService,
           ),
         ),

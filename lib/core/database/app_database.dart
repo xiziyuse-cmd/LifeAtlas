@@ -7,7 +7,7 @@ import 'skincare_schema.dart';
 
 class AppDatabase {
   static const _databaseName = 'life_atlas.db';
-  static const databaseVersion = 12;
+  static const databaseVersion = 13;
 
   AppDatabase({DatabaseFactory? factory, this.databasePath})
     : _databaseFactory = factory;
@@ -208,6 +208,9 @@ class AppDatabase {
     }
     if (oldVersion < 12) {
       await createSkincareSchema(database);
+    }
+    if (oldVersion < 13) {
+      await upgradeKitchenSchemaToV13(database);
     }
     if (oldVersion < 11) {
       await upgradeKitchenSchemaToV11(database);

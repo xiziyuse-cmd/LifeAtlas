@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/kitchen_ai_service.dart';
 import '../data/kitchen_repository.dart';
+import '../data/recipe_cloud_sync.dart';
 import '../domain/kitchen_models.dart';
 import 'inventory_form_dialog.dart';
 import 'kitchen_recommendation_page.dart';
@@ -14,14 +15,16 @@ class KitchenPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.aiService,
+    this.cloudSync,
   });
   final KitchenRepository repository;
   final KitchenAiService aiService;
+  final RecipeCloudSync? cloudSync;
   @override
   State<KitchenPage> createState() => _KitchenPageState();
 }
 
-class _KitchenPageState extends State<KitchenPage> {
+class _KitchenPageState extends State<KitchenPage> with WidgetsBindingObserver {
   final _search = TextEditingController();
   List<Recipe> _recipes = [];
   List<InventoryItem> _inventory = [];
@@ -30,6 +33,8 @@ class _KitchenPageState extends State<KitchenPage> {
   bool _loadingSelection = false;
   final _selectedRecipes = <int>{};
   String? _error;
+  String? _cloudStatus;
+  bool _cloudBusy = false;
 
   List<Recipe> get _visibleRecipes {
     final query = _search.text.trim().toLowerCase();
@@ -51,11 +56,14 @@ class _KitchenPageState extends State<KitchenPage> {
     super.initState();
     _search.addListener(_refreshSearch);
     _load();
+    WidgetsBinding.instance.addObserver(this);
+    _syncCloud();
   }
 
   void _refreshSearch() => setState(() {});
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _search.removeListener(_refreshSearch);
     _search.dispose();
     super.dispose();
@@ -85,9 +93,35 @@ class _KitchenPageState extends State<KitchenPage> {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncCloud();
+    }
+  }
+
+  Future<void> _syncCloud() async {
+    if (widget.cloudSync == null || _cloudBusy) return;
+    setState(() => _cloudBusy = true);
+    try {
+      final status = await widget.cloudSync!.synchronize();
+      if (mounted) {
+        setState(() => _cloudStatus = status);
+        await _load();
+      }
+    } catch (_) {
+      if (mounted) setState(() => _cloudStatus = '菜谱已保存在本机，联网后可重试同步');
+    } finally {
+      if (mounted) setState(() => _cloudBusy = false);
+    }
+  }
+
   Future<void> _open(Widget page) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-    if (mounted) await _load();
+    if (mounted) {
+      await _load();
+      _syncCloud();
+    }
   }
 
   Future<void> _editInventory([InventoryItem? item]) async {
@@ -122,6 +156,29 @@ class _KitchenPageState extends State<KitchenPage> {
             Tab(text: '库存'),
           ],
         ),
+        if (widget.cloudSync != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _cloudBusy
+                        ? '正在同步菜谱…'
+                        : _cloudStatus ?? '公共菜谱由管理员公开；个人菜谱按用户隔离',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  tooltip: '刷新公共菜谱与同步',
+                  onPressed: _cloudBusy ? null : _syncCloud,
+                  icon: const Icon(Icons.sync),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
@@ -310,19 +367,26 @@ class _KitchenPageState extends State<KitchenPage> {
                                 ),
                                 if (_shopping)
                                   Positioned(
-                                    top: 0,
-                                    right: 0,
+                                    top: 4,
+                                    right: 4,
                                     child: Material(
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.surface,
                                       shape: const CircleBorder(),
-                                      child: Checkbox(
-                                        value: _selectedRecipes.contains(
-                                          recipe.id,
+                                      child: SizedBox.square(
+                                        dimension: 24,
+                                        child: Checkbox(
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          visualDensity: VisualDensity.compact,
+                                          value: _selectedRecipes.contains(
+                                            recipe.id,
+                                          ),
+                                          semanticLabel: '选择${recipe.name}',
+                                          onChanged: (_) =>
+                                              _selectRecipe(recipe),
                                         ),
-                                        semanticLabel: '选择${recipe.name}',
-                                        onChanged: (_) => _selectRecipe(recipe),
                                       ),
                                     ),
                                   ),

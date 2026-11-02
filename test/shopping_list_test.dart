@@ -131,6 +131,10 @@ void main() {
       expect(find.byType(ShoppingListPage), findsNothing);
       expect(find.byType(Checkbox), findsNWidgets(2));
       expect(
+        tester.getSize(find.byType(Checkbox).first).width,
+        lessThanOrEqualTo(24),
+      );
+      expect(
         tester
             .widget<FilledButton>(find.widgetWithText(FilledButton, '生成购物清单'))
             .onPressed,

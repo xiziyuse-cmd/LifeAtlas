@@ -1,158 +1,156 @@
 import 'package:flutter/material.dart';
+import '../data/weather_service.dart';
+import '../domain/weather_model.dart';
 
-class WeatherDetailPage extends StatelessWidget {
-  const WeatherDetailPage({super.key});
+class WeatherDetailPage extends StatefulWidget {
+  const WeatherDetailPage({super.key, this.service});
+  final QWeatherService? service;
+  @override
+  State<WeatherDetailPage> createState() => _WeatherDetailPageState();
+}
+
+class _WeatherDetailPageState extends State<WeatherDetailPage> {
+  late final service = widget.service ?? QWeatherService();
+  final query = TextEditingController();
+  List<Map<String, dynamic>> cities = [];
+  WeatherModel? weather;
+  String? error;
+  bool busy = false;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+  void dispose() {
+    query.dispose();
+    super.dispose();
+  }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('天气详情')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
+  Future<void> _run(Future<void> Function() work) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await work();
+      if (mounted) setState(() => error = null);
+    } catch (e) {
+      if (mounted)
+        setState(() => error = e.toString().replaceFirst('Bad state: ', ''));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _load() => _run(() async {
+    final value = await service.getCurrentWeather();
+    if (mounted) setState(() => weather = value);
+  });
+  Future<void> _choose(Map<String, dynamic> city) => _run(() async {
+    await service.selectCity(city);
+    final value = await service.getCurrentWeather();
+    if (mounted)
+      setState(() {
+        weather = value;
+        cities = [];
+      });
+  });
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('天气与城市')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        TextField(
+          controller: query,
+          decoration: const InputDecoration(
+            labelText: '城市名称',
+            hintText: '如：成都、上海',
+          ),
+          onSubmitted: (_) => _run(() async {
+            final list = await service.searchCities(query.text);
+            if (mounted) setState(() => cities = list);
+          }),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: busy
+                  ? null
+                  : () => _run(() async {
+                      final list = await service.searchCities(query.text);
+                      if (mounted) setState(() => cities = list);
+                    }),
+              icon: const Icon(Icons.search),
+              label: const Text('搜索城市'),
+            ),
+            OutlinedButton.icon(
+              onPressed: busy
+                  ? null
+                  : () => _run(() async {
+                      final list = await service.locate();
+                      if (mounted) setState(() => cities = list);
+                    }),
+              icon: const Icon(Icons.my_location),
+              label: const Text('使用当前位置'),
+            ),
+          ],
+        ),
+        if (busy) const LinearProgressIndicator(),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        for (final city in cities)
+          ListTile(
+            title: Text(city['name'] as String),
+            subtitle: Text(city['region'] as String),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: busy ? null : () => _choose(city),
+          ),
+        if (weather != null)
           Card(
-            margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.cloud_outlined,
-                    size: 64,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(height: 14),
                   Text(
-                    '--°',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    weather!.region,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 6),
-                  const Text('天气信息待更新'),
-                  const SizedBox(height: 18),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _TemperatureItem(label: '最低', value: '--°'),
-                      SizedBox(width: 36),
-                      _TemperatureItem(label: '最高', value: '--°'),
-                    ],
+                  const SizedBox(height: 12),
+                  Text(
+                    '${weather!.icon} ${weather!.status} ${weather!.currentTemperature.round()}℃',
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '穿搭建议',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 10),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const _RecommendationRow(
-                    icon: Icons.dry_cleaning_outlined,
-                    label: '上装',
+                  Text(
+                    '当天预报 ${weather!.minTemperature.round()}℃ – ${weather!.maxTemperature.round()}℃',
                   ),
-                  const Divider(height: 24),
-                  const _RecommendationRow(
-                    icon: Icons.checkroom_outlined,
-                    label: '下装',
+                  const SizedBox(height: 12),
+                  Text(
+                    '${weather!.cached ? '缓存 · ' : ''}${weather!.date}\n获取时间：${DateTime.parse(weather!.fetchedAt).toLocal()}\n来源：和风天气',
                   ),
-                  const Divider(height: 24),
-                  const _RecommendationRow(
-                    icon: Icons.umbrella_outlined,
-                    label: '外套或配饰',
-                  ),
-                  const SizedBox(height: 16),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: colorScheme.onSecondaryContainer,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '天气接口与穿搭推荐逻辑将在后续版本接入。',
-                              style: TextStyle(
-                                color: colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  if (weather!.cached) Text(weather!.warning),
+                  TextButton(
+                    onPressed: busy ? null : _load,
+                    child: const Text('刷新天气'),
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TemperatureItem extends StatelessWidget {
-  const _TemperatureItem({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
+        const SizedBox(height: 16),
+        const Text('天气数据由和风天气提供。温度范围为当日预报；无有效数据时不会生成模拟天气。定位仅在点击按钮并授权后使用。'),
+        const SelectableText('https://developer.qweather.com/attribution.html'),
       ],
-    );
-  }
-}
-
-class _RecommendationRow extends StatelessWidget {
-  const _RecommendationRow({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon),
-        const SizedBox(width: 12),
-        Expanded(child: Text(label)),
-        Text(
-          '待推荐',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
+    ),
+  );
 }

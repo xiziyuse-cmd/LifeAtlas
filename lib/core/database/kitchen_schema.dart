@@ -108,3 +108,27 @@ Future<void> upgradeKitchenSchemaToV10(Database db) async {
     await db.execute('ALTER TABLE $next RENAME TO $table');
   }
 }
+
+Future<void> upgradeKitchenSchemaToV13(Database db) async {
+  final columns = (await db.rawQuery(
+    'PRAGMA table_info(recipe)',
+  )).map((r) => r['name']).toSet();
+  for (final entry in {
+    'owner_id': "TEXT NOT NULL DEFAULT ''",
+    'public_id': "TEXT NOT NULL DEFAULT ''",
+    'public_revision': 'INTEGER NOT NULL DEFAULT 0',
+    'public_active': 'INTEGER NOT NULL DEFAULT 1',
+  }.entries) {
+    if (!columns.contains(entry.key)) {
+      await db.execute(
+        'ALTER TABLE recipe ADD COLUMN ${entry.key} ${entry.value}',
+      );
+    }
+  }
+  await db.execute(
+    'CREATE TABLE IF NOT EXISTS recipe_sync_queue(recipe_id INTEGER PRIMARY KEY, deleted INTEGER NOT NULL DEFAULT 0, version TEXT NOT NULL)',
+  );
+  await db.execute(
+    "UPDATE recipe SET source_type='personal' WHERE source_type='preset'",
+  );
+}

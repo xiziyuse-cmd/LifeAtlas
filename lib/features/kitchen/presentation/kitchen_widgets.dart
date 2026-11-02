@@ -21,6 +21,19 @@ class KitchenImage extends StatelessWidget {
               child: const Icon(Icons.restaurant, size: 40),
             ),
           )
+        : path.startsWith(
+            'https://lifeatlas-updates.xiziyuse.workers.dev/v1/app/image?',
+          )
+        ? Image.network(
+            path,
+            height: height,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => SizedBox(
+              height: height,
+              child: const Icon(Icons.broken_image_outlined),
+            ),
+          )
         : path.startsWith('assets/')
         ? Image.asset(
             path,

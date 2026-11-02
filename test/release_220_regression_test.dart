@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/features/skincare/domain/skincare_models.dart';
 import 'package:lifeatlas/features/skincare/domain/skincare_rules.dart';
@@ -23,27 +22,13 @@ void main() {
       expect(SkincareRules.gentleOnly(SkinProfile()), isFalse);
     },
   );
-  test(
-    'empty kitchen initializes complete presets once and bundles images',
-    () async {
-      final db = await openTestAppDatabase();
-      addTearDown(db.close);
-      final repo = KitchenRepository(database: db);
-      await repo.initializePresets();
-      final recipes = await repo.listRecipes();
-      expect(recipes.length, greaterThanOrEqualTo(30));
-      for (final recipe in recipes) {
-        expect(recipe.materials, isNotEmpty);
-        expect(recipe.steps, isNotEmpty);
-        expect(
-          (await rootBundle.load(recipe.image)).lengthInBytes,
-          greaterThan(0),
-        );
-      }
-      await repo.initializePresets();
-      expect((await repo.listRecipes()).length, recipes.length);
-    },
-  );
+  test('fresh kitchen stays empty without administrator publication', () async {
+    final db = await openTestAppDatabase();
+    addTearDown(db.close);
+    final repo = KitchenRepository(database: db);
+    await repo.initializePresets();
+    expect(await repo.listRecipes(), isEmpty);
+  });
   test(
     'preset repair does not overwrite or append to personal recipes',
     () async {

@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于获取所在城市的真实天气，也可以手动选择城市。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>拍摄护肤品包装以识别产品信息</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

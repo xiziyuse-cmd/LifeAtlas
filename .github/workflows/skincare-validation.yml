@@ -79,6 +79,7 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             update-metadata.json
+            pubspec.lock
           if-no-files-found: error
       - name: Remove temporary signing material
         if: always()

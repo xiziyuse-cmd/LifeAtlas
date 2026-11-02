@@ -283,7 +283,7 @@ class _RecipeFormPageState extends State<RecipeFormPage> {
       title: Text(
         widget.recipe == null
             ? '新建菜谱'
-            : widget.recipe!.sourceType == 'preset'
+            : ['preset', 'public'].contains(widget.recipe!.sourceType)
             ? '编辑为个人版本'
             : '编辑菜谱',
       ),
