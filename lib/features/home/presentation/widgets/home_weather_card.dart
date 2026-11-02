@@ -7,10 +7,12 @@ class HomeWeatherCard extends StatelessWidget {
     super.key,
     required this.weather,
     required this.isLoading,
+    this.recommendationNames = const [],
   });
 
   final WeatherModel weather;
   final bool isLoading;
+  final List<String> recommendationNames;
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +21,13 @@ class HomeWeatherCard extends StatelessWidget {
 
     return Semantics(
       label:
-          '模拟天气：${weather.status}，'
+          '${weather.cached ? '缓存天气' : '天气'}：${weather.region}，${weather.status}，'
           '当前${_temperature(weather.currentTemperature)}度，'
           '${_temperature(weather.minTemperature)}到'
           '${_temperature(weather.maxTemperature)}度',
       child: Container(
         key: const ValueKey('home-weather-bar'),
-        height: 72,
+        constraints: const BoxConstraints(minHeight: 72),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,
@@ -61,16 +63,22 @@ class HomeWeatherCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        weather.status,
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          weather.region.isEmpty
+                              ? weather.status
+                              : '${weather.region.split(' · ').last} · ${weather.status}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      if (weather.isSimulated) ...[
+                      if (weather.cached) ...[
                         const SizedBox(width: 7),
                         Text(
-                          '模拟',
+                          '缓存',
                           style: textTheme.labelSmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -80,8 +88,17 @@ class HomeWeatherCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${_temperature(weather.minTemperature)}℃ - '
-                    '${_temperature(weather.maxTemperature)}℃',
+                    [
+                      '${_temperature(weather.minTemperature)}℃ - '
+                          '${_temperature(weather.maxTemperature)}℃',
+                      if (weather.fetchedAt.isNotEmpty)
+                        '获取 ${DateTime.parse(weather.fetchedAt).toLocal().toString().substring(5, 16)}',
+                      if (recommendationNames.isNotEmpty)
+                        '推荐 ${recommendationNames.take(2).join('、')}',
+                    ].join(' · '),
+                    key: const ValueKey('home-weather-recommendations'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),

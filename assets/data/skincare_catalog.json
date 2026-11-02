@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "products": [
+    {
+      "id": "cerave-cleanser-us",
+      "name": "适乐肤保湿洁面乳 Hydrating Facial Cleanser",
+      "brand": "CeraVe 适乐肤",
+      "category": "洁面",
+      "source": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+      "verifiedAt": "2026-10-29",
+      "evidence": "verified",
+      "region": "美国官网",
+      "formula": "官网页面核对 2026-10-29；具体包装版本待确认",
+      "size": "",
+      "barcode": "",
+      "catalogId": "cerave-cleanser-us",
+      "catalogVersion": 1,
+      "ingredients": [
+        "神经酰胺",
+        "透明质酸"
+      ],
+      "claims": [],
+      "instructions": "用温水湿润面部，轻柔按摩后冲净。",
+      "cautions": "请核对手中包装；具体配方与用法以包装为准。",
+      "time": "均可",
+      "active": "",
+      "aliases": [
+        "适乐肤",
+        "CeraVe",
+        "保湿洁面"
+      ],
+      "concentration": null,
+      "versionConfirmed": false
+    },
+    {
+      "id": "cerave-cream-us",
+      "name": "适乐肤保湿面霜 Moisturizing Cream",
+      "brand": "CeraVe 适乐肤",
+      "category": "面霜",
+      "source": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream",
+      "verifiedAt": "2026-10-29",
+      "evidence": "verified",
+      "region": "美国官网",
+      "formula": "官网页面核对 2026-10-29；具体包装版本待确认",
+      "size": "",
+      "barcode": "",
+      "catalogId": "cerave-cream-us",
+      "catalogVersion": 1,
+      "ingredients": [
+        "神经酰胺",
+        "透明质酸"
+      ],
+      "claims": [
+        "保湿"
+      ],
+      "instructions": "按需要用于面部保湿。",
+      "cautions": "请核对手中包装；具体配方与用法以包装为准。",
+      "time": "均可",
+      "active": "",
+      "aliases": [
+        "C霜",
+        "CeraVe大白罐"
+      ],
+      "concentration": null,
+      "versionConfirmed": false
+    },
+    {
+      "id": "cerave-retinol-us",
+      "name": "适乐肤视黄醇焕肤精华 Resurfacing Retinol Serum",
+      "brand": "CeraVe 适乐肤",
+      "category": "精华",
+      "source": "https://www.cerave.com/skincare/facial-serums/resurfacing-retinol-serum",
+      "verifiedAt": "2026-10-29",
+      "evidence": "verified",
+      "region": "美国官网",
+      "formula": "官网页面核对 2026-10-29；具体包装版本待确认",
+      "size": "",
+      "barcode": "",
+      "catalogId": "cerave-retinol-us",
+      "catalogVersion": 1,
+      "ingredients": [
+        "视黄醇",
+        "烟酰胺"
+      ],
+      "claims": [],
+      "instructions": "晚间用于面部，避开眼唇；不适时减少使用频率，日间配合防晒。",
+      "cautions": "请核对手中包装；具体配方与用法以包装为准。",
+      "time": "晚间",
+      "active": "retinol",
+      "aliases": [
+        "A醇",
+        "蓝瓶",
+        "CeraVe视黄醇"
+      ],
+      "concentration": null,
+      "versionConfirmed": false
+    },
+    {
+      "id": "cerave-am-us",
+      "name": "适乐肤 AM Facial Moisturizing Lotion SPF 30",
+      "brand": "CeraVe 适乐肤",
+      "category": "防晒",
+      "source": "https://www.cerave.com/skincare/moisturizers/am-facial-moisturizing-lotion-with-sunscreen",
+      "verifiedAt": "2026-10-29",
+      "evidence": "verified",
+      "region": "美国官网",
+      "formula": "官网页面核对 2026-10-29；具体包装版本待确认",
+      "size": "",
+      "barcode": "",
+      "catalogId": "cerave-am-us",
+      "catalogVersion": 1,
+      "ingredients": [],
+      "claims": [],
+      "instructions": "遵循包装防晒用量和补涂说明。",
+      "cautions": "请核对手中包装；具体配方与用法以包装为准。",
+      "time": "早间",
+      "active": "",
+      "aliases": [
+        "日间乳",
+        "AM乳"
+      ],
+      "concentration": null,
+      "versionConfirmed": false
+    }
+  ]
+}

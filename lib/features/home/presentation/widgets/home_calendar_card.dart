@@ -35,6 +35,7 @@ class HomeCalendarCard extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.zero,
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -171,7 +172,7 @@ class _CalendarDayCell extends StatelessWidget {
       selected: isSelected,
       label: '${date.year}年${date.month}月${date.day}日',
       child: Material(
-        color: isSelected ? colorScheme.primaryContainer : Colors.transparent,
+        color: isSelected ? colorScheme.primary : Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: isToday
@@ -191,9 +192,7 @@ class _CalendarDayCell extends StatelessWidget {
                     child: Text(
                       '${date.day}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isSelected
-                            ? colorScheme.onPrimaryContainer
-                            : null,
+                        color: isSelected ? colorScheme.onPrimary : null,
                         fontWeight: isToday || isSelected
                             ? FontWeight.w700
                             : null,

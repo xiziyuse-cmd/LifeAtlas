@@ -1,5 +1,17 @@
 enum HomeDayMarker { weather, outfit, text, image }
 
+class HomeOutfitItem {
+  const HomeOutfitItem({
+    required this.id,
+    required this.name,
+    required this.imagePath,
+  });
+
+  final int id;
+  final String name;
+  final String imagePath;
+}
+
 class HomeDayData {
   const HomeDayData({
     required this.date,
@@ -9,6 +21,7 @@ class HomeDayData {
     this.minTemperature,
     this.maxTemperature,
     this.hasOutfitRecord = false,
+    this.outfitItems = const [],
     this.textEntries = const [],
     this.imagePaths = const [],
   });
@@ -24,6 +37,7 @@ class HomeDayData {
   final double? minTemperature;
   final double? maxTemperature;
   final bool hasOutfitRecord;
+  final List<HomeOutfitItem> outfitItems;
   final List<String> textEntries;
   final List<String> imagePaths;
 
@@ -45,6 +59,7 @@ class HomeDayData {
     double? minTemperature,
     double? maxTemperature,
     bool? hasOutfitRecord,
+    List<HomeOutfitItem>? outfitItems,
     List<String>? textEntries,
     List<String>? imagePaths,
   }) {
@@ -56,6 +71,7 @@ class HomeDayData {
       minTemperature: minTemperature ?? this.minTemperature,
       maxTemperature: maxTemperature ?? this.maxTemperature,
       hasOutfitRecord: hasOutfitRecord ?? this.hasOutfitRecord,
+      outfitItems: outfitItems ?? this.outfitItems,
       textEntries: textEntries ?? this.textEntries,
       imagePaths: imagePaths ?? this.imagePaths,
     );

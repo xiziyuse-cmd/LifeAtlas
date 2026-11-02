@@ -1,0 +1,9 @@
+{
+  "name": "lifeatlas-cloudflare-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test worker.test.mjs kitchen.test.mjs skincare.test.mjs",
+    "check": "node --check worker.js"
+  }
+}
