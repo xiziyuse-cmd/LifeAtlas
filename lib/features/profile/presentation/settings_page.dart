@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/app_controller.dart';
 import 'theme_settings_page.dart';
+import '../../updates/app_update_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, required this.controller});
@@ -24,6 +25,18 @@ class SettingsPage extends StatelessWidget {
               MaterialPageRoute<void>(
                 builder: (_) => ThemeSettingsPage(controller: controller),
               ),
+            ),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            key: const ValueKey('settings-about-entry'),
+            leading: const Icon(Icons.system_update_outlined),
+            title: const Text('关于与更新'),
+            subtitle: const Text('查看版本、检查应用更新'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const AppUpdatePage()),
             ),
           ),
         ),

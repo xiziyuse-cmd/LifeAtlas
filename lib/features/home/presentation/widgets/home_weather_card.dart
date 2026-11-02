@@ -99,7 +99,6 @@ class HomeWeatherCard extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  Text('来源：和风天气', style: textTheme.bodySmall),
                 ],
               ),
             ),
