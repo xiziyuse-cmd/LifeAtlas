@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'app/app_controller.dart';
+import 'features/kitchen/data/kitchen_repository.dart';
 import 'app/life_atlas_app.dart';
 import 'core/auth/ai_auth_session.dart';
 import 'core/config/ai_service_config.dart';
@@ -41,6 +42,12 @@ Future<void> main() async {
   );
   final controller = AppController(settingsRepository);
   await controller.initialize();
+  try {
+    await KitchenRepository(database: database).initializePresets();
+  } catch (_) {
+    // Retry on the next launch; a failed seed transaction does not lose user data.
+    debugPrint('预置菜谱初始化未完成，下次启动重试');
+  }
   final outfitMemoryScheduler = OutfitMemoryScheduler(wardrobeRepository);
   await outfitMemoryScheduler.start();
 

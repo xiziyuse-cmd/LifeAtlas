@@ -162,7 +162,8 @@ def publish():
     current = gh('api', f'repos/{REPO}/releases/tags/{tag}')
     if current.returncode == 0:
         asset = next((x for x in json.loads(current.stdout).get('assets', []) if x['name'] == name), None)
-        if not asset or asset.get('digest') != 'sha256:' + meta['sha256']:
+        alias_asset = next((x for x in json.loads(current.stdout).get('assets', []) if x['name'] == 'LifeAtlas.apk'), None)
+        if not asset or asset.get('digest') != 'sha256:' + meta['sha256'] or not alias_asset or alias_asset.get('digest') != 'sha256:' + meta['sha256']:
             raise RuntimeError('This version already exists with different bytes; increase the app version')
     else:
         if '404' not in current.stderr:
@@ -172,9 +173,11 @@ def publish():
             # File copy avoids exposing any signing material to the release assets.
             import shutil
             shutil.copyfile(apk, target)
+            alias = Path(directory) / 'LifeAtlas.apk'
+            shutil.copyfile(apk, alias)
             checksum = Path(directory) / (name + '.sha256')
-            checksum.write_text(meta['sha256'] + '  ' + name + '\n')
-            created = gh('release', 'create', tag, str(target), str(checksum), 'update-metadata.json', '--target', os.environ['GITHUB_SHA'], '--title', 'LifeAtlas ' + tag, '--notes-file', 'UPDATE_RELEASE_NOTES.md', '--latest')
+            checksum.write_text(meta['sha256'] + '  ' + name + '\n' + meta['sha256'] + '  LifeAtlas.apk\n')
+            created = gh('release', 'create', tag, str(target), str(alias), str(checksum), 'update-metadata.json', '--target', os.environ['GITHUB_SHA'], '--title', 'LifeAtlas ' + tag, '--notes-file', 'UPDATE_RELEASE_NOTES.md', '--latest')
             if created.returncode:
                 raise RuntimeError('GitHub release publication failed')
     with HTTP.open(ORIGIN + '/v1/update/latest', timeout=30) as response:

@@ -70,7 +70,7 @@ void main() {
     expect(steps.first.seasonings, ['油', '生抽']);
   });
   test(
-    'v8 migration clears recipes and related records but preserves inventory',
+    'historical v8 migration now preserves recipes, records and inventory',
     () async {
       sqfliteFfiInit();
       final directory = await Directory.systemTemp.createTemp(
@@ -147,7 +147,7 @@ void main() {
       });
       final repository = KitchenRepository(database: upgraded);
       final db = await upgraded.database;
-      expect(await repository.listRecipes(), isEmpty);
+      expect((await repository.listRecipes()).single.name, '旧菜谱');
       for (final table in [
         'recipe',
         'recipe_material',
@@ -155,7 +155,7 @@ void main() {
         'recipe_step',
         'cooking_record',
       ]) {
-        expect(await db.query(table), isEmpty, reason: table);
+        expect(await db.query(table), isNotEmpty, reason: table);
       }
       expect((await repository.listInventory()).single.name, '库存鸡蛋');
       expect(await db.query('food_base_info'), isNotEmpty);

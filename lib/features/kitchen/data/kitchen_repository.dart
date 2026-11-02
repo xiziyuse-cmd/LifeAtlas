@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/kitchen_models.dart';
@@ -8,6 +9,43 @@ class KitchenRepository {
   KitchenRepository({AppDatabase? database})
     : _database = database ?? AppDatabase();
   final AppDatabase _database;
+
+  /// Bootstrap once. Never replace an existing or deliberately deleted recipe.
+  Future<void> initializePresets() async {
+    final db = await _database.database;
+    const key = 'kitchen_presets_repair_2_2';
+    final done = await db.query(
+      'app_settings',
+      where: 'setting_key = ?',
+      whereArgs: [key],
+    );
+    if (done.isNotEmpty) return;
+    final data =
+        jsonDecode(
+              await rootBundle.loadString('assets/data/preset_recipes.json'),
+            )
+            as List;
+    final recipes = data
+        .map((v) => Recipe.fromMap(Map<String, dynamic>.from(v as Map)))
+        .toList();
+    await db.transaction((tx) async {
+      if ((await tx.query(
+        'app_settings',
+        where: 'setting_key = ?',
+        whereArgs: [key],
+      )).isNotEmpty)
+        return;
+      if ((await tx.query('recipe', columns: ['id'], limit: 1)).isEmpty) {
+        for (final recipe in recipes) {
+          await _save(tx, recipe, source: 'preset');
+        }
+      }
+      await tx.insert('app_settings', {
+        'setting_key': key,
+        'setting_value': '1',
+      });
+    });
+  }
 
   Future<ShoppingListState> loadShoppingList() async {
     final db = await _database.database;

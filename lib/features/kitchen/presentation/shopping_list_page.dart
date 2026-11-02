@@ -21,8 +21,11 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
   bool _saving = false;
   String? _error;
 
-  List<ShoppingListItem> _items(Set<int> ids) =>
-      buildShoppingList(_recipes.where((recipe) => ids.contains(recipe.id)));
+  List<ShoppingListItem> _items(Set<int> ids, [Map<int, int>? servings]) =>
+      buildShoppingList(
+        _recipes.where((recipe) => ids.contains(recipe.id)),
+        servings: servings ?? _selection.servings,
+      );
 
   @override
   void initState() {
@@ -43,9 +46,11 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
       final ids = (widget.recipeIds ?? saved.recipeIds).intersection(
         recipes.map((r) => r.id).whereType<int>().toSet(),
       );
-      final validKeys = _items(ids).map((item) => item.key).toSet();
+      final servings = {for (final id in ids) id: saved.portions(id)};
+      final validKeys = _items(ids, servings).map((item) => item.key).toSet();
       final selection = ShoppingListState(
         recipeIds: ids,
+        servings: servings,
         prepared: saved.prepared.intersection(validKeys),
       );
       // Persist pruning so removed entries cannot regain stale ticks later.
@@ -88,6 +93,25 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
     await _save(
       ShoppingListState(
         recipeIds: selected,
+        servings: {for (final id in selected) id: _selection.portions(id)},
+        prepared: _selection.prepared.intersection(keys),
+      ),
+    );
+  }
+
+  Future<void> _changeServings(int id, int delta) async {
+    final servings = {
+      ..._selection.servings,
+      id: _selection.portions(id) + delta,
+    };
+    final keys = _items(
+      _selection.recipeIds,
+      servings,
+    ).map((item) => item.key).toSet();
+    await _save(
+      ShoppingListState(
+        recipeIds: _selection.recipeIds,
+        servings: servings,
         prepared: _selection.prepared.intersection(keys),
       ),
     );
@@ -124,13 +148,34 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
                   ),
                 if (_selection.recipeIds.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    _recipes
-                        .where((r) => _selection.recipeIds.contains(r.id))
-                        .map((r) => r.name)
-                        .join('、'),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  const Text('制作份数 · 以菜谱原始用量为一份'),
+                  for (final recipe in _recipes.where(
+                    (r) => _selection.recipeIds.contains(r.id),
+                  ))
+                    Row(
+                      children: [
+                        Expanded(child: Text(recipe.name)),
+                        IconButton(
+                          key: ValueKey('servings-minus-${recipe.id}'),
+                          tooltip: '减少${recipe.name}份数',
+                          icon: const Icon(Icons.remove_circle_outline),
+                          onPressed:
+                              _saving || _selection.portions(recipe.id!) <= 1
+                              ? null
+                              : () => _changeServings(recipe.id!, -1),
+                        ),
+                        Text('${_selection.portions(recipe.id!)}份'),
+                        IconButton(
+                          key: ValueKey('servings-plus-${recipe.id}'),
+                          tooltip: '增加${recipe.name}份数',
+                          icon: const Icon(Icons.add_circle_outline),
+                          onPressed:
+                              _saving || _selection.portions(recipe.id!) >= 99
+                              ? null
+                              : () => _changeServings(recipe.id!, 1),
+                        ),
+                      ],
+                    ),
                 ],
                 const SizedBox(height: 16),
                 if (_recipes.isEmpty)
@@ -179,7 +224,11 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
       final prepared = {..._selection.prepared};
       checked ? prepared.remove(item.key) : prepared.add(item.key);
       _save(
-        ShoppingListState(recipeIds: _selection.recipeIds, prepared: prepared),
+        ShoppingListState(
+          recipeIds: _selection.recipeIds,
+          prepared: prepared,
+          servings: _selection.servings,
+        ),
       );
     }
 

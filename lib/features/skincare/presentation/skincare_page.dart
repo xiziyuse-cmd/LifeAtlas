@@ -337,10 +337,21 @@ class SkincarePageState extends State<SkincarePage>
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: [...?profile?.goals.map((g) => Chip(label: Text(g)))],
-          ),
+          if (profile != null && profile!.goals.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var i = 0; i < profile!.goals.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Chip(
+                        label: Text('${i + 1} · ${profile!.goals[i]}'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           if (error != null)
             Card(
               color: Theme.of(context).colorScheme.errorContainer,
@@ -561,6 +572,7 @@ class SkincarePageState extends State<SkincarePage>
             icon: const Icon(Icons.auto_awesome_outlined),
             label: const Text('AI 生成计划'),
           ),
+          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: generating ? null : () => generate(basic: true),
             child: const Text('使用基础规则生成'),

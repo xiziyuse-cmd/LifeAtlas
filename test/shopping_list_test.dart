@@ -58,6 +58,56 @@ class _Ai implements KitchenAiService {
 }
 
 void main() {
+  test(
+    'servings scale recipes independently before merging and support old saved state',
+    () {
+      final items = buildShoppingList(_recipes, servings: {1: 2, 2: 3});
+      expect(items.firstWhere((i) => i.name == '鸡肉').quantity, '650g');
+      expect(items.firstWhere((i) => i.name == '盐').quantity, '3.5勺');
+      expect(items.firstWhere((i) => i.name == '香菇').quantity, '用量待补');
+      final state = ShoppingListState(
+        recipeIds: {1, 2},
+        servings: {1: 2, 2: 3},
+      );
+      expect(ShoppingListState.decode(state.encode()).servings, {1: 2, 2: 3});
+      expect(
+        ShoppingListState.decode('{"recipeIds":[1],"prepared":[]}').portions(1),
+        1,
+      );
+      expect(
+        () => buildShoppingList(_recipes, servings: {1: 0}),
+        throwsArgumentError,
+      );
+    },
+  );
+  testWidgets(
+    'changing portions recalculates, clears stale ticks and persists on reopen',
+    (tester) async {
+      final repository = _Repository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(repository: repository, recipeIds: {1, 2}),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('鸡肉'));
+      await tester.pumpAndSettle();
+      expect(repository.state.prepared, isNotEmpty);
+      await tester.tap(find.byKey(const ValueKey('servings-plus-1')));
+      await tester.pumpAndSettle();
+      expect(find.text('350g'), findsOneWidget);
+      expect(repository.state.servings[1], 2);
+      expect(repository.state.prepared, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(
+        MaterialApp(home: ShoppingListPage(repository: repository)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('350g'), findsOneWidget);
+      expect(find.text('2份'), findsOneWidget);
+    },
+  );
+
   testWidgets(
     'purchase button selects in place, search retains selection, generation has no second picker',
     (tester) async {

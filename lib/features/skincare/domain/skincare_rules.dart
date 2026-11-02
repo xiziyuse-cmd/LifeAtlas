@@ -3,7 +3,8 @@ import 'skincare_models.dart';
 class SkincareRules {
   static final order = {'洁面': 0, '化妆水': 1, '精华': 2, '乳液': 3, '面霜': 4, '防晒': 5};
   static bool gentleOnly(SkinProfile profile) =>
-      profile.state != '稳定' || profile.sensitivity == '容易敏感';
+      profile.states.any((state) => state != '稳定') ||
+      profile.sensitivity == '容易敏感';
   static bool isActive(SkinProduct p) =>
       p.active.isNotEmpty ||
       ['精华', '去角质', '面膜', '其他'].contains(p.category) ||

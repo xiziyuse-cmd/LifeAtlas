@@ -25,14 +25,20 @@ class SkinProfile {
     this.age,
     this.type = '不确定',
     this.sensitivity = '不确定',
-    this.state = '稳定',
+    String state = '稳定',
+    List<String>? states,
     this.retinoidRestricted = false,
     Map<String, List<String>>? areas,
     List<String>? goals,
-  }) : areas = areas ?? {},
+  }) : states = List.unmodifiable(
+         (states == null || states.isEmpty) ? [state] : states,
+       ),
+       areas = areas ?? {},
        goals = goals ?? [];
   final int? age;
-  final String type, sensitivity, state;
+  final String type, sensitivity;
+  final List<String> states;
+  String get state => states.join('、');
   final bool retinoidRestricted;
   final Map<String, List<String>> areas;
   final List<String> goals;
@@ -41,6 +47,7 @@ class SkinProfile {
     'type': type,
     'sensitivity': sensitivity,
     'state': state,
+    'states': states,
     'retinoidRestricted': retinoidRestricted,
     'areas': areas,
     'goals': goals,
@@ -49,7 +56,8 @@ class SkinProfile {
     age: m['age'] as int?,
     type: m['type'] as String,
     sensitivity: m['sensitivity'] as String,
-    state: m['state'] as String,
+    state: m['state'] as String? ?? '稳定',
+    states: m['states'] == null ? null : strings(m['states']),
     retinoidRestricted: m['retinoidRestricted'] == true,
     areas: object(m['areas']).map((k, v) => MapEntry(k, strings(v))),
     goals: strings(m['goals']),

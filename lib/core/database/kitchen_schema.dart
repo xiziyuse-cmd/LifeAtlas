@@ -86,17 +86,8 @@ Future<void> upgradeKitchenSchemaToV7(Database db) async {
   }
 }
 
-Future<void> upgradeKitchenSchemaToV8(Database db) async {
-  for (final table in [
-    'cooking_record',
-    'recipe_step',
-    'recipe_material',
-    'recipe_seasoning',
-    'recipe',
-  ]) {
-    await db.delete(table);
-  }
-}
+// Historical v8 data deletion is superseded by the 2.2.0 preservation requirement.
+Future<void> upgradeKitchenSchemaToV8(Database db) async {}
 
 Future<void> upgradeKitchenSchemaToV9(Database db) async {
   await db.execute(
