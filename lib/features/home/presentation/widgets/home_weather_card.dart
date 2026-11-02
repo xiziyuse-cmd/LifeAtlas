@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/weather_model.dart';
+import 'weather_attribution.dart';
 
 class HomeWeatherCard extends StatelessWidget {
   const HomeWeatherCard({
@@ -91,10 +92,6 @@ class HomeWeatherCard extends StatelessWidget {
                     [
                       '${_temperature(weather.minTemperature)}℃ - '
                           '${_temperature(weather.maxTemperature)}℃',
-                      if (weather.fetchedAt.isNotEmpty)
-                        '获取 ${DateTime.parse(weather.fetchedAt).toLocal().toString().substring(5, 16)}',
-                      if (recommendationNames.isNotEmpty)
-                        '推荐 ${recommendationNames.take(2).join('、')}',
                     ].join(' · '),
                     key: const ValueKey('home-weather-recommendations'),
                     maxLines: 1,
@@ -103,6 +100,7 @@ class HomeWeatherCard extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  const WeatherAttribution(),
                 ],
               ),
             ),

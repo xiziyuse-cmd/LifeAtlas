@@ -1,15 +1,65 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:timezone/timezone.dart' as tz;
 import '../../../core/network/mobile_api.dart';
 import '../../../core/database/date_key_codec.dart';
 import '../domain/weather_model.dart';
+import '../domain/hourly_weather.dart';
 
 abstract interface class WeatherService {
   Future<WeatherModel> getCurrentWeather({double? latitude, double? longitude});
 }
 
 class QWeatherService implements WeatherService {
-  QWeatherService({MobileApi? api}) : api = api ?? MobileApi.shared;
+  QWeatherService({MobileApi? api, DateTime Function()? clock})
+    : api = api ?? MobileApi.shared,
+      clock = clock ?? DateTime.now;
   final MobileApi api;
+  final DateTime Function() clock;
+
+  Future<HourlyForecast> getHourlyWeather({bool forceRefresh = false}) async {
+    final city = await selectedCity();
+    if (city == null) throw StateError('请选择城市，或使用当前位置');
+    final key = 'weather_hourly_v1_${city['id']}';
+    HourlyForecast? cached;
+    Map<String, dynamic>? saved;
+    try {
+      final raw = await api.setting(key);
+      if (raw != null) {
+        saved = Map<String, dynamic>.from(raw as Map);
+        cached = HourlyForecast.fromJson(saved);
+        if (cached.cityId != city['id'] || cached.zone != city['tz']) {
+          cached = null;
+        }
+      }
+    } catch (_) {
+      /* A damaged cache must not prevent a network retry. */
+    }
+    if (!forceRefresh && cached != null && cached.fresh(clock())) return cached;
+    try {
+      final data = await api.call('weatherHourly', {
+        'city': city,
+        'forceRefresh': forceRefresh,
+      });
+      final result = HourlyForecast.fromJson(data);
+      if (result.cityId != city['id'] ||
+          result.zone != city['tz'] ||
+          !result.usable(clock())) {
+        throw const FormatException('暂无该城市的有效小时预报');
+      }
+      await api.saveSetting(key, data);
+      return result;
+    } catch (error) {
+      if (cached != null && cached.usable(clock())) {
+        return HourlyForecast.fromJson(
+          saved!,
+          cached: true,
+          warning: error.toString().replaceFirst('Bad state: ', ''),
+        );
+      }
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>?> selectedCity() async {
     final value = await api.setting('weather_city');
     return value == null ? null : Map<String, dynamic>.from(value as Map);
@@ -51,13 +101,17 @@ class QWeatherService implements WeatherService {
   Future<WeatherModel> getCurrentWeather({
     double? latitude,
     double? longitude,
+    bool forceRefresh = false,
   }) async {
     final city = await selectedCity();
     if (city == null) {
       throw StateError('请选择城市，或使用当前位置');
     }
     try {
-      final data = await api.call('weather', {'city': city});
+      final data = await api.call('weather', {
+        'city': city,
+        'forceRefresh': forceRefresh,
+      });
       final weather = WeatherModel.fromJson(data);
       await api.saveSetting('weather_cache_${city['id']}', data);
       final now = DateTime.now();
@@ -81,11 +135,17 @@ class QWeatherService implements WeatherService {
     } catch (error) {
       final cache = await api.setting('weather_cache_${city['id']}');
       if (cache != null) {
-        return WeatherModel.fromJson(
+        final cached = WeatherModel.fromJson(
           Map<String, dynamic>.from(cache as Map),
           cached: true,
           warning: error.toString().replaceFirst('Bad state: ', ''),
         );
+        final zone = city['tz'] as String?;
+        final today = zone == null
+            ? clock()
+            : tz.TZDateTime.from(clock(), HourlyForecast.location(zone));
+        if (cached.date != DateKeyCodec.encode(today)) rethrow;
+        return cached;
       }
       rethrow;
     }
