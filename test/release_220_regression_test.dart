@@ -121,6 +121,9 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(goal);
+      await tester.pumpAndSettle();
       final before = tester.getRect(goal);
       await tester.tap(goal);
       await tester.pumpAndSettle();
