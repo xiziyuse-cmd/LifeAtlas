@@ -48,6 +48,33 @@ class WeatherApi extends MobileApi {
 
 void main() {
   test(
+    'explicit city snapshot wins over changed selection; selection provenance survives service recreation',
+    () async {
+      final api = WeatherApi();
+      final service = QWeatherService(
+        api: api,
+        clock: () => DateTime.parse('2026-11-02T15:30Z'),
+      );
+      final snapshot = {
+        'id': 'snapshot',
+        'tz': 'Asia/Shanghai',
+        'selectionSource': 'location',
+      };
+      await service.selectCity(snapshot);
+      expect(
+        (await QWeatherService(api: api).selectedCity())?['selectionSource'],
+        'location',
+      );
+      await service.selectCity({'id': 'other', 'tz': 'Asia/Shanghai'});
+      expect(
+        (await service.getHourlyWeather(citySnapshot: snapshot)).cityId,
+        'snapshot',
+      );
+      expect((await service.getHourlyWeather()).cityId, 'other');
+      expect((await service.selectedCity())?['selectionSource'], isNull);
+    },
+  );
+  test(
     'city midnight grouping ignores device zone and excludes expired hours',
     () {
       final value = HourlyForecast.fromJson(forecast());
