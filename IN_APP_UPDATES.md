@@ -80,3 +80,13 @@ App：`lib/features/updates/app_update_service.dart`、`lib/features/updates/app
 - 发布器已修复Cloudflare默认Python请求标识拦截；后台兼容GitHub带不可变所有者/仓库ID的精确subject，仍严格校验所有受限声明。后台37项测试、TypeScript和构建通过，已部署。
 - 模拟App请求标识访问更新接口200；线上护肤Turbo开关已开启。未来版本由流水线自动上传，无需用户管理安装包。
 - 未执行Android真机安装/覆盖升级和本地数据迁移；新固定签名不能覆盖旧调试签名。保留旧应用。当前环境无微信发送能力，未发送微信。
+
+
+### 2.2.0 正式发布验收（2026-11-02）
+
+- 源码提交fde7db2befc98ba830ba2958add8ff7c06695a71；工作流https://github.com/xiziyuse-cmd/LifeAtlas/actions/runs/41375168536成功，132项Flutter测试、17项代理测试、4项发布脚本测试、静态分析及Android Release构建通过。
+- https://github.com/xiziyuse-cmd/LifeAtlas/releases/tag/v2.2.0 已发布并同步应用内更新；原固定链接https://github.com/xiziyuse-cmd/LifeAtlas/releases/latest/download/LifeAtlas.apk返回200。固定名与版本化资源摘要一致。
+- 实际下载更新服务APK：2.2.0+30、com.example.lifeatlas、minSdk24、80,687,774字节；SHA-256 e5553a982f35d1d96443acc87abc0b3c795206385f610ca04c16724f1239c7f0。apksigner通过，固定证书5335ab3092b5a61d7f2dd1ac81efb36c6c6e4f02a7630dabff2db44f331685d2与实际2.1.1包一致。
+- APK内核验35道预置菜谱及全部图片；空库初始化幂等、个人菜谱保留、历史v8升级保留数据、档案多选兼容、目标标签稳定、分量汇总及保存回显测试通过。
+- 本次停用历史清库迁移，未增加数据库结构；2.1.1可使用固定签名覆盖更新。已随卸载删除的个人数据需原备份恢复，当前没有取得设备备份。
+- 未执行Android真机安装授权或覆盖安装；当前环境不支持微信发送，未通过微信交付。
