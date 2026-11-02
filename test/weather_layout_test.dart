@@ -111,27 +111,26 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-  testWidgets(
-    'home hides time and recommendations but keeps visible attribution',
-    (tester) async {
-      final service = LayoutService();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: HomeWeatherCard(
-              weather: service.value,
-              isLoading: false,
-              recommendationNames: const ['衬衫'],
-            ),
+  testWidgets('home hides weather source, time and recommendations', (
+    tester,
+  ) async {
+    final service = LayoutService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeWeatherCard(
+            weather: service.value,
+            isLoading: false,
+            recommendationNames: const ['衬衫'],
           ),
         ),
-      );
-      expect(find.text('来源：和风天气'), findsOneWidget);
-      expect(find.textContaining('获取'), findsNothing);
-      expect(find.textContaining('推荐'), findsNothing);
-      expect(find.text('20℃'), findsOneWidget);
-    },
-  );
+      ),
+    );
+    expect(find.textContaining('和风天气'), findsNothing);
+    expect(find.textContaining('获取'), findsNothing);
+    expect(find.textContaining('推荐'), findsNothing);
+    expect(find.text('20℃'), findsOneWidget);
+  });
   testWidgets(
     'narrow large text, bottom refresh, two day scrolls and independent errors',
     (tester) async {

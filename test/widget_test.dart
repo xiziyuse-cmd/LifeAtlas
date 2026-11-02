@@ -162,6 +162,21 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('profile-theme-entry')));
     await tester.pumpAndSettle();
     expect(find.text('设置'), findsOneWidget);
+    final about = find.byKey(const ValueKey('settings-about-entry'));
+    expect(about, findsOneWidget);
+    expect(tester.widget<ListTile>(about).onTap, isNotNull);
+    expect(
+      find.ancestor(of: about, matching: find.byType(Card)),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(about).dy,
+      greaterThan(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('settings-theme-entry')))
+            .dy,
+      ),
+    );
     await tester.tap(find.byKey(const ValueKey('settings-theme-entry')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('theme-milkPudding')));
