@@ -3,6 +3,8 @@ import '../data/kitchen_repository.dart';
 import '../domain/kitchen_models.dart';
 import 'kitchen_widgets.dart';
 import 'recipe_form_page.dart';
+import '../domain/kitchen_export.dart';
+import 'kitchen_export_page.dart';
 
 class RecipeDetailPage extends StatefulWidget {
   const RecipeDetailPage({
@@ -64,6 +66,20 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
       appBar: AppBar(
         title: const Text('菜谱详情'),
         actions: [
+          IconButton(
+            tooltip: '导出图片',
+            icon: const Icon(Icons.ios_share),
+            onPressed: _busy
+                ? null
+                : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => KitchenExportPage(
+                        document: KitchenExport.recipe(recipe),
+                      ),
+                    ),
+                  ),
+          ),
           if (recipe.sourceType != 'preset')
             PopupMenuButton<String>(
               onSelected: (value) => value == 'edit' ? _edit() : _delete(),

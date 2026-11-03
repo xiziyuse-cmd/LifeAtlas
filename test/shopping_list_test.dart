@@ -58,6 +58,37 @@ class _Ai implements KitchenAiService {
 }
 
 void main() {
+  testWidgets(
+    'text export snapshots current portions and ticks without changing saved list',
+    (tester) async {
+      final repo = _Repository()
+        ..state = const ShoppingListState(
+          recipeIds: {1, 2},
+          servings: {1: 2, 2: 3},
+        );
+      await tester.pumpWidget(
+        MaterialApp(home: ShoppingListPage(repository: repo)),
+      );
+      await tester.pumpAndSettle();
+      final before = repo.state.encode();
+      await tester.tap(find.byTooltip('导出清单'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('导出文字'));
+      await tester.pumpAndSettle();
+      expect(find.text('导出预览'), findsOneWidget);
+      final text = tester
+          .widget<SelectableText>(find.byType(SelectableText))
+          .data!;
+      expect(text, contains('鸡肉  650g'));
+      expect(text, contains('盐  3.5勺'));
+      expect(text, contains('用量待补'));
+      expect(text, contains('土豆鸡肉 × 2份'));
+      expect(repo.state.encode(), before);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(repo.state.encode(), before);
+    },
+  );
   test(
     'servings scale recipes independently before merging and support old saved state',
     () {
