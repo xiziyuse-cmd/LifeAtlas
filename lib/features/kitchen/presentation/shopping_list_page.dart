@@ -4,6 +4,8 @@ import '../data/kitchen_repository.dart';
 import '../domain/kitchen_models.dart';
 import '../domain/shopping_list.dart';
 import 'kitchen_widgets.dart';
+import '../domain/kitchen_export.dart';
+import 'kitchen_export_page.dart';
 
 class ShoppingListPage extends StatefulWidget {
   const ShoppingListPage({super.key, required this.repository, this.recipeIds});
@@ -123,7 +125,31 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
     final foods = items.where((item) => !item.seasoning).toList();
     final spices = items.where((item) => item.seasoning).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('购物清单')),
+      appBar: AppBar(
+        title: const Text('购物清单'),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: '导出清单',
+            icon: const Icon(Icons.ios_share),
+            enabled:
+                !_loading && !_saving && _error == null && items.isNotEmpty,
+            onSelected: (value) => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => KitchenExportPage(
+                  document: KitchenExport.shopping(_recipes, _selection),
+                  asImage: value == 'image',
+                  allowText: true,
+                ),
+              ),
+            ),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'image', child: Text('导出图片')),
+              PopupMenuItem(value: 'text', child: Text('导出文字')),
+            ],
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
