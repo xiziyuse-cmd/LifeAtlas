@@ -7,6 +7,7 @@ import '../../modules/presentation/modules_page.dart';
 import 'ai_auth_page.dart';
 import 'body_profile_page.dart';
 import 'settings_page.dart';
+import '../../updates/app_update_page.dart';
 import 'contact_developer_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -179,6 +180,19 @@ class ProfilePage extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const ContactDeveloperPage(),
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                key: const ValueKey('profile-about-entry'),
+                leading: const Icon(Icons.system_update_outlined),
+                title: const Text('关于与更新'),
+                subtitle: const Text('查看版本、检查应用更新'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AppUpdatePage(),
                   ),
                 ),
               ),

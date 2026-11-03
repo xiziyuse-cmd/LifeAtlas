@@ -159,24 +159,26 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('我的'));
     await tester.pumpAndSettle();
+    final about = find.byKey(const ValueKey('profile-about-entry'));
+    await tester.scrollUntilVisible(about, 200);
+    expect(find.text('关于与更新'), findsOneWidget);
+    expect(tester.widget<ListTile>(about).onTap, isNotNull);
+    expect(
+      tester.getTopLeft(about).dy,
+      greaterThan(tester.getTopLeft(find.text('联系开发者')).dy),
+    );
+    final group = find.ancestor(of: about, matching: find.byType(Card));
+    expect(
+      find.descendant(of: group, matching: find.text('联系开发者')),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('profile-theme-entry')),
+    );
     await tester.tap(find.byKey(const ValueKey('profile-theme-entry')));
     await tester.pumpAndSettle();
     expect(find.text('设置'), findsOneWidget);
-    final about = find.byKey(const ValueKey('settings-about-entry'));
-    expect(about, findsOneWidget);
-    expect(tester.widget<ListTile>(about).onTap, isNotNull);
-    expect(
-      find.ancestor(of: about, matching: find.byType(Card)),
-      findsOneWidget,
-    );
-    expect(
-      tester.getTopLeft(about).dy,
-      greaterThan(
-        tester
-            .getTopLeft(find.byKey(const ValueKey('settings-theme-entry')))
-            .dy,
-      ),
-    );
+    expect(find.text('关于与更新'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('settings-theme-entry')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('theme-milkPudding')));
