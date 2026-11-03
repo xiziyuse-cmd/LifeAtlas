@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Requirements
+
+- 记录菜谱图片导出、购物清单图片或文字导出需求，尚未实现；详见 REQUIREMENTS.md 的 KITCHEN-EXPORT-001/002。
+
 ## [2.3.4] - 2026-11-03
 
 ### Validation
