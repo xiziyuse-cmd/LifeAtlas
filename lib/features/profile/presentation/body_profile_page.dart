@@ -319,7 +319,13 @@ class _BodyProfileState extends State<BodyProfilePage>
                             'chest_circumference',
                             item.chestCircumference,
                           ),
-                          '腰围': item.waistCircumference,
+                          if (!item.parameterValues.containsKey(
+                                'waist_circumference_min',
+                              ) &&
+                              !item.parameterValues.containsKey(
+                                'waist_circumference_max',
+                              ))
+                            '腰围': item.waistCircumference,
                           '臀围': _garment(
                             item,
                             'hip_circumference',
@@ -328,7 +334,7 @@ class _BodyProfileState extends State<BodyProfilePage>
                         }.entries)
                           Text(_comparison(e.key, body.values[e.key], e.value)),
                         Text(
-                          '腰围范围：${item.parameterValues['waist_circumference_min']?.editableText ?? '未填'}－${item.parameterValues['waist_circumference_max']?.editableText ?? '未填'} cm；仅比较同口径数据。',
+                          '身体腰围：${body.values['腰围'] ?? '未填'} cm；衣服腰围范围：${item.parameterValues['waist_circumference_min']?.editableText ?? '未填'}－${item.parameterValues['waist_circumference_max']?.editableText ?? '未填'} cm；仅比较同口径数据。',
                         ),
                         const Text('请核对整圈/平铺口径、版型与弹性。裤长不与身体腿长直接比较。'),
                       ],
