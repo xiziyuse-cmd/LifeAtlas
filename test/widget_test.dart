@@ -232,7 +232,9 @@ void main() {
     expect(find.byKey(const ValueKey('ai-auth-login')), findsOneWidget);
   });
 
-  testWidgets('body profile saves gender selection', (tester) async {
+  testWidgets('body profile does not expose fields before unlock', (
+    tester,
+  ) async {
     final repository = _MemoryAppSettingsRepository();
     final controller = AppController(repository);
     await controller.initialize();
@@ -246,12 +248,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(bodyEntry);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('profile-gender-female')));
-    await tester.pumpAndSettle();
-
-    expect(controller.profileGender, ProfileGender.female);
-    expect(repository.settings.profileGender, ProfileGender.female);
-    expect(find.text('穿搭中将显示内衣、裙装和连衣裙。'), findsOneWidget);
+    expect(find.text('我的身材'), findsWidgets);
+    expect(find.byKey(const ValueKey('profile-gender-female')), findsNothing);
   });
 }
 
