@@ -360,15 +360,31 @@ class _OutfitPageState extends State<OutfitPage> {
   }
 
   Future<void> _openClothing(ClothingItem item) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ClothingDetailPage(
-          item: item,
-          onEdit: _editClothing,
-          onDelete: _deleteClothing,
+    try {
+      final latest = item.id == null
+          ? item
+          : await _repository.getClothing(item.id!);
+      if (!mounted) return;
+      if (latest == null) throw StateError('衣服已删除');
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => ClothingDetailPage(
+            item: latest,
+            onEdit: _editClothing,
+            onDelete: _deleteClothing,
+            onReload: latest.id == null
+                ? null
+                : () => _repository.getClothing(latest.id!),
+          ),
         ),
-      ),
-    );
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('衣服详情加载失败，请重试')));
+      }
+    }
   }
 
   Future<void> _openSets() async {
@@ -440,7 +456,9 @@ class _OutfitPageState extends State<OutfitPage> {
       );
       var followUpFailed = false;
       try {
-        await widget.onDailyOutfitSaved?.call(_recordDate);
+        if (_confirmedWeather == null) {
+          await widget.onDailyOutfitSaved?.call(_recordDate);
+        }
       } on Object {
         followUpFailed = true;
       }
@@ -458,7 +476,7 @@ class _OutfitPageState extends State<OutfitPage> {
         SnackBar(
           content: Text(
             followUpFailed
-                ? '$_recordDateText 穿搭已保存，天气记忆稍后更新'
+                ? '$_recordDateText 穿搭已保存，天气未更新；请刷新天气后重新保存或填写当日温度'
                 : '已保存 $_recordDateText 的穿搭',
           ),
         ),

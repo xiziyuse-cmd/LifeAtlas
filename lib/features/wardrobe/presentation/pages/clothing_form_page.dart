@@ -10,6 +10,7 @@ import '../../domain/models/clothing_item.dart';
 import '../../domain/models/clothing_parameter.dart';
 import '../wardrobe_keys.dart';
 import '../widgets/local_clothing_image.dart';
+import '../widgets/wardrobe_tag.dart';
 
 class ClothingFormPage extends StatefulWidget {
   const ClothingFormPage({
@@ -442,6 +443,25 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                       FilterChip(
                         key: WardrobeKeys.season(season),
                         label: Text(season),
+                        backgroundColor: WardrobeTagColors.of(
+                          context,
+                          WardrobeTagKind.season,
+                        ).background,
+                        selectedColor: WardrobeTagColors.of(
+                          context,
+                          WardrobeTagKind.season,
+                        ).background,
+                        labelStyle: TextStyle(
+                          color: WardrobeTagColors.of(
+                            context,
+                            WardrobeTagKind.season,
+                          ).foreground,
+                        ),
+                        checkmarkColor: WardrobeTagColors.of(
+                          context,
+                          WardrobeTagKind.season,
+                        ).foreground,
+
                         selected: temporarySelection.contains(season),
                         onSelected: (isSelected) {
                           if (isSelected && temporarySelection.length >= 3) {
@@ -504,6 +524,26 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                     ChoiceChip(
                       key: WardrobeKeys.category(category),
                       label: Text(category),
+                      backgroundColor: WardrobeTagColors.of(
+                        context,
+                        WardrobeTagKind.category,
+                      ).background,
+                      selectedColor: WardrobeTagColors.of(
+                        context,
+                        WardrobeTagKind.category,
+                      ).background,
+                      labelStyle: TextStyle(
+                        color: WardrobeTagColors.of(
+                          context,
+                          WardrobeTagKind.category,
+                        ).foreground,
+                      ),
+                      checkmarkColor: WardrobeTagColors.of(
+                        context,
+                        WardrobeTagKind.category,
+                      ).foreground,
+                      showCheckmark: true,
+
                       selected: _selectedCategory == category,
                       onSelected: (_) =>
                           Navigator.of(sheetContext).pop(category),

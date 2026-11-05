@@ -124,22 +124,6 @@ class _OutfitSetCarouselCardState extends State<OutfitSetCarouselCard> {
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              [
-                                ...item.seasonTags,
-                                ?item.category,
-                                ?item.brand,
-                              ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
                           ],
                         ),
                       ),
