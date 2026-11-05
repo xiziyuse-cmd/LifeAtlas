@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_controller.dart';
 import '../../updates/app_update_page.dart';
+import '../../updates/app_update_notice.dart';
 import '../../../core/auth/ai_auth_session.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/config/ai_service_config.dart';
@@ -21,9 +22,7 @@ import '../../wardrobe/data/clothing_image_parameter_service.dart';
 import '../../wardrobe/data/preorder_analysis_service.dart';
 import '../../wardrobe/data/wardrobe_image_service.dart';
 import '../../wardrobe/data/wardrobe_repository.dart';
-import '../../wardrobe/domain/models/preorder_item.dart';
 import '../../wardrobe/presentation/outfit_page.dart';
-import '../../wardrobe/presentation/preorder_form_page.dart';
 import '../../search/data/search_repository.dart';
 import '../../search/presentation/search_page.dart';
 import '../../search/presentation/search_sources.dart';
@@ -38,6 +37,7 @@ class AppShell extends StatefulWidget {
     this.homeRepository,
     this.wardrobeRepository,
     this.wardrobeImageService,
+    this.updateNotice,
     this.clothingImageParameterService =
         const UnconfiguredClothingImageParameterService(),
     this.preorderAnalysisService = const UnconfiguredPreorderAnalysisService(),
@@ -50,6 +50,7 @@ class AppShell extends StatefulWidget {
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final WardrobeImageService? wardrobeImageService;
+  final AppUpdateNotice? updateNotice;
   final ClothingImageParameterService clothingImageParameterService;
   final PreorderAnalysisService preorderAnalysisService;
 
@@ -57,8 +58,52 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   String _selectedDestination = 'home';
+  late final _updates = widget.updateNotice ?? AppUpdateNotice();
+  bool _prompting = false, _resumed = true;
+  int? _promptedBuild;
+
+  Future<void> _checkUpdates() async {
+    await _updates.check();
+    if (mounted) _maybeShowMajorUpdate();
+  }
+
+  void _onUpdateNotice() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybeShowMajorUpdate();
+    });
+  }
+
+  Future<void> _maybeShowMajorUpdate() async {
+    if (!mounted ||
+        !_resumed ||
+        _prompting ||
+        _selectedDestination != 'home' ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    final release = _updates.available;
+    if (release == null ||
+        !release.isMajorRelease ||
+        _promptedBuild == release.build) {
+      return;
+    }
+    _promptedBuild = release.build;
+    _prompting = true;
+    try {
+      await AppUpdatePrompt.show(context, release, notice: _updates);
+    } finally {
+      _prompting = false;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    if (_resumed) _checkUpdates();
+  }
+
   final _skinRepository = SkincareRepository();
   late final _skinAi = SkincareAiService(
     tokenProvider: widget.aiAuthSession?.validAccessToken,
@@ -103,6 +148,9 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _updates.removeListener(_onUpdateNotice);
+    if (widget.updateNotice == null) _updates.dispose();
     widget.controller.removeListener(_syncSkinModule);
     _skinReminders.onTap = null;
     super.dispose();
@@ -123,9 +171,11 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _updates.addListener(_onUpdateNotice);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        AppUpdatePrompt.check(context);
+        _checkUpdates();
       }
     });
     widget.controller.addListener(_syncSkinModule);
@@ -151,20 +201,6 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  Future<void> _quickAddPreorder() async {
-    final savedItem = await Navigator.of(context).push<PreorderItem>(
-      MaterialPageRoute(
-        builder: (context) => PreorderFormPage(
-          repository: _wardrobeRepository,
-          imageService: _wardrobeImageService,
-        ),
-      ),
-    );
-    if (savedItem != null) {
-      _notifyWardrobeChanged();
-    }
-  }
-
   Future<void> _openSearch() async {
     final repository = SearchRepository(
       kitchen: _kitchenRepository,
@@ -175,6 +211,7 @@ class _AppShellState extends State<AppShell> {
     final sources = SearchSources(
       controller: widget.controller,
       repository: repository,
+      updateNotice: _updates,
       skinAi: _skinAi,
       imageService: _wardrobeImageService,
       preorderAnalysis: widget.preorderAnalysisService,
@@ -208,7 +245,10 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
     );
-    if (mounted) _notifyWardrobeChanged();
+    if (mounted) {
+      _notifyWardrobeChanged();
+      _maybeShowMajorUpdate();
+    }
   }
 
   @override
@@ -223,8 +263,8 @@ class _AppShellState extends State<AppShell> {
           key: const PageStorageKey('home'),
           homeRepository: widget.homeRepository,
           wardrobeRepository: _wardrobeRepository,
-          onQuickAddPreorder: _quickAddPreorder,
           onSearch: _openSearch,
+          onReturnToHome: _maybeShowMajorUpdate,
           dataRevision: _wardrobeRevision,
         ),
       ),
@@ -283,6 +323,7 @@ class _AppShellState extends State<AppShell> {
           key: const PageStorageKey('profile'),
           controller: widget.controller,
           aiAuthSession: widget.aiAuthSession,
+          updateNotice: _updates,
         ),
       ),
     ];
@@ -308,6 +349,7 @@ class _AppShellState extends State<AppShell> {
           setState(() {
             _selectedDestination = destinations[index].id;
           });
+          _maybeShowMajorUpdate();
         },
         destinations: [
           for (final destination in destinations)

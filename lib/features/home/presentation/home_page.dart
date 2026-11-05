@@ -19,15 +19,15 @@ class HomePage extends StatefulWidget {
     super.key,
     this.homeRepository,
     this.wardrobeRepository,
-    this.onQuickAddPreorder,
     this.onSearch,
+    this.onReturnToHome,
     this.dataRevision = 0,
   });
 
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
-  final VoidCallback? onQuickAddPreorder;
   final VoidCallback? onSearch;
+  final VoidCallback? onReturnToHome;
   final int dataRevision;
 
   @override
@@ -193,17 +193,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _loadMonth();
   }
 
-  void _showImagePlaceholder() {
-    final onQuickAddPreorder = widget.onQuickAddPreorder;
-    if (onQuickAddPreorder != null) {
-      onQuickAddPreorder();
-      return;
-    }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('图片上传接口已预留，当前版本仅展示 UI')));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -220,6 +209,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               );
               if (mounted) {
+                widget.onReturnToHome?.call();
                 _weatherRevision++;
                 setState(() {
                   _weather = null;
@@ -283,18 +273,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(height: 8),
-          QuickRecordBar(
-            onImagePressed: _showImagePlaceholder,
-            onSearch: widget.onSearch ?? () {},
-            imageTooltip: '添加心仪衣服',
-          ),
+          QuickRecordBar(onSearch: widget.onSearch ?? () {}),
         ],
       ),
     );
   }
 
-  Future<void> _showDailyOutfit(HomeDayData data) {
-    return showModalBottomSheet<void>(
+  Future<void> _showDailyOutfit(HomeDayData data) async {
+    await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (context) {
@@ -330,6 +316,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       },
     );
+    if (mounted) widget.onReturnToHome?.call();
   }
 
   static Map<DateTime, HomeDayData> _mockDaysForMonth(DateTime month) {

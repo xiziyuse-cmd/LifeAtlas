@@ -1,25 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// The image action remains a separate preorder shortcut.
+/// A single full-width entry into global search.
 class QuickRecordBar extends StatelessWidget {
-  const QuickRecordBar({
-    super.key,
-    required this.onImagePressed,
-    required this.onSearch,
-    this.imageTooltip = '添加心仪衣服',
-  });
-  final VoidCallback onImagePressed, onSearch;
-  final String imageTooltip;
+  const QuickRecordBar({super.key, required this.onSearch});
+  final VoidCallback onSearch;
   @override
   Widget build(BuildContext context) => Row(
     key: const ValueKey('home-ai-quick-record-bar'),
     children: [
-      IconButton(
-        key: const ValueKey('home-ai-image-button'),
-        tooltip: imageTooltip,
-        onPressed: onImagePressed,
-        icon: const Icon(Icons.add_photo_alternate_outlined),
-      ),
       Expanded(
         child: Material(
           color: Theme.of(context).colorScheme.surfaceContainerHigh,

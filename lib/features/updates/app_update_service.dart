@@ -65,6 +65,7 @@ class AppRelease {
   }
 
   bool isNewerThan(int currentBuild) => build > currentBuild;
+  bool get isMajorRelease => RegExp(r'^[1-9]\d*\.0\.0$').hasMatch(version);
 }
 
 class UpdateCancelled implements Exception {
