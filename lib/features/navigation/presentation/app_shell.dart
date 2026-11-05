@@ -24,6 +24,9 @@ import '../../wardrobe/data/wardrobe_repository.dart';
 import '../../wardrobe/domain/models/preorder_item.dart';
 import '../../wardrobe/presentation/outfit_page.dart';
 import '../../wardrobe/presentation/preorder_form_page.dart';
+import '../../search/data/search_repository.dart';
+import '../../search/presentation/search_page.dart';
+import '../../search/presentation/search_sources.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -162,6 +165,52 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  Future<void> _openSearch() async {
+    final repository = SearchRepository(
+      kitchen: _kitchenRepository,
+      wardrobe: _wardrobeRepository,
+      skincare: _skinRepository,
+      home: widget.homeRepository ?? HomeRepository(),
+    );
+    final sources = SearchSources(
+      controller: widget.controller,
+      repository: repository,
+      skinAi: _skinAi,
+      imageService: _wardrobeImageService,
+      preorderAnalysis: widget.preorderAnalysisService,
+      kitchenPage: (inventory) => KitchenPage(
+        repository: _kitchenRepository,
+        aiService: _kitchenAiService,
+        initialTab: inventory ? 1 : 0,
+      ),
+      wardrobePage: () => OutfitPage(
+        repository: _wardrobeRepository,
+        imageService: _wardrobeImageService,
+        imageParameterService: widget.clothingImageParameterService,
+        preorderAnalysisService: widget.preorderAnalysisService,
+        showFemaleCategories:
+            widget.controller.profileGender == ProfileGender.female,
+        onDataChanged: _notifyWardrobeChanged,
+        onDailyOutfitSaved: _applyTodayWeatherToOutfit,
+      ),
+      skinPage: () => SkincarePage(
+        repository: _skinRepository,
+        ai: _skinAi,
+        reminders: _skinReminders,
+      ),
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GlobalSearchPage(
+          repository: repository,
+          openSource: sources.open,
+          enabled: sources.enabled,
+        ),
+      ),
+    );
+    if (mounted) _notifyWardrobeChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
     final destinations = <_AppDestination>[
@@ -175,6 +224,7 @@ class _AppShellState extends State<AppShell> {
           homeRepository: widget.homeRepository,
           wardrobeRepository: _wardrobeRepository,
           onQuickAddPreorder: _quickAddPreorder,
+          onSearch: _openSearch,
           dataRevision: _wardrobeRevision,
         ),
       ),

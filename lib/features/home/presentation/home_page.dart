@@ -20,12 +20,14 @@ class HomePage extends StatefulWidget {
     this.homeRepository,
     this.wardrobeRepository,
     this.onQuickAddPreorder,
+    this.onSearch,
     this.dataRevision = 0,
   });
 
   final HomeRepository? homeRepository;
   final WardrobeRepository? wardrobeRepository;
   final VoidCallback? onQuickAddPreorder;
+  final VoidCallback? onSearch;
   final int dataRevision;
 
   @override
@@ -202,13 +204,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     ).showSnackBar(const SnackBar(content: Text('图片上传接口已预留，当前版本仅展示 UI')));
   }
 
-  Future<bool> _showAiPlaceholder(String _) async {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('AI 接口暂未接入，当前版本仅展示输入 UI')));
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -290,7 +285,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           const SizedBox(height: 8),
           QuickRecordBar(
             onImagePressed: _showImagePlaceholder,
-            onSend: _showAiPlaceholder,
+            onSearch: widget.onSearch ?? () {},
             imageTooltip: '添加心仪衣服',
           ),
         ],

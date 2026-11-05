@@ -167,11 +167,11 @@ class SkincareRepository {
           );
   }
 
-  Future<List<SkinExecution>> history() async =>
+  Future<List<SkinExecution>> history({int? limit = 200}) async =>
       (await (await _database.database).query(
             'skincare_executions',
             orderBy: 'date DESC, period',
-            limit: 200,
+            limit: limit,
           ))
           .map(
             (r) =>

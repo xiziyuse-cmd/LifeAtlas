@@ -203,5 +203,6 @@ class MemorySkinRepository extends SkincareRepository {
   }
 
   @override
-  Future<List<SkinExecution>> history() async => _entries.values.toList();
+  Future<List<SkinExecution>> history({int? limit = 200}) async =>
+      _entries.values.toList();
 }

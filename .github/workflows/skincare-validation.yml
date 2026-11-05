@@ -4,6 +4,7 @@ on:
     branches: [feature/skincare-v2, main]
     paths:
       - 'lib/**'
+      - 'assets/data/search_knowledge.json'
       - 'test/**'
       - 'android/**'
       - 'pubspec.*'
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - 'lib/**'
+      - 'assets/data/search_knowledge.json'
       - 'test/**'
       - 'android/**'
       - '.github/workflows/skincare-validation.yml'

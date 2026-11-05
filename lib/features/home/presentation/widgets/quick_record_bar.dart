@@ -1,108 +1,55 @@
 import 'package:flutter/material.dart';
 
-typedef QuickRecordSender = Future<bool> Function(String text);
-
-class QuickRecordBar extends StatefulWidget {
+/// The image action remains a separate preorder shortcut.
+class QuickRecordBar extends StatelessWidget {
   const QuickRecordBar({
     super.key,
     required this.onImagePressed,
-    required this.onSend,
-    this.imageTooltip = '添加图片',
+    required this.onSearch,
+    this.imageTooltip = '添加心仪衣服',
   });
-
-  final VoidCallback onImagePressed;
-  final QuickRecordSender onSend;
+  final VoidCallback onImagePressed, onSearch;
   final String imageTooltip;
-
   @override
-  State<QuickRecordBar> createState() => _QuickRecordBarState();
-}
-
-class _QuickRecordBarState extends State<QuickRecordBar> {
-  final _controller = TextEditingController();
-  bool _isSending = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _send() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请输入记录内容')));
-      return;
-    }
-
-    setState(() => _isSending = true);
-    final accepted = await widget.onSend(text);
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _isSending = false;
-      if (accepted) {
-        _controller.clear();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      key: const ValueKey('home-ai-quick-record-bar'),
-      height: 58,
-      padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
+  Widget build(BuildContext context) => Row(
+    key: const ValueKey('home-ai-quick-record-bar'),
+    children: [
+      IconButton(
+        key: const ValueKey('home-ai-image-button'),
+        tooltip: imageTooltip,
+        onPressed: onImagePressed,
+        icon: const Icon(Icons.add_photo_alternate_outlined),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            key: const ValueKey('home-ai-image-button'),
-            tooltip: widget.imageTooltip,
-            onPressed: _isSending ? null : widget.onImagePressed,
-            color: colorScheme.onSurfaceVariant,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
-          ),
-          Expanded(
-            child: TextField(
-              key: const ValueKey('home-ai-input'),
-              controller: _controller,
-              enabled: !_isSending,
-              maxLines: 1,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _send(),
-              decoration: const InputDecoration(
-                hintText: '记录此刻，AI 能力待接入…',
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4),
+      Expanded(
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(18),
+          child: InkWell(
+            key: const ValueKey('home-global-search'),
+            borderRadius: BorderRadius.circular(18),
+            onTap: onSearch,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '搜索全部内容，或问一个问题',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          IconButton.filled(
-            key: const ValueKey('home-ai-send-button'),
-            tooltip: '发送',
-            onPressed: _isSending ? null : _send,
-            icon: _isSending
-                ? const SizedBox.square(
-                    dimension: 17,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_upward_rounded),
-          ),
-        ],
+        ),
       ),
-    );
-  }
+      const SizedBox(width: 8),
+      FilledButton(onPressed: onSearch, child: const Text('搜索')),
+    ],
+  );
 }
