@@ -14,6 +14,29 @@ class HomeRepository {
 
   final AppDatabase _database;
 
+  /// Read-only search view of existing calendar and outfit dates. Settings and
+  /// encrypted profile records are deliberately outside this query.
+  Future<List<HomeDayData>> searchDays() async {
+    final db = await _database.database;
+    final rows = await db.rawQuery('''
+      SELECT substr(record_date, 1, 7) AS month FROM calendar_records
+      UNION SELECT substr(record_date, 1, 7) AS month FROM daily_outfit_records
+      ORDER BY month DESC
+    ''');
+    final days = <HomeDayData>[];
+    for (final row in rows) {
+      final month = DateTime.tryParse('${row['month']}-01');
+      if (month == null) continue;
+      days.addAll(
+        (await loadMonth(
+          month,
+        )).values.where((d) => d.textEntries.isNotEmpty || d.hasOutfitRecord),
+      );
+    }
+    days.sort((a, b) => b.date.compareTo(a.date));
+    return days;
+  }
+
   Future<Map<DateTime, HomeDayData>> loadMonth(DateTime month) async {
     final database = await _database.database;
     final firstDay = DateKeyCodec.encode(DateTime(month.year, month.month));

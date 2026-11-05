@@ -10,6 +10,32 @@ import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 
 void main() {
   testWidgets(
+    'home global search replaces the placeholder and keeps image shortcut',
+    (tester) async {
+      final controller = AppController(_MemoryAppSettingsRepository());
+      await controller.initialize();
+      await tester.pumpWidget(
+        LifeAtlasApp(
+          controller: controller,
+          kitchenRepository: _EmptyKitchenRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('home-ai-image-button')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('home-global-search')));
+      await tester.pumpAndSettle();
+      expect(find.text('全局搜索'), findsOneWidget);
+      expect(find.byKey(const ValueKey('global-search-input')), findsOneWidget);
+      expect(find.textContaining('AI 接口暂未接入'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    },
+  );
+  testWidgets(
     'actual home calendar follows light and dark mode in every palette',
     (tester) async {
       final controller = AppController(_MemoryAppSettingsRepository());

@@ -6,8 +6,12 @@ class KitchenExport {
     required this.title,
     required List<String> sections,
     this.image = '',
+    this.label = 'LifeAtlas · 厨房',
+    this.pageNote = '',
+    this.pageTitle = '',
   }) : sections = List.unmodifiable(sections);
   final String title, image;
+  final String label, pageNote, pageTitle;
   final List<String> sections;
   String get text => '$title\n\n${sections.join('\n\n')}';
 

@@ -16,10 +16,12 @@ class KitchenPage extends StatefulWidget {
     required this.repository,
     required this.aiService,
     this.cloudSync,
+    this.initialTab = 0,
   });
   final KitchenRepository repository;
   final KitchenAiService aiService;
   final RecipeCloudSync? cloudSync;
+  final int initialTab;
   @override
   State<KitchenPage> createState() => _KitchenPageState();
 }
@@ -147,6 +149,7 @@ class _KitchenPageState extends State<KitchenPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => DefaultTabController(
+    initialIndex: widget.initialTab,
     length: 2,
     child: Column(
       children: [

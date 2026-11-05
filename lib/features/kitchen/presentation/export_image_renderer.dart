@@ -93,7 +93,13 @@ class ExportImageRenderer {
       recorder = ui.PictureRecorder();
       canvas = Canvas(recorder);
       canvas.drawColor(Colors.white, BlendMode.src);
-      final label = painter('LifeAtlas · 厨房', 18);
+      final title = document.pageTitle;
+      final label = painter(
+        title.isEmpty
+            ? document.label
+            : '${document.label} · ${title.characters.length > 22 ? '${title.characters.take(22)}…' : title}',
+        18,
+      );
       label.paint(canvas, const Offset(margin, 26));
       retained.add(label);
       canvas.drawLine(
@@ -106,7 +112,10 @@ class ExportImageRenderer {
 
     Future<void> finish() async {
       if (pages.length >= 60) throw const FormatException('导出超过60页，请精简后重试');
-      final footer = painter('第 ${pages.length + 1} 页', 18);
+      final footer = painter(
+        '第 ${pages.length + 1} 页${document.pageNote.isEmpty ? '' : ' · ${document.pageNote}'}',
+        18,
+      );
       footer.paint(canvas, const Offset(margin, height - 48));
       retained.add(footer);
       final picture = recorder.endRecording();
