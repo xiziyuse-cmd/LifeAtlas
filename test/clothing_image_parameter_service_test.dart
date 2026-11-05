@@ -142,7 +142,7 @@ void main() {
           isA<ClothingImageParameterRequestException>().having(
             (error) => error.message,
             'message',
-            'AI识别超时，请检查网络后重试。',
+            'AI识别超时，请稍后重试',
           ),
         ),
       );
@@ -184,7 +184,7 @@ void main() {
           isA<ClothingImageParameterRequestException>().having(
             (error) => error.message,
             'message',
-            'AI识别超时，请检查网络后重试。',
+            'AI识别超时，请稍后重试',
           ),
         ),
       );

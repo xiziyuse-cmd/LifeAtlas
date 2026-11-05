@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifeatlas/features/wardrobe/data/clothing_image_parameter_service.dart';
 import 'package:lifeatlas/features/wardrobe/data/wardrobe_repository.dart';
@@ -228,6 +229,91 @@ void main() {
     expect(minimumWaist.controller?.text, '70');
     expect(maximumWaist.controller?.text, '76');
   });
+
+  testWidgets(
+    'recognition failure exposes copyable safe diagnostics and replacing image clears them',
+    (tester) async {
+      _useTallViewport(tester);
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      final service = _FakeImageParameterService(
+        ClothingImageParameters(),
+        error: const ClothingImageParameterRequestException(
+          '识别连接已中断，请稍后重试',
+          diagnostic: ClothingImageDiagnostic(
+            code: 'connection_interrupted',
+            phase: '上传图片并等待响应',
+            elapsedMs: 32000,
+            startedAt: '2026-11-05T06:00:00Z',
+            exceptionType: 'HttpException',
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ClothingFormPage(
+            imageService: _FakeImageService([
+              'missing/private-first.jpg',
+              'missing/private-second.jpg',
+            ]),
+            imageParameterService: service,
+            categories: const ['上衣'],
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(WardrobeKeys.clothingMeasurementImagePicker),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImagePicker));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(WardrobeKeys.clothingMeasurementImageAnalyze),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('识别连接已中断，请稍后重试'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('measurement-error-details')),
+      );
+      await tester.tap(find.byKey(const ValueKey('measurement-error-details')));
+      await tester.pumpAndSettle();
+      expect(find.text('识别错误详情'), findsOneWidget);
+      await tester.tap(find.text('复制诊断信息'));
+      await tester.pumpAndSettle();
+      expect(copied, contains('connection_interrupted'));
+      expect(copied, contains('32000 ms'));
+      expect(copied, isNot(contains('private-first.jpg')));
+      await tester.tap(find.text('关闭'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(WardrobeKeys.clothingMeasurementImagePicker),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImagePicker));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('measurement-error-details')),
+        findsNothing,
+      );
+      expect(service.analyzedPaths, hasLength(1));
+    },
+  );
 
   testWidgets('hidden measurements are cleared from the submitted item', (
     tester,
@@ -656,7 +742,9 @@ class _FakeImageService implements WardrobeImageService {
 }
 
 class _FakeImageParameterService implements ClothingImageParameterService {
-  _FakeImageParameterService(this.result);
+  _FakeImageParameterService(this.result, {this.error});
+
+  final Object? error;
 
   final ClothingImageParameters result;
   final List<String> analyzedPaths = [];
@@ -667,6 +755,7 @@ class _FakeImageParameterService implements ClothingImageParameterService {
   @override
   Future<ClothingImageParameters> analyze(String imagePath) async {
     analyzedPaths.add(imagePath);
+    if (error != null) throw error!;
     return result;
   }
 }

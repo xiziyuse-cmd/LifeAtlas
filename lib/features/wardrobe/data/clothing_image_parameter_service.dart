@@ -50,21 +50,56 @@ class DoubaoProxyClothingImageParameterService
   @override
   Future<ClothingImageParameters> analyze(String imagePath) async {
     final stopwatch = Stopwatch()..start();
+    final startedAt = DateTime.now().toUtc().toIso8601String();
     var phase = '检查服务配置';
+    int? status;
+    String? ray;
+    HttpClientRequest? activeRequest;
+    var expired = false, succeeded = false;
     final endpoint = _endpoint;
     if (endpoint == null) {
       throw const ClothingImageParameterUnavailableException();
     }
+    Future<T> within<T>(Future<T> Function() action) {
+      final remaining = timeout - stopwatch.elapsed;
+      if (remaining <= Duration.zero) {
+        expired = true;
+        activeRequest?.abort();
+        throw TimeoutException('Recognition deadline');
+      }
+      return action().timeout(
+        remaining,
+        onTimeout: () {
+          expired = true;
+          activeRequest?.abort();
+          throw TimeoutException('Recognition deadline');
+        },
+      );
+    }
 
+    ClothingImageParameterRequestException failure(
+      String message,
+      String code,
+      Object error,
+    ) => ClothingImageParameterRequestException(
+      message,
+      diagnostic: ClothingImageDiagnostic(
+        code: code,
+        phase: phase,
+        elapsedMs: stopwatch.elapsedMilliseconds,
+        startedAt: startedAt,
+        httpStatus: status,
+        exceptionType: error.runtimeType.toString(),
+        rayId: ray,
+      ),
+    );
     try {
       phase = '读取图片';
-      _log('开始读取尺寸图片；供应商 API Key 仅由代理读取，客户端不读取');
       final file = File(imagePath);
-      if (!await file.exists()) {
+      if (!await within(file.exists)) {
         throw const ClothingImageParameterRequestException('找不到所选图片，请重新选择');
       }
-      final byteLength = await file.length();
-      _log('尺寸图片大小：$byteLength 字节');
+      final byteLength = await within(file.length);
       if (byteLength <= 0) {
         throw const ClothingImageParameterRequestException('所选图片为空，请重新选择');
       }
@@ -73,30 +108,31 @@ class DoubaoProxyClothingImageParameterService
           '图片超过 10 MB，请裁剪或压缩后重试',
         );
       }
-
       final mimeType = _mimeTypeForPath(imagePath);
       if (mimeType == null) {
         throw const ClothingImageParameterRequestException(
           '仅支持 JPG、PNG、WebP 或 GIF 图片',
         );
       }
-      final imageBytes = await file.readAsBytes();
-      _log('图片格式：$mimeType；传输方式：JSON Base64');
-
+      final imageBytes = await within(file.readAsBytes);
       phase = '读取登录状态';
       final tokenProvider = accessTokenProvider;
       if (tokenProvider == null) {
         throw const AiAuthenticationException('请先在“我的－AI 服务账号”中登录');
       }
-      final accessToken = await tokenProvider();
-
-      phase = '连接 AI 代理';
-      _log(
-        '开始请求 AI；模型：Doubao-Seed-2.1-pro（实际版本由代理响应确认）；'
-        '代理：${endpoint.origin}${endpoint.path}；请求头：JSON/Accept/Bearer 已设置（不记录令牌）；'
-        '开始时间：${DateTime.now().toUtc().toIso8601String()}',
+      final accessToken = await within(tokenProvider);
+      phase = '连接识别服务';
+      final request = await within(
+        () => _httpClient.postUrl(endpoint).then((request) {
+          if (expired) {
+            request.abort();
+            throw TimeoutException('Late connection');
+          }
+          activeRequest = request;
+          return request;
+        }),
       );
-      final request = await _httpClient.postUrl(endpoint).timeout(timeout);
+      request.followRedirects = false;
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
       request.headers.set(
@@ -109,59 +145,84 @@ class DoubaoProxyClothingImageParameterService
           'imageBase64': base64Encode(imageBytes),
         }),
       );
-
-      phase = '等待 AI 响应';
-      final response = await request.close().timeout(timeout);
-      _log('AI 代理返回状态码：${response.statusCode}');
-      phase = '读取 AI 响应';
-      final responseText = await utf8.decoder
-          .bind(response)
-          .join()
-          .timeout(timeout);
-      phase = '解析 AI 响应';
-      final decoded = _decodeObject(responseText);
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        final message = _safeErrorMessage(decoded, response.statusCode);
-        _log('AI 代理返回错误：$message');
-        throw ClothingImageParameterRequestException(message);
+      phase = '上传图片并等待响应';
+      final response = await within(request.close);
+      final responseStatus = response.statusCode;
+      status = responseStatus;
+      final rays = response.headers['cf-ray'];
+      final rawRay = rays?.length == 1 ? rays!.single : null;
+      if (rawRay != null &&
+          RegExp(r'^[a-fA-F0-9]{12,32}(?:-[A-Za-z]{2,5})?$').hasMatch(rawRay)) {
+        ray = rawRay;
       }
-
+      phase = '读取响应';
+      final bytes = await within(() async {
+        final bytes = <int>[];
+        await for (final chunk in response) {
+          bytes.addAll(chunk);
+          if (bytes.length > 2 * 1024 * 1024) {
+            throw const FormatException('Response limit');
+          }
+        }
+        return bytes;
+      });
+      phase = '解析响应';
+      Map<String, Object?> decoded;
+      try {
+        decoded = _decodeObject(utf8.decode(bytes));
+      } on FormatException {
+        if (responseStatus >= 200 && responseStatus < 300) rethrow;
+        decoded = {}; // A gateway HTML error must retain its HTTP status.
+      }
+      if (responseStatus < 200 || responseStatus >= 300) {
+        throw failure(
+          _safeErrorMessage(decoded, responseStatus),
+          [408, 504, 524].contains(status) ? 'gateway_timeout' : 'http_error',
+          const HttpException('HTTP status'),
+        );
+      }
       final result = _objectMap(decoded['result'] ?? decoded);
-      if (result.isEmpty) {
-        throw const ClothingImageParameterRequestException('识别服务返回了无效结果');
-      }
-      final model = decoded['model'];
-      if (model is String && model.trim().isNotEmpty) {
-        _log('AI 实际响应模型：${model.trim()}');
-      }
-      return ClothingImageParameters.fromJson(result);
-    } on ClothingImageParameterRequestException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      rethrow;
-    } on AiAuthenticationException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw ClothingImageParameterRequestException(error.message);
-    } on TimeoutException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw const ClothingImageParameterRequestException('AI识别超时，请检查网络后重试。');
-    } on FileSystemException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw const ClothingImageParameterRequestException('图片读取失败，请重新选择');
-    } on SocketException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw const ClothingImageParameterRequestException('网络连接失败，请检查网络后重试');
-    } on HttpException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw const ClothingImageParameterRequestException('AI服务请求失败，请稍后重试');
-    } on FormatException catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw const ClothingImageParameterRequestException('AI返回数据解析失败，请稍后重试');
-    } on Object catch (error, stackTrace) {
-      _logFailure(phase, error, stackTrace);
-      throw const ClothingImageParameterRequestException('AI服务请求失败，请稍后重试');
+      if (result.isEmpty) throw const FormatException('Empty result');
+      final parsed = ClothingImageParameters.fromJson(result);
+      succeeded = true;
+      return parsed;
+    } on ClothingImageParameterRequestException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      if (error.diagnostic != null) rethrow;
+      throw failure(error.message, 'input_or_service', error);
+    } on AiAuthenticationException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure(error.message, 'authentication', error);
+    } on TimeoutException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('AI识别超时，请稍后重试', 'timeout', error);
+    } on FileSystemException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('图片读取失败，请重新选择', 'image_read', error);
+    } on TlsException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('识别服务安全连接失败，请检查网络及手机系统时间', 'tls_connection', error);
+    } on SocketException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('网络连接失败，请检查网络后重试', 'network_connection', error);
+    } on HttpException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('识别连接已中断，请稍后重试', 'connection_interrupted', error);
+    } on FormatException catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('识别服务返回了无法解析的数据', 'invalid_response', error);
+    } on ArgumentError catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('识别结果格式不符合要求，请重试', 'invalid_result', error);
+    } on Object catch (error, stack) {
+      _logFailure(phase, error, stack);
+      throw failure('识别暂未完成，请查看错误详情', 'unexpected', error);
     } finally {
+      if (!succeeded) activeRequest?.abort();
       stopwatch.stop();
-      _log('AI 尺寸识别结束；阶段：$phase；总耗时：${stopwatch.elapsedMilliseconds} ms');
+      _log(
+        '尺寸识别结束；阶段：$phase；耗时：${stopwatch.elapsedMilliseconds} ms；HTTP：${status ?? '无'}',
+      );
     }
   }
 
@@ -173,7 +234,7 @@ class DoubaoProxyClothingImageParameterService
     developer.log(
       'AI 尺寸识别失败；阶段：$phase',
       name: 'lifeatlas.wardrobe.ai',
-      error: error,
+      error: error.runtimeType.toString(),
       stackTrace: stackTrace,
     );
   }
@@ -224,16 +285,16 @@ class DoubaoProxyClothingImageParameterService
     int statusCode,
   ) {
     final message = response['message'];
-    if (statusCode == HttpStatus.gatewayTimeout ||
+    if ([408, 504, 524].contains(statusCode) ||
         (message is String && message.contains('超时'))) {
-      return 'AI识别超时，请检查网络后重试。';
+      return 'AI识别超时，请稍后重试';
     }
     if (message is String && message.trim().isNotEmpty) {
       return message.trim();
     }
     if (statusCode == HttpStatus.unauthorized ||
         statusCode == HttpStatus.forbidden) {
-      return '图片识别服务鉴权失败';
+      return '登录状态校验失败，请在“我的－AI 服务账号”中重新登录';
     }
     if (statusCode == HttpStatus.tooManyRequests) {
       return '图片识别请求过于频繁，请稍后重试';
@@ -254,10 +315,39 @@ class ClothingImageParameterUnavailableException implements Exception {
 }
 
 class ClothingImageParameterRequestException implements Exception {
-  const ClothingImageParameterRequestException(this.message);
+  const ClothingImageParameterRequestException(this.message, {this.diagnostic});
+
+  final ClothingImageDiagnostic? diagnostic;
 
   final String message;
 
   @override
   String toString() => message;
+}
+
+/// Safe, allow-listed metadata only. Never accepts request bodies or raw errors.
+class ClothingImageDiagnostic {
+  const ClothingImageDiagnostic({
+    required this.code,
+    required this.phase,
+    required this.elapsedMs,
+    required this.startedAt,
+    this.httpStatus,
+    this.exceptionType,
+    this.rayId,
+  });
+  final String code, phase, startedAt;
+  final int elapsedMs;
+  final int? httpStatus;
+  final String? exceptionType, rayId;
+  String get text => [
+    '功能：衣服尺寸识别',
+    '错误类别：$code',
+    '失败阶段：$phase',
+    '耗时：$elapsedMs ms',
+    '开始时间（UTC）：$startedAt',
+    if (httpStatus != null) 'HTTP：$httpStatus',
+    if (exceptionType != null) '异常类型：$exceptionType',
+    if (rayId != null) '请求追踪：$rayId',
+  ].join('\n');
 }

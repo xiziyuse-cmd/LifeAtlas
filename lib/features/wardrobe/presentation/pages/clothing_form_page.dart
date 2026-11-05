@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/clothing_image_parameter_service.dart';
 import '../../data/wardrobe_image_service.dart';
@@ -63,6 +64,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   bool _isPickingMeasurementImage = false;
   bool _isAnalyzingMeasurementImage = false;
   String? _measurementAnalysisStatus;
+  ClothingImageDiagnostic? _measurementDiagnostic;
 
   @override
   void initState() {
@@ -141,7 +143,7 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
       developer.log(
         '衣服展示图片上传失败',
         name: 'lifeatlas.wardrobe.form',
-        error: error,
+        error: error.runtimeType.toString(),
         stackTrace: stackTrace,
       );
       if (mounted) {
@@ -165,13 +167,14 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
         setState(() {
           _measurementImagePath = selectedImagePath;
           _measurementAnalysisStatus = null;
+          _measurementDiagnostic = null;
         });
       }
     } on Object catch (error, stackTrace) {
       developer.log(
         '尺寸图片上传失败',
         name: 'lifeatlas.wardrobe.form',
-        error: error,
+        error: error.runtimeType.toString(),
         stackTrace: stackTrace,
       );
       if (mounted) {
@@ -194,6 +197,10 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
   }
 
   Future<void> _analyzeMeasurementImage(String imagePath) async {
+    if (_isAnalyzingMeasurementImage) return;
+    final watch = Stopwatch()..start();
+    final startedAt = DateTime.now().toUtc().toIso8601String();
+    var applying = false;
     if (!widget.imageParameterService.isConfigured) {
       if (mounted) {
         setState(() {
@@ -206,49 +213,108 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     setState(() {
       _isAnalyzingMeasurementImage = true;
       _measurementAnalysisStatus = '正在识别尺寸…';
+      _measurementDiagnostic = null;
     });
     try {
       final parameters = await widget.imageParameterService.analyze(imagePath);
       if (!mounted || _measurementImagePath != imagePath) {
         return;
       }
+      applying = true;
       _applyMeasurementParameters(parameters);
       setState(() => _measurementAnalysisStatus = '已识别尺寸，请核对后保存');
     } on ClothingImageParameterRequestException catch (error, stackTrace) {
       developer.log(
         'AI 尺寸识别请求失败',
         name: 'lifeatlas.wardrobe.form',
-        error: error,
+        error: error.runtimeType.toString(),
         stackTrace: stackTrace,
       );
-      if (mounted) {
-        setState(() => _measurementAnalysisStatus = error.message);
+      if (mounted && _measurementImagePath == imagePath) {
+        setState(() {
+          _measurementAnalysisStatus = error.message;
+          _measurementDiagnostic =
+              error.diagnostic ??
+              ClothingImageDiagnostic(
+                code: 'request_failed',
+                phase: '识别请求',
+                elapsedMs: watch.elapsedMilliseconds,
+                startedAt: startedAt,
+                exceptionType: error.runtimeType.toString(),
+              );
+        });
       }
     } on ClothingImageParameterUnavailableException catch (error, stackTrace) {
       developer.log(
         'AI 尺寸识别服务未配置',
         name: 'lifeatlas.wardrobe.form',
-        error: error,
+        error: error.runtimeType.toString(),
         stackTrace: stackTrace,
       );
-      if (mounted) {
+      if (mounted && _measurementImagePath == imagePath) {
         setState(() => _measurementAnalysisStatus = error.message);
       }
     } on Object catch (error, stackTrace) {
       developer.log(
         'AI 尺寸识别发生未分类异常',
         name: 'lifeatlas.wardrobe.form',
-        error: error,
+        error: error.runtimeType.toString(),
         stackTrace: stackTrace,
       );
-      if (mounted) {
-        setState(() => _measurementAnalysisStatus = 'AI服务请求失败，请稍后重试');
+      if (mounted && _measurementImagePath == imagePath) {
+        setState(() {
+          _measurementAnalysisStatus = '识别暂未完成，请查看错误详情';
+          _measurementDiagnostic = ClothingImageDiagnostic(
+            code: applying ? 'result_application' : 'unexpected',
+            phase: applying ? '填写识别结果' : '请求识别服务',
+            elapsedMs: watch.elapsedMilliseconds,
+            startedAt: startedAt,
+            exceptionType: error.runtimeType.toString(),
+          );
+        });
       }
     } finally {
       if (mounted) {
         setState(() => _isAnalyzingMeasurementImage = false);
       }
     }
+  }
+
+  Future<void> _showMeasurementDiagnostic() async {
+    final diagnostic = _measurementDiagnostic;
+    if (diagnostic == null) return;
+    await showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('识别错误详情'),
+        content: SingleChildScrollView(child: SelectableText(diagnostic.text)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('关闭'),
+          ),
+          TextButton(
+            onPressed: () async {
+              try {
+                await Clipboard.setData(ClipboardData(text: diagnostic.text));
+                if (c.mounted) {
+                  ScaffoldMessenger.of(
+                    c,
+                  ).showSnackBar(const SnackBar(content: Text('诊断信息已复制')));
+                }
+              } catch (_) {
+                if (c.mounted) {
+                  ScaffoldMessenger.of(
+                    c,
+                  ).showSnackBar(const SnackBar(content: Text('复制失败，请重试')));
+                }
+              }
+            },
+            child: const Text('复制诊断信息'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _applyMeasurementParameters(ClothingImageParameters parameters) {
@@ -704,6 +770,16 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                       key: WardrobeKeys.clothingMeasurementImageStatus,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (_measurementDiagnostic != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        key: const ValueKey('measurement-error-details'),
+                        onPressed: _showMeasurementDiagnostic,
+                        icon: const Icon(Icons.info_outline),
+                        label: const Text('查看错误详情'),
                       ),
                     ),
                   for (final entry in parameterGroups.entries) ...[
