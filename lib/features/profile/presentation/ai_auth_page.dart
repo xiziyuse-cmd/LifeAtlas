@@ -116,8 +116,6 @@ class _AiAuthPageState extends State<AiAuthPage> {
                   '登录后使用图片识别和预购分析',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 8),
-                const Text('账号凭据只发送到你的 Cloudflare Worker，不进入 APK 或 Git。'),
                 const SizedBox(height: 24),
                 TextFormField(
                   key: const ValueKey('ai-auth-username'),

@@ -137,6 +137,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('当前版本：1.4.9+25'), findsOneWidget);
       expect(find.text('发送邮件'), findsNothing);
+      expect(find.text('告诉我你的想法'), findsNothing);
+      expect(find.textContaining('反馈将直接提交'), findsNothing);
+      expect(find.widgetWithText(TextField, '主题（选填）'), findsNothing);
       await scrollTo(tester, find.text('提交反馈'));
       await tester.tap(find.text('提交反馈'));
       await tester.pumpAndSettle();
@@ -168,6 +171,7 @@ void main() {
         content: '已保存的反馈',
         version: '1.4.9+25',
         contact: 'qq123',
+        subject: '旧版未提交主题',
       );
     await tester.pumpWidget(
       MaterialApp(home: ContactDeveloperPage(service: service)),
@@ -178,6 +182,7 @@ void main() {
     await tester.tap(find.text('提交反馈'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('feedback-success')), findsNothing);
+    expect(service.sent!.subject, '旧版未提交主题');
     expect(
       tester
           .widget<TextField>(find.widgetWithText(TextField, '反馈内容'))

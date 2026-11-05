@@ -53,11 +53,13 @@ void main() {
     },
   );
   test(
-    'encrypted persistence, wrong password, recovery, password change, CRUD and lock',
+    'encrypted persistence, wrong password, password change, CRUD and lock without recovery',
     () async {
       final api = MemoryBodyApi();
       final v = BodyVault(api: api);
-      final recovery = await v.create('password123');
+      await v.create('password123');
+      expect((api.value as Map)['version'], 2);
+      expect((api.value as Map).containsKey('recovery'), false);
       final record = BodyRecord(
         id: '1',
         date: '2026-01-01',
@@ -76,10 +78,7 @@ void main() {
       await v.changePassword('newpassword');
       v.lock();
       await expectLater(v.unlock('password123'), throwsStateError);
-      await v.unlock(recovery, recovery: true);
-      await v.changePassword('recovered123');
-      v.lock();
-      await v.unlock('recovered123');
+      await v.unlock('newpassword');
       api.fail = true;
       await expectLater(v.delete('1'), throwsStateError);
       expect(v.records, hasLength(1));

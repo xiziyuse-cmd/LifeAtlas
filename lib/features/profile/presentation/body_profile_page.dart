@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_controller.dart';
 import '../../../core/settings/app_settings.dart';
 import '../data/body_vault.dart';
+import '../data/body_password_reset.dart';
 import '../../wardrobe/data/wardrobe_repository.dart';
 import '../../wardrobe/domain/models/clothing_item.dart';
 
@@ -18,7 +19,8 @@ class _BodyProfileState extends State<BodyProfilePage>
   late final vault = widget.vault ?? BodyVault();
   final password = TextEditingController(), confirm = TextEditingController();
   bool? configured;
-  bool busy = false, recovery = false;
+  bool busy = false;
+  final _passwordForm = GlobalKey<FormState>();
   String? error;
   ModalRoute<dynamic>? route;
   @override
@@ -90,49 +92,130 @@ class _BodyProfileState extends State<BodyProfilePage>
     }
   }
 
-  Future<void> _enter() => _run(() async {
-    if (configured == false) {
-      if (password.text != confirm.text) throw const FormatException('两次密码不一致');
-      final code = await vault.create(password.text);
-      configured = true;
-      if (mounted && vault.unlocked) {
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (c) => AlertDialog(
-            title: const Text('请保存恢复码'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('忘记密码时凭此码解锁。请在安全位置保存，不会再次显示。'),
-                  SelectableText(code),
+  Future<void> _enter() async {
+    if (_passwordForm.currentState?.validate() != true) return;
+    await _run(() async {
+      if (configured == false) {
+        await vault.create(password.text);
+        configured = true;
+      } else {
+        await vault.unlock(password.text);
+      }
+      password.clear();
+      confirm.clear();
+    });
+  }
+
+  Widget _passwordPanel(BuildContext context) {
+    final setup = configured == false;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
+          child: Form(
+            key: _passwordForm,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
+                    child: const Icon(Icons.lock_outline, size: 32),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  setup ? '设置身材密码' : '解锁身材档案',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  setup ? '8至128位，保护本机身材记录' : '输入独立密码查看身材记录',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                TextFormField(
+                  key: const ValueKey('body-password'),
+                  controller: password,
+                  enabled: !busy,
+                  obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  textInputAction: setup
+                      ? TextInputAction.next
+                      : TextInputAction.done,
+                  onFieldSubmitted: setup ? null : (_) => _enter(),
+                  validator: (v) => setup
+                      ? ((v?.length ?? 0) < 8 || (v?.length ?? 0) > 128
+                            ? '请输入8至128位密码'
+                            : null)
+                      : ((v?.isEmpty ?? true) ? '请输入密码' : null),
+                  decoration: InputDecoration(
+                    labelText: setup ? '新密码' : '独立密码',
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                if (setup) ...[
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    key: const ValueKey('body-confirm'),
+                    controller: confirm,
+                    enabled: !busy,
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _enter(),
+                    validator: (v) => v != password.text ? '两次密码不一致' : null,
+                    decoration: const InputDecoration(
+                      labelText: '确认密码',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ],
-              ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  key: const ValueKey('body-password-submit'),
+                  onPressed: busy ? null : _enter,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
+                  child: Text(setup ? '设置密码' : '解锁'),
+                ),
+                if (!setup) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: busy
+                        ? null
+                        : () => showDialog<void>(
+                            context: context,
+                            builder: (c) => AlertDialog(
+                              title: const Text('忘记密码'),
+                              content: const Text(bodyResetUnavailableMessage),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(c),
+                                  child: const Text('知道了'),
+                                ),
+                              ],
+                            ),
+                          ),
+                    child: const Text('忘记密码'),
+                  ),
+                ],
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c),
-                child: const Text('已保存恢复码'),
-              ),
-            ],
           ),
-        );
-      }
-    } else {
-      await vault.unlock(password.text, recovery: recovery);
-      if (recovery) {
-        if (!mounted) return;
-        try {
-          await _changePassword();
-        } finally {
-          vault.lock();
-        }
-      }
-    }
-    password.clear();
-    confirm.clear();
-  });
+        ),
+      ),
+    );
+  }
+
   Future<void> _changePassword() async {
     final first = TextEditingController(), second = TextEditingController();
     final form = GlobalKey<FormState>();
@@ -220,6 +303,7 @@ class _BodyProfileState extends State<BodyProfilePage>
                           title: Text(r.date),
                           subtitle: Text(
                             r.values.entries
+                                .where((e) => numericBodyFields.contains(e.key))
                                 .map(
                                   (e) =>
                                       '${e.key}：${e.value} ${bodyUnit(e.key)}${r.inherited.contains(e.key) ? '（沿用）' : ''}',
@@ -386,119 +470,90 @@ class _BodyProfileState extends State<BodyProfilePage>
           ),
       ],
     ),
-    body: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (busy) const LinearProgressIndicator(),
-        if (error != null)
-          Text(
-            error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        if (configured == null) ...[
-          const Text('读取档案…'),
-          TextButton(onPressed: _check, child: const Text('重试')),
-        ] else if (!vault.unlocked) ...[
-          Text(
-            configured! ? '解锁身材档案' : '建立受密码保护的身材档案',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const Text('数据仅保存在本机。密码须为8至128位，首次设置会生成恢复码。'),
-          TextField(
-            key: const ValueKey('body-password'),
-            controller: password,
-            obscureText: true,
-            enableSuggestions: false,
-            autocorrect: false,
-            decoration: InputDecoration(labelText: recovery ? '恢复码' : '独立密码'),
-          ),
-          if (!configured!)
-            TextField(
-              key: const ValueKey('body-confirm'),
-              controller: confirm,
-              obscureText: true,
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: const InputDecoration(labelText: '确认密码'),
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (busy) const LinearProgressIndicator(),
+          if (error != null)
+            Text(
+              error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-          FilledButton(
-            onPressed: busy ? null : _enter,
-            child: Text(configured! ? '解锁' : '设置密码'),
-          ),
-          if (configured!)
-            TextButton(
-              onPressed: busy
-                  ? null
-                  : () {
-                      setState(() => recovery = !recovery);
-                      password.clear();
-                    },
-              child: Text(recovery ? '使用密码解锁' : '忘记密码，使用恢复码'),
-            ),
-        ] else ...[
-          if (vault.records.isEmpty)
-            const Text('尚未建立身材档案，先填写已知的数据即可。')
-          else
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('最新档案 · ${vault.records.first.date}'),
-                    for (final e in vault.records.first.values.entries)
-                      Text(
-                        '${e.key}：${e.value} ${bodyUnit(e.key)}${vault.records.first.inherited.contains(e.key) ? '（沿用）' : ''}',
-                      ),
-                    if (vault.records.first.note.isNotEmpty)
-                      Text(vault.records.first.note),
-                  ],
+          if (configured == null) ...[
+            const Text('读取档案…'),
+            TextButton(onPressed: _check, child: const Text('重试')),
+          ] else if (!vault.unlocked) ...[
+            _passwordPanel(context),
+          ] else ...[
+            if (vault.records.isEmpty)
+              const Text('尚未建立身材档案，先填写已知的数据即可。')
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('最新档案 · ${vault.records.first.date}'),
+                      for (final e in vault.records.first.values.entries.where(
+                        (e) => numericBodyFields.contains(e.key),
+                      ))
+                        Text(
+                          '${e.key}：${e.value} ${bodyUnit(e.key)}${vault.records.first.inherited.contains(e.key) ? '（沿用）' : ''}',
+                        ),
+                      if (vault.records.first.note.isNotEmpty)
+                        Text(vault.records.first.note),
+                    ],
+                  ),
                 ),
               ),
+            FilledButton.icon(
+              onPressed: busy ? null : () => _edit(),
+              icon: const Icon(Icons.add),
+              label: const Text('记录身材'),
             ),
-          FilledButton.icon(
-            onPressed: busy ? null : () => _edit(),
-            icon: const Icon(Icons.add),
-            label: const Text('记录身材'),
-          ),
-          if (vault.records.isNotEmpty)
-            OutlinedButton(
-              onPressed: busy ? null : () => _edit(record: vault.records.first),
-              child: const Text('修正最新记录'),
+            if (vault.records.isNotEmpty)
+              OutlinedButton(
+                onPressed: busy
+                    ? null
+                    : () => _edit(record: vault.records.first),
+                child: const Text('修正最新记录'),
+              ),
+            Card(
+              child: ListTile(
+                title: const Text('已有衣服尺寸对比'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: busy ? null : _compare,
+              ),
             ),
-          Card(
-            child: ListTile(
-              title: const Text('已有衣服尺寸对比'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: busy ? null : _compare,
+            TextButton(
+              onPressed: busy ? null : () => _run(_changePassword),
+              child: const Text('修改独立密码'),
             ),
-          ),
-          TextButton(
-            onPressed: busy ? null : () => _run(_changePassword),
-            child: const Text('修改独立密码'),
-          ),
-          const Text('性别 · 沿用现有穿搭默认品类设置'),
-          RadioGroup<ProfileGender>(
-            groupValue: widget.controller.profileGender,
-            onChanged: (v) async {
-              if (v != null) {
-                await widget.controller.setProfileGender(v);
-                if (mounted) setState(() {});
-              }
-            },
-            child: Column(
-              children: [
-                for (final g in ProfileGender.values)
-                  RadioListTile<ProfileGender>(
-                    key: ValueKey('profile-gender-${g.name}'),
-                    title: Text(g.label),
-                    value: g,
-                  ),
-              ],
+            const Text('性别 · 沿用现有穿搭默认品类设置'),
+            RadioGroup<ProfileGender>(
+              groupValue: widget.controller.profileGender,
+              onChanged: (v) async {
+                if (v != null) {
+                  await widget.controller.setProfileGender(v);
+                  if (mounted) setState(() {});
+                }
+              },
+              child: Column(
+                children: [
+                  for (final g in ProfileGender.values)
+                    RadioListTile<ProfileGender>(
+                      key: ValueKey('profile-gender-${g.name}'),
+                      title: Text(g.label),
+                      value: g,
+                    ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     ),
   );
 }
@@ -529,7 +584,15 @@ class _BodyRecordFormState extends State<BodyRecordForm> {
   @override
   void initState() {
     super.initState();
-    if (!widget.editing) inherited.addAll(widget.seed?.values.keys ?? []);
+    if (!widget.editing) {
+      inherited.addAll(
+        (widget.seed?.values.keys ?? <String>[]).where(
+          numericBodyFields.contains,
+        ),
+      );
+    } else {
+      inherited.addAll(widget.seed?.inherited ?? []);
+    }
   }
 
   @override
@@ -602,7 +665,6 @@ class _BodyRecordFormState extends State<BodyRecordForm> {
                                     ),
                                   ),
                                   Text(measurementHelp[name]!),
-                                  const Text('示意：围度绕身体一周；长度按说明的起止点测量。'),
                                 ],
                               ),
                               actions: [
@@ -638,6 +700,12 @@ class _BodyRecordFormState extends State<BodyRecordForm> {
                     : DateTime.now().microsecondsSinceEpoch.toString(),
                 date: date.text.trim(),
                 values: {
+                  if (widget.editing)
+                    ...Map.fromEntries(
+                      widget.seed!.values.entries.where(
+                        (e) => !numericBodyFields.contains(e.key),
+                      ),
+                    ),
                   for (final e in fields.entries)
                     if (e.value.text.trim().isNotEmpty)
                       e.key: e.value.text.trim(),

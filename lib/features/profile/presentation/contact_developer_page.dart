@@ -11,7 +11,8 @@ class ContactDeveloperPage extends StatefulWidget {
 
 class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
   late final _service = widget.service ?? DeveloperContactService();
-  final _subject = TextEditingController();
+  String _pendingSubject =
+      ''; // Preserve legacy retry identity without a subject input.
   final _content = TextEditingController();
   final _contact = TextEditingController();
   final _contentFocus = FocusNode();
@@ -38,7 +39,7 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
         _version = version;
         _ready = true;
         if (pending != null) {
-          _subject.text = pending.subject;
+          _pendingSubject = pending.subject;
           _content.text = pending.content;
           _contact.text = pending.contact;
         }
@@ -69,14 +70,14 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
         DeveloperFeedback(
           content: _content.text,
           version: _version!,
-          subject: _subject.text,
+          subject: _pendingSubject,
           contact: _contact.text,
         ),
       );
       if (!mounted) return;
       setState(() {
         _success = true;
-        _subject.clear();
+        _pendingSubject = '';
         _content.clear();
         _contact.clear();
       });
@@ -95,7 +96,6 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
 
   @override
   void dispose() {
-    _subject.dispose();
     _content.dispose();
     _contact.dispose();
     _contentFocus.dispose();
@@ -111,21 +111,6 @@ class _ContactDeveloperPageState extends State<ContactDeveloperPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('告诉我你的想法', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              const Text('反馈将直接提交给开发者，并附上软件版本。联系方式选填，方便回复。'),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _subject,
-                enabled: _ready && !_sending,
-                textInputAction: TextInputAction.next,
-                maxLength: 80,
-                decoration: const InputDecoration(
-                  labelText: '主题（选填）',
-                  hintText: '问题反馈或功能建议',
-                ),
-              ),
-              const SizedBox(height: 12),
               TextField(
                 controller: _content,
                 enabled: _ready && !_sending,

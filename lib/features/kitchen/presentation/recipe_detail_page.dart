@@ -109,6 +109,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             spacing: 8,
             runSpacing: 8,
             children: [
+              if (recipe.sourceType == 'public')
+                const Chip(
+                  key: ValueKey('recipe-public-source'),
+                  label: Text('来源：公共库'),
+                  avatar: Icon(Icons.public_outlined, size: 16),
+                ),
               ...recipe.categories.map(
                 (value) => Chip(
                   label: Text(value),
