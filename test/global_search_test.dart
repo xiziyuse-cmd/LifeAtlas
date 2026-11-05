@@ -209,7 +209,7 @@ void main() {
         final docs = await repo.knowledge();
         expect(docs, hasLength(12));
         expect(
-          docs.every((d) => d.source.contains('v2') && d.time == '2026-11-05'),
+          docs.every((d) => d.source.contains('v3') && d.time == '2026-11-05'),
           true,
         );
         final matches = rankSearch(docs, '分享清单');

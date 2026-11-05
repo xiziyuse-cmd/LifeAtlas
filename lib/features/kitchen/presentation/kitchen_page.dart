@@ -343,7 +343,12 @@ class _KitchenPageState extends State<KitchenPage> with WidgetsBindingObserver {
                     crossAxisCount: 3,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
-                    mainAxisExtent: constraints.maxWidth / 3 + 78 * scale,
+                    mainAxisExtent:
+                        constraints.maxWidth / 3 +
+                        (recipes.any((r) => r.sourceType == 'public')
+                                ? 104
+                                : 78) *
+                            scale,
                   ),
                   itemBuilder: (_, index) {
                     final recipe = recipes[index];
@@ -400,6 +405,38 @@ class _KitchenPageState extends State<KitchenPage> with WidgetsBindingObserver {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (recipe.sourceType == 'public')
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Container(
+                                        key: ValueKey(
+                                          'recipe-public-${recipe.id}',
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.secondaryContainer,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '公共库',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSecondaryContainer,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   Text(
                                     recipe.name,
                                     maxLines: 1,

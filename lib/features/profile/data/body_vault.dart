@@ -8,9 +8,8 @@ const bodyFields = <String, List<String>>{
   '基础信息': ['身高', '体重'],
   '上身尺寸': ['肩宽', '胸围', '腰围', '臂长', '上身长度'],
   '下身尺寸': ['臀围', '大腿围', '小腿围', '腿内长', '腿外长'],
-  '尺码与偏好': ['常穿上衣尺码', '常穿裤装尺码', '常穿鞋码', '上装偏好', '裤装偏好'],
 };
-final numericBodyFields = bodyFields.values.take(3).expand((v) => v).toSet();
+final numericBodyFields = bodyFields.values.expand((v) => v).toSet();
 String bodyUnit(String field) => field == '体重'
     ? 'kg'
     : numericBodyFields.contains(field)
@@ -65,7 +64,7 @@ class BodyRecord {
         d.isAfter(DateTime(today.year, today.month, today.day))) {
       throw const FormatException('请选择有效且不晚于今天的记录日期');
     }
-    if (values.isEmpty) throw const FormatException('请至少填写一项身材或尺码数据');
+    if (values.isEmpty) throw const FormatException('请至少填写一项身材数据');
     for (final e in values.entries) {
       if (e.value.length > 200) throw const FormatException('单项内容过长');
       if (numericBodyFields.contains(e.key)) {
@@ -79,8 +78,8 @@ class BodyRecord {
   }
 }
 
-/// All records and both key wrappers are stored as authenticated ciphertext.
-/// No supplier/cloud calls, plaintext password or recovery key are persisted.
+/// Records use an authenticated data key wrapped by the local password.
+/// Legacy envelopes are migrated only after password authentication succeeds.
 class BodyVault {
   BodyVault({MobileApi? api}) : api = api ?? MobileApi.shared;
   final MobileApi api;
@@ -118,23 +117,18 @@ class BodyVault {
     }
   }
 
-  Future<String> create(String password) async {
+  Future<void> create(String password) async {
     _password(password);
-    if (await configured()) throw StateError('档案已设密码，请解锁或使用恢复码');
+    if (await configured()) throw StateError('档案已设密码，请先解锁');
     final epoch = _epoch;
     final key = await cipher.newSecretKey();
-    final recovery = base64UrlEncode(random(32));
     final salt = random(16);
     final env = <String, dynamic>{
-      'version': 1,
+      'version': 2,
       'salt': base64Encode(salt),
       'password': await _seal(
         await key.extractBytes(),
         await _derive(password, salt),
-      ),
-      'recovery': await _seal(
-        await key.extractBytes(),
-        SecretKey(base64Url.decode(recovery)),
       ),
       'records': await _seal(utf8.encode('[]'), key),
     };
@@ -144,7 +138,6 @@ class BodyVault {
       _envelope = env;
       _records = [];
     }
-    return recovery;
   }
 
   void lock() {
@@ -154,7 +147,7 @@ class BodyVault {
     _records = [];
   }
 
-  Future<void> unlock(String password, {bool recovery = false}) async {
+  Future<void> unlock(String password) async {
     if (blockedUntil?.isAfter(DateTime.now()) == true) {
       throw StateError('尝试过多，请30秒后重试');
     }
@@ -163,17 +156,22 @@ class BodyVault {
       final env = Map<String, dynamic>.from(
         await api.setting('body_vault_v1') as Map,
       );
-      final wrapping = recovery
-          ? SecretKey(base64Url.decode(password.trim()))
-          : await _derive(password, base64Decode(env['salt']));
-      final key = SecretKey(
-        await _open(env[recovery ? 'recovery' : 'password'], wrapping),
-      );
+      if (env['version'] != 1 && env['version'] != 2) {
+        throw const FormatException('档案版本不支持');
+      }
+      final wrapping = await _derive(password, base64Decode(env['salt']));
+      final key = SecretKey(await _open(env['password'], wrapping));
       final rows =
           (jsonDecode(utf8.decode(await _open(env['records'], key))) as List)
               .map((v) => BodyRecord.fromJson(Map<String, dynamic>.from(v)))
               .toList();
       if (epoch != _epoch) throw StateError('请重新解锁');
+      if (env['version'] == 1 || env.containsKey('recovery')) {
+        env.remove('recovery');
+        env['version'] = 2;
+        await api.saveSetting('body_vault_v1', env);
+        if (epoch != _epoch) throw StateError('请重新解锁');
+      }
       _key = key;
       _envelope = env;
       _records = rows;
@@ -184,7 +182,7 @@ class BodyVault {
         blockedUntil = DateTime.now().add(const Duration(seconds: 30));
         failures = 0;
       }
-      throw StateError('密码或恢复码不正确，或档案损坏');
+      throw StateError('密码不正确或档案暂时无法读取');
     }
   }
 
