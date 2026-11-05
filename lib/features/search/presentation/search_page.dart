@@ -225,8 +225,9 @@ class _GlobalSearchPageState extends State<GlobalSearchPage>
                       autofocus: widget.autofocus,
                       maxLength: 200,
                       textInputAction: TextInputAction.search,
-                      autocorrect: false,
-                      enableSuggestions: false,
+                      keyboardType: TextInputType.text,
+                      autocorrect: true,
+                      enableSuggestions: true,
                       onSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
                         hintText: '搜索内容，或问一个问题',

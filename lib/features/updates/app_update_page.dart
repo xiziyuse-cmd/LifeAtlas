@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_update_service.dart';
+import 'app_update_notice.dart';
 
 class AppUpdatePage extends StatefulWidget {
-  const AppUpdatePage({super.key, this.initialRelease});
+  const AppUpdatePage({super.key, this.initialRelease, this.notice});
   final AppRelease? initialRelease;
+  final AppUpdateNotice? notice;
   @override
   State<AppUpdatePage> createState() => _AppUpdatePageState();
 }
@@ -45,6 +47,11 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
       _sdk = info['sdk'] as int;
       setState(() => _current = '${info['version']}（$_build）');
       if (widget.initialRelease != null) {
+        widget.notice?.observe(
+          widget.initialRelease,
+          currentBuild: _build,
+          sdk: _sdk,
+        );
         setState(() => _release = widget.initialRelease);
       } else {
         await _check();
@@ -76,10 +83,14 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
     });
     try {
       final release = await _service.check();
+      final info = await _service.deviceInfo();
       if (!mounted) {
         return;
       }
       setState(() {
+        _build = info['build'] as int;
+        _sdk = info['sdk'] as int;
+        _current = '${info['version']}（$_build）';
         _release = release;
         _apk = null;
         _progress = null;
@@ -91,6 +102,7 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
             ? '此版本需要更高的 Android 系统，暂时无法安装'
             : '';
       });
+      widget.notice?.observe(release, currentBuild: _build, sdk: _sdk);
     } catch (e) {
       if (mounted) {
         setState(() => _message = _error(e));
@@ -239,52 +251,40 @@ class _AppUpdatePageState extends State<AppUpdatePage> {
 }
 
 class AppUpdatePrompt {
-  static Future<void> check(BuildContext context) async {
-    if (!AppUpdateService.supported) {
-      return;
-    }
-    final service = AppUpdateService();
-    try {
-      final info = await service.deviceInfo();
-      final release = await service.check();
-      if (!context.mounted ||
-          release == null ||
-          !release.isNewerThan(info['build'] as int) ||
-          release.minSdk > (info['sdk'] as int)) {
-        return;
-      }
-      final accepted = await showDialog<bool>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: Text('发现新版本 ${release.version}'),
-          content: SingleChildScrollView(
-            child: Text(
-              '${release.notes}\n\n安装包 ${(release.size / 1048576).toStringAsFixed(1)} MB',
-            ),
+  static Future<void> show(
+    BuildContext context,
+    AppRelease release, {
+    AppUpdateNotice? notice,
+  }) async {
+    if (!context.mounted || !release.isMajorRelease) return;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('发现新版本 ${release.version}'),
+        content: SingleChildScrollView(
+          child: Text(
+            '${release.notes}\n\n安装包 ${(release.size / 1048576).toStringAsFixed(1)} MB',
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('稍后再说'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('查看更新'),
-            ),
-          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('稍后再说'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('查看更新'),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true && context.mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              AppUpdatePage(initialRelease: release, notice: notice),
         ),
       );
-      if (accepted == true && context.mounted) {
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => AppUpdatePage(initialRelease: release),
-          ),
-        );
-      }
-    } catch (_) {
-      /* Automatic checks never block launch; manual checks show errors. */
-    } finally {
-      service.close();
     }
   }
 }

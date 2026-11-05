@@ -209,7 +209,7 @@ void main() {
         final docs = await repo.knowledge();
         expect(docs, hasLength(12));
         expect(
-          docs.every((d) => d.source.contains('v1') && d.time == '2026-11-05'),
+          docs.every((d) => d.source.contains('v2') && d.time == '2026-11-05'),
           true,
         );
         final matches = rankSearch(docs, '分享清单');
@@ -546,6 +546,43 @@ void main() {
       await tester.tap(find.byTooltip('清空'));
       await tester.pumpAndSettle();
       expect(find.text('常见问题'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'search uses ordinary text keyboard and waits for Chinese composition',
+    (tester) async {
+      final repo = WidgetSearchRepository();
+      await tester.pumpWidget(app(repo));
+      await tester.pumpAndSettle();
+      final input = find.byKey(const ValueKey('global-search-input'));
+      final field = tester.widget<TextField>(input);
+      expect(field.keyboardType, TextInputType.text);
+      expect(field.obscureText, false);
+      expect(field.autocorrect, true);
+      expect(field.enableSuggestions, true);
+      expect(field.textInputAction, TextInputAction.search);
+      await tester.showKeyboard(input);
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: 'gou',
+          selection: TextSelection.collapsed(offset: 3),
+          composing: TextRange(start: 0, end: 3),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('常见问题'), findsOneWidget);
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: '购物清单',
+          selection: TextSelection.collapsed(offset: 4),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('你可能想问'), findsOneWidget);
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     },
   );
 

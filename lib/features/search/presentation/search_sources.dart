@@ -7,6 +7,7 @@ import '../../modules/presentation/modules_page.dart';
 import '../../profile/presentation/body_profile_page.dart';
 import '../../profile/presentation/theme_settings_page.dart';
 import '../../updates/app_update_page.dart';
+import '../../updates/app_update_notice.dart';
 import '../../skincare/data/skincare_ai_service.dart';
 import '../../skincare/presentation/skin_product_page.dart';
 import '../../skincare/presentation/skin_plan_page.dart';
@@ -29,6 +30,7 @@ class SearchSources {
     required this.skinAi,
     required this.imageService,
     required this.preorderAnalysis,
+    this.updateNotice,
   });
   final AppController controller;
   final SearchRepository repository;
@@ -37,6 +39,7 @@ class SearchSources {
   final SkincareAiService skinAi;
   final WardrobeImageService imageService;
   final PreorderAnalysisService preorderAnalysis;
+  final AppUpdateNotice? updateNotice;
   bool enabled(SearchCategory c) => switch (c) {
     SearchCategory.kitchen => controller.kitchenModuleEnabled,
     SearchCategory.wardrobe => controller.outfitModuleEnabled,
@@ -143,7 +146,7 @@ class SearchSources {
       case 'theme':
         page = ThemeSettingsPage(controller: controller);
       case 'updates':
-        page = const AppUpdatePage();
+        page = AppUpdatePage(notice: updateNotice);
       case 'modules':
         page = Scaffold(
           appBar: AppBar(title: const Text('板块管理')),

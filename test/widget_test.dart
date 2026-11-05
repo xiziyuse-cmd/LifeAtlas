@@ -9,32 +9,32 @@ import 'package:lifeatlas/features/kitchen/data/kitchen_repository.dart';
 import 'package:lifeatlas/features/kitchen/domain/kitchen_models.dart';
 
 void main() {
-  testWidgets(
-    'home global search replaces the placeholder and keeps image shortcut',
-    (tester) async {
-      final controller = AppController(_MemoryAppSettingsRepository());
-      await controller.initialize();
-      await tester.pumpWidget(
-        LifeAtlasApp(
-          controller: controller,
-          kitchenRepository: _EmptyKitchenRepository(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('home-ai-image-button')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('home-global-search')));
-      await tester.pumpAndSettle();
-      expect(find.text('全局搜索'), findsOneWidget);
-      expect(find.byKey(const ValueKey('global-search-input')), findsOneWidget);
-      expect(find.textContaining('AI 接口暂未接入'), findsNothing);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-      controller.dispose();
-    },
-  );
+  testWidgets('home global search fills the space without an image shortcut', (
+    tester,
+  ) async {
+    final controller = AppController(_MemoryAppSettingsRepository());
+    await controller.initialize();
+    await tester.pumpWidget(
+      LifeAtlasApp(
+        controller: controller,
+        kitchenRepository: _EmptyKitchenRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-ai-image-button')), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('home-global-search'))).dx,
+      16,
+    );
+    await tester.tap(find.byKey(const ValueKey('home-global-search')));
+    await tester.pumpAndSettle();
+    expect(find.text('全局搜索'), findsOneWidget);
+    expect(find.byKey(const ValueKey('global-search-input')), findsOneWidget);
+    expect(find.textContaining('AI 接口暂未接入'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+  });
   testWidgets(
     'actual home calendar follows light and dark mode in every palette',
     (tester) async {
