@@ -191,14 +191,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _applyTodayWeatherToOutfit() async {
-    final weather = await const MockWeatherService().getCurrentWeather();
-    await _wardrobeRepository.applyTemperatureForDate(
-      date: DateTime.now(),
-      minTemperature: weather.minTemperature,
-      maxTemperature: weather.maxTemperature,
-      weatherType: weather.status,
-    );
+  Future<void> _applyTodayWeatherToOutfit(DateTime date) async {
+    final now = DateTime.now();
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
+      // The real weather service validates city/date and synchronizes confirmed
+      // daily snapshots transactionally. Never manufacture historical weather.
+      await QWeatherService().getCurrentWeather();
+    }
+    await _wardrobeRepository.syncPendingTemperatureMemory();
   }
 
   Future<void> _openSearch() async {

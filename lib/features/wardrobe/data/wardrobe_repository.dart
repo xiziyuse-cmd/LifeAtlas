@@ -1,8 +1,10 @@
 import 'dart:math' as math;
+import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/outfit_weather_integrity.dart';
 import '../../../core/database/date_key_codec.dart';
 import '../../../core/database/wardrobe_schema.dart';
 import '../domain/models/clothing_catalog.dart';
@@ -357,7 +359,21 @@ class WardrobeRepository {
     required DateTime date,
     required Iterable<int> clothingItemIds,
     DateTime? recordedAt,
+    double? confirmedMinimum,
+    double? confirmedMaximum,
   }) async {
+    if (DateKeyCodec.encode(
+          date,
+        ).compareTo(DateKeyCodec.encode(DateTime.now())) >
+        0) {
+      throw ArgumentError('不能记录未来日期');
+    }
+    if (confirmedMinimum != null || confirmedMaximum != null) {
+      if (confirmedMinimum == null || confirmedMaximum == null) {
+        throw ArgumentError('请填写完整温度');
+      }
+      _validateTemperatureRange(confirmedMinimum, confirmedMaximum);
+    }
     final newIds = clothingItemIds.toSet();
     final database = await _database.database;
     final dateKey = DateKeyCodec.encode(date);
@@ -386,6 +402,7 @@ class WardrobeRepository {
             await _rebuildWearCounts(transaction, oldIds);
           }
         }
+        await rebuildOutfitTemperatures(transaction);
         return;
       }
 
@@ -438,35 +455,48 @@ class WardrobeRepository {
         await _rebuildWearCounts(transaction, oldIds.union(newIds));
       }
 
-      final storedRecord = targetRow;
       final weather = await _weatherForDate(transaction, dateKey);
-      final minTemperature =
-          (weather?['min_temperature'] as num?)?.toDouble() ??
-          (storedRecord?['min_temperature'] as num?)?.toDouble();
-      final maxTemperature =
-          (weather?['max_temperature'] as num?)?.toDouble() ??
-          (storedRecord?['max_temperature'] as num?)?.toDouble();
-      if (minTemperature != null && maxTemperature != null) {
-        _validateTemperatureRange(minTemperature, maxTemperature);
-        await _expandTemperatureForItems(
-          transaction,
-          newIds,
-          minTemperature,
-          maxTemperature,
-        );
+      // A later city selection must not relocate a confirmed daily snapshot.
+      if (weather != null &&
+          targetRow?['weather_status'] != 'pending' &&
+          targetRow?['weather_source'] != 'user-confirmed' &&
+          (targetRow?['weather_city_id'] == null ||
+              targetRow?['weather_city_id'] == weather['weather_city_id'])) {
         await transaction.update(
           'daily_outfit_records',
           {
-            'weather_type':
-                weather?['weather_type'] ?? storedRecord?['weather_type'],
-            'min_temperature': minTemperature,
-            'max_temperature': maxTemperature,
+            'weather_type': weather['weather_type'],
+            'min_temperature': weather['min_temperature'],
+            'max_temperature': weather['max_temperature'],
+            'temperature_applied_at': now.toIso8601String(),
+            'weather_status': 'verified',
+            'weather_source': weather['data_source'],
+            'weather_city_id': weather['weather_city_id'],
+            'weather_zone': weather['weather_zone'],
+            'weather_fetched_at': weather['recorded_at'],
+          },
+          where: 'id = ?',
+          whereArgs: [recordId],
+        );
+      }
+      if (confirmedMinimum != null && confirmedMaximum != null) {
+        await transaction.update(
+          'daily_outfit_records',
+          {
+            'min_temperature': confirmedMinimum,
+            'max_temperature': confirmedMaximum,
+            'weather_status': 'verified',
+            'weather_source': 'user-confirmed',
+            'weather_city_id': null,
+            'weather_zone': null,
+            'weather_fetched_at': now.toIso8601String(),
             'temperature_applied_at': now.toIso8601String(),
           },
           where: 'id = ?',
           whereArgs: [recordId],
         );
       }
+      await rebuildOutfitTemperatures(transaction);
     });
   }
 
@@ -480,6 +510,9 @@ class WardrobeRepository {
     required double maxTemperature,
     String? weatherType,
     DateTime? appliedAt,
+    String source = 'user-confirmed',
+    String? cityId,
+    String? zone,
   }) async {
     _validateTemperatureRange(minTemperature, maxTemperature);
     final database = await _database.database;
@@ -491,18 +524,16 @@ class WardrobeRepository {
         return;
       }
       final rowIds = rows.map((row) => row['id'] as int).toList();
-      final clothingIds = await _dailyClothingIds(transaction, rowIds);
-      await _expandTemperatureForItems(
-        transaction,
-        clothingIds,
-        minTemperature,
-        maxTemperature,
-      );
       final updateValues = <String, Object?>{
         'min_temperature': minTemperature,
         'max_temperature': maxTemperature,
         'temperature_applied_at': applied,
         'updated_at': applied,
+        'weather_status': 'verified',
+        'weather_source': source,
+        'weather_city_id': cityId,
+        'weather_zone': zone,
+        'weather_fetched_at': applied,
       };
       if (weatherType != null) {
         updateValues['weather_type'] = weatherType;
@@ -513,54 +544,33 @@ class WardrobeRepository {
         where: 'id IN (${_placeholders(rowIds.length)})',
         whereArgs: rowIds,
       );
+      await rebuildOutfitTemperatures(transaction);
     });
   }
 
   Future<int> syncPendingTemperatureMemory() async {
     final database = await _database.database;
-    final pendingRows = await database.query(
+    final rows = await database.query(
       'daily_outfit_records',
-      where: 'temperature_applied_at IS NULL',
-      orderBy: 'record_date ASC',
+      where: "weather_status = 'missing'",
     );
-    final pendingDates = <String>{};
-    for (final row in pendingRows) {
-      try {
-        pendingDates.add(
-          DateKeyCodec.normalizeStorageValue(row['record_date']),
-        );
-      } on FormatException {
-        continue;
-      }
-    }
-
-    var appliedCount = 0;
-    for (final dateKey in pendingDates) {
-      final rows = await _dailyRowsForDate(database, dateKey);
-      if (rows.isEmpty) {
-        continue;
-      }
-      final row = rows.first;
-      final weather = await _weatherForDate(database, dateKey);
-      final minTemperature =
-          (row['min_temperature'] as num?)?.toDouble() ??
-          (weather?['min_temperature'] as num?)?.toDouble();
-      final maxTemperature =
-          (row['max_temperature'] as num?)?.toDouble() ??
-          (weather?['max_temperature'] as num?)?.toDouble();
-      if (minTemperature == null || maxTemperature == null) {
-        continue;
-      }
+    var count = 0;
+    for (final row in rows) {
+      final key = DateKeyCodec.normalizeStorageValue(row['record_date']);
+      final weather = await _weatherForDate(database, key);
+      if (weather == null) continue;
       await applyTemperatureForDate(
-        date: DateKeyCodec.decode(dateKey),
-        minTemperature: minTemperature,
-        maxTemperature: maxTemperature,
-        weatherType:
-            (row['weather_type'] ?? weather?['weather_type']) as String?,
+        date: DateKeyCodec.decode(key),
+        minTemperature: (weather['min_temperature'] as num).toDouble(),
+        maxTemperature: (weather['max_temperature'] as num).toDouble(),
+        weatherType: weather['weather_type'] as String?,
+        source: weather['data_source'] as String,
+        cityId: weather['weather_city_id'] as String,
+        zone: weather['weather_zone'] as String?,
       );
-      appliedCount++;
+      count++;
     }
-    return appliedCount;
+    return count;
   }
 
   Future<List<ClothingRecommendation>> recommendForTemperature({
@@ -940,12 +950,29 @@ class WardrobeRepository {
   ) async {
     final rows = await database.query(
       'weather_records',
-      where: 'substr(record_date, 1, 10) = ?',
+      where:
+          "substr(record_date, 1, 10) = ? AND data_source = 'qweather:current+forecast-range' AND weather_city_id IS NOT NULL",
       whereArgs: [dateKey],
       orderBy: 'recorded_at DESC, id DESC',
       limit: 1,
     );
-    return rows.isEmpty ? null : rows.first;
+    if (rows.isEmpty) return null;
+    if (dateKey == DateKeyCodec.encode(DateTime.now())) {
+      final selected = await database.query(
+        'app_settings',
+        where: 'setting_key = ?',
+        whereArgs: ['weather_city'],
+      );
+      if (selected.isNotEmpty) {
+        final city =
+            jsonDecode(selected.single['setting_value'] as String) as Map;
+        if (city['id'] != rows.first['weather_city_id'] ||
+            city['tz'] != rows.first['weather_zone']) {
+          return null;
+        }
+      }
+    }
+    return rows.first;
   }
 
   Future<void> _updateWearCounts(
@@ -995,35 +1022,6 @@ class WardrobeRepository {
         [id, id],
       );
     }
-  }
-
-  Future<void> _expandTemperatureForItems(
-    DatabaseExecutor database,
-    Iterable<int> clothingItemIds,
-    double minTemperature,
-    double maxTemperature,
-  ) async {
-    final ids = clothingItemIds.toList(growable: false);
-    if (ids.isEmpty) {
-      return;
-    }
-    await database.rawUpdate(
-      '''
-      UPDATE clothing_items
-      SET min_worn_temperature = CASE
-            WHEN min_worn_temperature IS NULL OR min_worn_temperature > ?
-              THEN ?
-            ELSE min_worn_temperature
-          END,
-          max_worn_temperature = CASE
-            WHEN max_worn_temperature IS NULL OR max_worn_temperature < ?
-              THEN ?
-            ELSE max_worn_temperature
-          END
-      WHERE id IN (${_placeholders(ids.length)})
-    ''',
-      [minTemperature, minTemperature, maxTemperature, maxTemperature, ...ids],
-    );
   }
 
   Future<Map<String, Object?>> _preorderValues(
@@ -1085,6 +1083,19 @@ class WardrobeRepository {
       where: 'clothing_item_id = ?',
       whereArgs: [clothingItemId],
     );
+    for (final base in [
+      'waist_circumference',
+      'hip_circumference',
+      'thigh_circumference',
+    ]) {
+      final min = values['${base}_min']?.numberValue;
+      final max = values['${base}_max']?.numberValue;
+      if ((min != null && (!min.isFinite || min <= 0)) ||
+          (max != null && (!max.isFinite || max <= 0)) ||
+          (min != null && max != null && min > max)) {
+        throw ArgumentError('尺寸范围无效');
+      }
+    }
     final updatedAtText = updatedAt.toUtc().toIso8601String();
     for (final value in values.values) {
       if (value.isEmpty ||
@@ -1180,7 +1191,11 @@ class WardrobeRepository {
   }
 
   void _validateTemperatureRange(double minValue, double maxValue) {
-    if (!minValue.isFinite || !maxValue.isFinite || minValue > maxValue) {
+    if (!minValue.isFinite ||
+        !maxValue.isFinite ||
+        minValue < -100 ||
+        maxValue > 70 ||
+        minValue > maxValue) {
       throw ArgumentError('温度范围无效。');
     }
   }

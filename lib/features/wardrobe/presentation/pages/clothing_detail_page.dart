@@ -179,14 +179,27 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     for (final definition in ClothingParameterCatalog.forCategory(
       _item.category,
     )) {
-      if (definition.key == 'waist_circumference_min') {
-        final display = _waistRangeDisplay;
+      final group = definition.group == '裤装尺寸' ? '尺寸' : definition.group;
+      if (const [
+        'waist_circumference_min',
+        'hip_circumference_min',
+        'thigh_circumference_min',
+      ].contains(definition.key)) {
+        final base = definition.key.replaceAll('_min', '');
+        final display = _rangeDisplay(base);
         if (display != null) {
-          groups.putIfAbsent(definition.group, () => []).add(('腰围', display));
+          groups.putIfAbsent(group, () => []).add((
+            definition.label.replaceAll('最小值', ''),
+            display,
+          ));
         }
         continue;
       }
-      if (definition.key == 'waist_circumference_max') {
+      if (const [
+        'waist_circumference_max',
+        'hip_circumference_max',
+        'thigh_circumference_max',
+      ].contains(definition.key)) {
         continue;
       }
       final dynamicValue = _item.parameterValues[definition.key];
@@ -199,30 +212,30 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
       if (display == null) {
         continue;
       }
-      groups.putIfAbsent(definition.group, () => []).add((
-        definition.label,
-        display,
-      ));
+      groups.putIfAbsent(group, () => []).add((definition.label, display));
     }
     return groups;
   }
 
-  String? get _waistRangeDisplay {
-    final legacyValue =
-        _item.parameterValues['waist_circumference']?.numberValue ??
-        _item.waistCircumference;
-    final minimum =
-        _item.parameterValues['waist_circumference_min']?.numberValue ??
-        legacyValue;
-    final maximum =
-        _item.parameterValues['waist_circumference_max']?.numberValue ??
-        legacyValue;
-    if (minimum == null && maximum == null) {
-      return null;
-    }
-    final minimumText = minimum == null ? '—' : _number(minimum);
-    final maximumText = maximum == null ? '—' : _number(maximum);
-    return '$minimumText – $maximumText cm';
+  String? _rangeDisplay(String base) {
+    final hasRange =
+        _item.parameterValues.containsKey('${base}_min') ||
+        _item.parameterValues.containsKey('${base}_max');
+    final legacy =
+        _item.parameterValues[base]?.numberValue ??
+        (base == 'waist_circumference'
+            ? _item.waistCircumference
+            : base == 'hip_circumference'
+            ? _item.hipCircumference
+            : null);
+    final minimum = hasRange
+        ? _item.parameterValues['${base}_min']?.numberValue
+        : legacy;
+    final maximum = hasRange
+        ? _item.parameterValues['${base}_max']?.numberValue
+        : legacy;
+    if (minimum == null && maximum == null) return null;
+    return '${minimum == null ? '—' : _number(minimum)} – ${maximum == null ? '—' : _number(maximum)} cm';
   }
 
   double? _legacyParameterValue(String key) => switch (key) {
@@ -240,7 +253,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
       value == null ? null : '¥${_number(value)}';
 
   static String? _temperature(double? value) =>
-      value == null ? '尚未形成记录' : '${_number(value)}℃';
+      value == null ? '尚无已确认温度' : '${_number(value)}℃';
 
   static String? _date(DateTime? value) => value == null
       ? null
@@ -283,14 +296,17 @@ class _DetailSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 76,
+                      width: 108,
                       child: Text(
-                        visibleRows[index].$1,
+                        visibleRows[index].$1 == '裤长（外长）'
+                            ? '裤长\n（外长）'
+                            : visibleRows[index].$1,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Expanded(child: Text(visibleRows[index].$2!)),
                   ],
                 ),

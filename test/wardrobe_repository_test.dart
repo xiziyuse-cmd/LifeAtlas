@@ -137,54 +137,60 @@ void main() {
       ]);
     });
 
-    test('daily replace is idempotent and temperature only expands', () async {
-      final first = await repository.createClothing(_clothing(name: '上衣'));
-      final second = await repository.createClothing(_clothing(name: '长裤'));
-      final third = await repository.createClothing(_clothing(name: '外套'));
-      final day = DateTime(2026, 8, 16);
+    test(
+      'daily replace is idempotent and temperature rebuilds from current records',
+      () async {
+        final first = await repository.createClothing(_clothing(name: '上衣'));
+        final second = await repository.createClothing(_clothing(name: '长裤'));
+        final third = await repository.createClothing(_clothing(name: '外套'));
+        final day = DateTime(2026, 8, 16);
 
-      await repository.replaceDailyOutfit(
-        date: day,
-        clothingItemIds: [first, second],
-      );
-      await repository.replaceDailyOutfit(
-        date: day,
-        clothingItemIds: [first, second],
-      );
-      expect((await repository.getClothing(first))!.wearCount, 1);
-      expect((await repository.getClothing(second))!.wearCount, 1);
+        await repository.replaceDailyOutfit(
+          date: day,
+          clothingItemIds: [first, second],
+        );
+        await repository.replaceDailyOutfit(
+          date: day,
+          clothingItemIds: [first, second],
+        );
+        expect((await repository.getClothing(first))!.wearCount, 1);
+        expect((await repository.getClothing(second))!.wearCount, 1);
 
-      await repository.replaceDailyOutfit(
-        date: day,
-        clothingItemIds: [second, third],
-      );
-      expect((await repository.getClothing(first))!.wearCount, 0);
-      expect((await repository.getClothing(second))!.wearCount, 1);
-      expect((await repository.getClothing(third))!.wearCount, 1);
+        await repository.replaceDailyOutfit(
+          date: day,
+          clothingItemIds: [second, third],
+        );
+        expect((await repository.getClothing(first))!.wearCount, 0);
+        expect((await repository.getClothing(second))!.wearCount, 1);
+        expect((await repository.getClothing(third))!.wearCount, 1);
 
-      await repository.applyTemperatureForDate(
-        date: day,
-        minTemperature: 10,
-        maxTemperature: 20,
-      );
-      await repository.applyTemperatureForDate(
-        date: day,
-        minTemperature: 12,
-        maxTemperature: 19,
-      );
-      await repository.applyTemperatureForDate(
-        date: day,
-        minTemperature: 8,
-        maxTemperature: 21,
-      );
-      final remembered = await repository.getClothing(second);
-      expect(remembered!.minWornTemperature, 8);
-      expect(remembered.maxWornTemperature, 21);
+        await repository.applyTemperatureForDate(
+          date: day,
+          minTemperature: 10,
+          maxTemperature: 20,
+        );
+        await repository.applyTemperatureForDate(
+          date: day,
+          minTemperature: 12,
+          maxTemperature: 19,
+        );
+        await repository.applyTemperatureForDate(
+          date: day,
+          minTemperature: 8,
+          maxTemperature: 21,
+        );
+        final remembered = await repository.getClothing(second);
+        expect(remembered!.minWornTemperature, 8);
+        expect(remembered.maxWornTemperature, 21);
 
-      await repository.deleteDailyOutfit(day);
-      expect((await repository.getClothing(second))!.wearCount, 0);
-      expect((await repository.getClothing(second))!.minWornTemperature, 8);
-    });
+        await repository.deleteDailyOutfit(day);
+        expect((await repository.getClothing(second))!.wearCount, 0);
+        expect(
+          (await repository.getClothing(second))!.minWornTemperature,
+          isNull,
+        );
+      },
+    );
 
     test(
       'pending weather is compensated and recommendation uses strict tiers',
@@ -211,6 +217,9 @@ void main() {
           'record_date': '2026-08-15T00:00:00.000',
           'region': '上海',
           'weather_type': '晴',
+          'data_source': 'qweather:current+forecast-range',
+          'weather_city_id': 'fixture',
+          'weather_zone': 'Asia/Shanghai',
           'min_temperature': 15,
           'max_temperature': 25,
           'recorded_at': timestamp.toIso8601String(),

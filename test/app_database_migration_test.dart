@@ -206,6 +206,14 @@ Future<void> _createV1Schema(Database database, int version) async {
       )
     ''')
     ..execute('''
+      CREATE TABLE weather_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, record_date TEXT NOT NULL UNIQUE,
+        region TEXT NOT NULL, weather_type TEXT NOT NULL, current_temperature REAL,
+        min_temperature REAL NOT NULL, max_temperature REAL NOT NULL,
+        recorded_at TEXT NOT NULL, data_source TEXT
+      )
+    ''')
+    ..execute('''
       CREATE TABLE daily_outfit_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         record_date TEXT NOT NULL UNIQUE,

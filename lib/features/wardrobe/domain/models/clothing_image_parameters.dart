@@ -50,7 +50,22 @@ class ClothingImageParameters {
 
   factory ClothingImageParameters.fromJson(Map<String, Object?> json) {
     final measurements = _objectMap(json['measurements']);
-    final parameters = _objectMap(json['parameters']);
+    final parameters = Map<String, Object?>.from(
+      _objectMap(json['parameters']),
+    );
+    for (final base in ['hip_circumference', 'thigh_circumference']) {
+      final original = parameters[base];
+      if (original is String) {
+        final range = RegExp(
+          r'^\s*(\d+(?:\.\d+)?)\s*[-–—~～至]\s*(\d+(?:\.\d+)?)\s*(?:cm|厘米)?\s*$',
+        ).firstMatch(original);
+        if (range != null) {
+          parameters.putIfAbsent('${base}_min', () => double.parse(range[1]!));
+          parameters.putIfAbsent('${base}_max', () => double.parse(range[2]!));
+          parameters.remove(base);
+        }
+      }
+    }
     Object? value(String key) => measurements[key] ?? json[key];
 
     return ClothingImageParameters(

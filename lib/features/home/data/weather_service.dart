@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'package:sqflite/sqflite.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../../../core/network/mobile_api.dart';
 import '../../../core/database/date_key_codec.dart';
+import '../../../core/database/outfit_weather_integrity.dart';
 import '../domain/weather_model.dart';
 import '../domain/hourly_weather.dart';
 
@@ -120,30 +123,77 @@ class QWeatherService implements WeatherService {
         'forceRefresh': forceRefresh,
       });
       final weather = WeatherModel.fromJson(data);
-      await api.saveSetting('weather_cache_${city['id']}', data);
-      final now = DateTime.now();
-      if (weather.date == DateKeyCodec.encode(now)) {
-        final db = await api.database.database;
-        await db.rawInsert(
-          'INSERT OR REPLACE INTO weather_records(record_date,region,weather_type,current_temperature,min_temperature,max_temperature,recorded_at,data_source) VALUES(?,?,?,?,?,?,?,?)',
-          [
-            weather.date,
-            weather.region,
-            weather.status,
-            weather.currentTemperature,
-            weather.minTemperature,
-            weather.maxTemperature,
-            weather.fetchedAt,
-            'qweather:current+forecast-range',
-          ],
-        );
+      final today = tz.TZDateTime.from(
+        clock(),
+        HourlyForecast.location(city['tz'] as String),
+      );
+      if (weather.date != DateKeyCodec.encode(today)) {
+        throw const FormatException('天气日期与城市当天不一致');
       }
+      final activeCity = await selectedCity();
+      if (activeCity?['id'] != city['id'] || activeCity?['tz'] != city['tz']) {
+        throw StateError('城市已切换，请重新获取天气');
+      }
+      await api.saveSetting('weather_cache_${city['id']}', {
+        ...data,
+        'cityId': city['id'],
+        'tz': city['tz'],
+      });
+      final db = await api.database.database;
+      await db.transaction((tx) async {
+        final selections = await tx.query(
+          'app_settings',
+          where: 'setting_key = ?',
+          whereArgs: ['weather_city'],
+        );
+        if (selections.isNotEmpty) {
+          final selection =
+              jsonDecode(selections.single['setting_value'] as String) as Map;
+          if (selection['id'] != city['id'] || selection['tz'] != city['tz']) {
+            throw StateError('城市已切换，请重新获取天气');
+          }
+        }
+        await tx.insert('weather_records', {
+          'record_date': weather.date,
+          'region': weather.region,
+          'weather_type': weather.status,
+          'current_temperature': weather.currentTemperature,
+          'min_temperature': weather.minTemperature,
+          'max_temperature': weather.maxTemperature,
+          'recorded_at': weather.fetchedAt,
+          'data_source': 'qweather:current+forecast-range',
+          'weather_city_id': city['id'],
+          'weather_zone': city['tz'],
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        await tx.update(
+          'daily_outfit_records',
+          {
+            'weather_type': weather.status,
+            'min_temperature': weather.minTemperature,
+            'max_temperature': weather.maxTemperature,
+            'weather_status': 'verified',
+            'weather_source': 'qweather:current+forecast-range',
+            'weather_city_id': city['id'],
+            'weather_zone': city['tz'],
+            'weather_fetched_at': weather.fetchedAt,
+            'temperature_applied_at': clock().toUtc().toIso8601String(),
+          },
+          where:
+              "record_date = ? AND (weather_status = 'missing' OR (weather_status = 'verified' AND weather_city_id = ? AND weather_source = 'qweather:current+forecast-range'))",
+          whereArgs: [weather.date, city['id']],
+        );
+        await rebuildOutfitTemperatures(tx);
+      });
       return weather;
     } catch (error) {
+      final active = await selectedCity();
+      if (active?['id'] != city['id'] || active?['tz'] != city['tz']) rethrow;
       final cache = await api.setting('weather_cache_${city['id']}');
       if (cache != null) {
+        final raw = Map<String, dynamic>.from(cache as Map);
+        if (raw['cityId'] != city['id'] || raw['tz'] != city['tz']) rethrow;
         final cached = WeatherModel.fromJson(
-          Map<String, dynamic>.from(cache as Map),
+          raw,
           cached: true,
           warning: error.toString().replaceFirst('Bad state: ', ''),
         );
@@ -157,21 +207,4 @@ class QWeatherService implements WeatherService {
       rethrow;
     }
   }
-}
-
-// Test-only fixture. The application uses QWeatherService.
-class MockWeatherService implements WeatherService {
-  const MockWeatherService();
-  @override
-  Future<WeatherModel> getCurrentWeather({
-    double? latitude,
-    double? longitude,
-  }) async => const WeatherModel(
-    icon: '☁️',
-    status: '多云',
-    currentTemperature: 26,
-    minTemperature: 22,
-    maxTemperature: 30,
-    isSimulated: true,
-  );
 }

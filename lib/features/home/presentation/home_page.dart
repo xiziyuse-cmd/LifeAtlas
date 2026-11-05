@@ -125,6 +125,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _weatherError = null;
       });
       await _loadRecommendations();
+      await _loadMonth();
     } on Object catch (error) {
       if (!mounted || revision != _weatherRevision) {
         return;

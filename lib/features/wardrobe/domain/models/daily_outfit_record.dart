@@ -11,8 +11,10 @@ class DailyOutfitRecord {
     this.minTemperature,
     this.maxTemperature,
     this.temperatureAppliedAt,
+    this.weatherStatus = 'missing',
   });
 
+  final String weatherStatus;
   final int? id;
   final DateTime date;
   final List<int> clothingItemIds;
@@ -25,6 +27,7 @@ class DailyOutfitRecord {
 
   Map<String, Object?> toMap() {
     return {
+      'weather_status': weatherStatus,
       'id': id,
       'record_date': DateKeyCodec.encode(date),
       'recorded_at': recordedAt.toIso8601String(),
@@ -41,6 +44,7 @@ class DailyOutfitRecord {
     List<int> clothingItemIds = const [],
   }) {
     return DailyOutfitRecord(
+      weatherStatus: map['weather_status'] as String? ?? 'missing',
       id: map['id'] as int?,
       date: DateKeyCodec.decode(map['record_date'] as String),
       clothingItemIds: clothingItemIds,
@@ -72,6 +76,7 @@ class DailyOutfitRecord {
     DateTime? temperatureAppliedAt,
   }) {
     return DailyOutfitRecord(
+      weatherStatus: weatherStatus,
       id: id ?? this.id,
       date: date ?? this.date,
       clothingItemIds: clothingItemIds ?? this.clothingItemIds,
