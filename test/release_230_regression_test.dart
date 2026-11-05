@@ -105,7 +105,10 @@ void main() {
       expect(value.id, id);
       expect(value.name, dish.name);
       expect(value.materials.single.amount, 2);
-      expect(await (await upgraded.database).getVersion(), 13);
+      expect(
+        await (await upgraded.database).getVersion(),
+        AppDatabase.databaseVersion,
+      );
     },
   );
   test(
@@ -190,7 +193,11 @@ void main() {
       final db = await openTestAppDatabase();
       addTearDown(db.close);
       final api = FixtureApi(database: db);
-      api.values['weather_city'] = {'id': 'fixture', 'name': '成都'};
+      api.values['weather_city'] = {
+        'id': 'fixture',
+        'name': '成都',
+        'tz': 'Asia/Shanghai',
+      };
       api.response = {
         'icon': '☀️',
         'status': '晴',
@@ -217,7 +224,11 @@ void main() {
     final db = await openTestAppDatabase();
     addTearDown(db.close);
     final api = FixtureApi(database: db);
-    api.values['weather_city'] = {'id': 'fixture', 'name': '成都'};
+    api.values['weather_city'] = {
+      'id': 'fixture',
+      'name': '成都',
+      'tz': 'Asia/Shanghai',
+    };
     api.response = {
       'icon': '☀️',
       'status': '晴',
@@ -230,7 +241,10 @@ void main() {
       'source': '和风天气',
       'isSimulated': false,
     };
-    await QWeatherService(api: api).getCurrentWeather();
+    await expectLater(
+      QWeatherService(api: api).getCurrentWeather(),
+      throwsFormatException,
+    );
     expect(await (await db.database).query('weather_records'), isEmpty);
   });
 }

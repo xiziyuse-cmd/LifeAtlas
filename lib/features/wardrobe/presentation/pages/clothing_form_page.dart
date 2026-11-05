@@ -92,6 +92,16 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
     _fillLegacyParameter('waist_circumference_min', legacyWaist);
     _fillLegacyParameter('waist_circumference_max', legacyWaist);
     _fillLegacyParameter('hip_circumference', item?.hipCircumference);
+    for (final base in ['hip_circumference', 'thigh_circumference']) {
+      final old =
+          item?.parameterValues[base]?.numberValue ??
+          (base == 'hip_circumference' ? item?.hipCircumference : null);
+      if (!(item?.parameterValues.containsKey('${base}_min') ?? false) &&
+          !(item?.parameterValues.containsKey('${base}_max') ?? false)) {
+        _fillLegacyParameter('${base}_min', old);
+        _fillLegacyParameter('${base}_max', old);
+      }
+    }
     _fillLegacyParameter('trouser_length', item?.trouserLength);
     _priceController = _numberController(item?.purchasePrice);
     _notesController = TextEditingController(text: item?.notes);
@@ -339,6 +349,18 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
         _fillNumberIfEmpty(controller, value.toDouble());
       } else if (value is String) {
         _fillTextIfEmpty(controller, value);
+      }
+    }
+    for (final base in ['hip_circumference', 'thigh_circumference']) {
+      if (!parameters.parameterValues.containsKey('${base}_min') &&
+          !parameters.parameterValues.containsKey('${base}_max')) {
+        final value =
+            parameters.parameterValues[base] ??
+            (base == 'hip_circumference' ? parameters.hipCircumference : null);
+        if (value is num) {
+          _fillRecognizedNumber('${base}_min', value.toDouble());
+          _fillRecognizedNumber('${base}_max', value.toDouble());
+        }
       }
     }
     _fillWaistRangeIfEmpty(parameters.waistCircumference);
@@ -788,17 +810,31 @@ class _ClothingFormPageState extends State<ClothingFormPage> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     for (final definition in entry.value)
-                      if (definition.key == 'waist_circumference_min')
+                      if (const [
+                        'waist_circumference_min',
+                        'hip_circumference_min',
+                        'thigh_circumference_min',
+                      ].contains(definition.key))
                         _RangeNumberField(
-                          key: WardrobeKeys.clothingWaistRange,
-                          label: '腰围',
+                          key: definition.key == 'waist_circumference_min'
+                              ? WardrobeKeys.clothingWaistRange
+                              : ValueKey('${definition.key}_range'),
+                          label: definition.label.replaceAll('最小值', ''),
+                          fieldBase: definition.key.replaceAll('_min', ''),
                           minimumController:
-                              _parameterControllers['waist_circumference_min']!,
+                              _parameterControllers[definition.key]!,
                           maximumController:
-                              _parameterControllers['waist_circumference_max']!,
+                              _parameterControllers[definition.key.replaceAll(
+                                '_min',
+                                '_max',
+                              )]!,
                           unit: definition.unit,
                         )
-                      else if (definition.key == 'waist_circumference_max')
+                      else if (const [
+                        'waist_circumference_max',
+                        'hip_circumference_max',
+                        'thigh_circumference_max',
+                      ].contains(definition.key))
                         const SizedBox.shrink()
                       else if (definition.type == ClothingParameterType.number)
                         _NumberField(
@@ -1133,11 +1169,13 @@ class _RangeNumberField extends StatelessWidget {
     super.key,
     required this.label,
     required this.minimumController,
+    required this.fieldBase,
     required this.maximumController,
     required this.unit,
   });
 
   final String label;
+  final String fieldBase;
   final TextEditingController minimumController;
   final TextEditingController maximumController;
   final String? unit;
@@ -1155,7 +1193,9 @@ class _RangeNumberField extends StatelessWidget {
           children: [
             Expanded(
               child: TextFormField(
-                key: WardrobeKeys.clothingWaistMinField,
+                key: fieldBase == 'waist_circumference'
+                    ? WardrobeKeys.clothingWaistMinField
+                    : ValueKey('${fieldBase}_min'),
                 controller: minimumController,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -1164,7 +1204,7 @@ class _RangeNumberField extends StatelessWidget {
                   labelText: '最小值',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => _validateNumber(value, '腰围最小值'),
+                validator: (value) => _validateNumber(value, '$label最小值'),
               ),
             ),
             const Padding(
@@ -1173,7 +1213,9 @@ class _RangeNumberField extends StatelessWidget {
             ),
             Expanded(
               child: TextFormField(
-                key: WardrobeKeys.clothingWaistMaxField,
+                key: fieldBase == 'waist_circumference'
+                    ? WardrobeKeys.clothingWaistMaxField
+                    : ValueKey('${fieldBase}_max'),
                 controller: maximumController,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -1182,7 +1224,15 @@ class _RangeNumberField extends StatelessWidget {
                   labelText: '最大值',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => _validateNumber(value, '腰围最大值'),
+                validator: (value) {
+                  final error = _validateNumber(value, '$label最大值');
+                  if (error != null) return error;
+                  final min = double.tryParse(minimumController.text.trim());
+                  final max = double.tryParse(value?.trim() ?? '');
+                  return min != null && max != null && min > max
+                      ? '最大值不得小于最小值'
+                      : null;
+                },
               ),
             ),
           ],
@@ -1193,9 +1243,11 @@ class _RangeNumberField extends StatelessWidget {
 
   static String? _validateNumber(String? value, String label) {
     final normalized = value?.trim() ?? '';
-    if (normalized.isEmpty || double.tryParse(normalized) != null) {
-      return null;
+    if (normalized.isEmpty) return null;
+    final number = double.tryParse(normalized);
+    if (number == null || !number.isFinite || number <= 0) {
+      return '$label请输入大于0的数字';
     }
-    return '$label格式有误，请输入数字';
+    return null;
   }
 }

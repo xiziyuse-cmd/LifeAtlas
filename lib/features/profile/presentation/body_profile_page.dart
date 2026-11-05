@@ -410,16 +410,31 @@ class _BodyProfileState extends State<BodyProfilePage>
                                 'waist_circumference_max',
                               ))
                             '腰围': item.waistCircumference,
-                          '臀围': _garment(
-                            item,
-                            'hip_circumference',
-                            item.hipCircumference,
-                          ),
+                          if (!item.parameterValues.containsKey(
+                                'hip_circumference_min',
+                              ) &&
+                              !item.parameterValues.containsKey(
+                                'hip_circumference_max',
+                              ))
+                            '臀围': _garment(
+                              item,
+                              'hip_circumference',
+                              item.hipCircumference,
+                            ),
                         }.entries)
                           Text(_comparison(e.key, body.values[e.key], e.value)),
                         Text(
                           '身体腰围：${body.values['腰围'] ?? '未填'} cm；衣服腰围范围：${item.parameterValues['waist_circumference_min']?.editableText ?? '未填'}－${item.parameterValues['waist_circumference_max']?.editableText ?? '未填'} cm；仅比较同口径数据。',
                         ),
+                        if (item.parameterValues.containsKey(
+                              'hip_circumference_min',
+                            ) ||
+                            item.parameterValues.containsKey(
+                              'hip_circumference_max',
+                            ))
+                          Text(
+                            '身体臀围：${body.values['臀围'] ?? '未填'} cm；衣服臀围范围：${item.parameterValues['hip_circumference_min']?.editableText ?? '未填'}－${item.parameterValues['hip_circumference_max']?.editableText ?? '未填'} cm；不按单值计算差值。',
+                          ),
                         const Text('请核对整圈/平铺口径、版型与弹性。裤长不与身体腿长直接比较。'),
                       ],
                     ),

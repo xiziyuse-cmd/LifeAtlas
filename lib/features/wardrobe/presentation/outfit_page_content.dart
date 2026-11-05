@@ -8,6 +8,7 @@ import '../data/wardrobe_image_service.dart';
 import '../data/wardrobe_repository.dart';
 import '../domain/models/clothing_catalog.dart';
 import '../domain/models/clothing_item.dart';
+import '../domain/models/daily_outfit_record.dart';
 import '../domain/models/outfit_set.dart';
 import 'pages/clothing_detail_page.dart';
 import 'pages/clothing_form_page.dart';
@@ -30,6 +31,7 @@ class OutfitPage extends StatefulWidget {
     this.onDataChanged,
     this.onDailyOutfitSaved,
     this.showFemaleCategories = false,
+    this.now = DateTime.now,
   });
 
   final WardrobeRepository? repository;
@@ -37,8 +39,9 @@ class OutfitPage extends StatefulWidget {
   final ClothingImageParameterService imageParameterService;
   final PreorderAnalysisService preorderAnalysisService;
   final VoidCallback? onDataChanged;
-  final Future<void> Function()? onDailyOutfitSaved;
+  final Future<void> Function(DateTime date)? onDailyOutfitSaved;
   final bool showFemaleCategories;
+  final DateTime Function() now;
 
   @override
   State<OutfitPage> createState() => _OutfitPageState();
@@ -62,10 +65,162 @@ class _OutfitPageState extends State<OutfitPage> {
   String? _loadError;
   bool _isRecording = false;
   Set<int> _selectedItemIds = {};
+  Set<int> _initialRecordIds = {};
+  late DateTime _recordDate;
+  DailyOutfitRecord? _dailyRecord;
+  (double, double)? _confirmedWeather;
+
+  String get _recordDateText =>
+      '${_recordDate.year}-${_recordDate.month.toString().padLeft(2, '0')}-${_recordDate.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickRecordDate() async {
+    if (_isSavingRecord) return;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _recordDate,
+      firstDate: DateTime(1900),
+      lastDate: DateUtils.dateOnly(widget.now()),
+    );
+    if (date == null || !mounted || DateUtils.isSameDay(date, _recordDate)) {
+      return;
+    }
+    if (!(_selectedItemIds.length == _initialRecordIds.length &&
+            _selectedItemIds.containsAll(_initialRecordIds)) ||
+        _confirmedWeather != null) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('有未保存的选择'),
+          content: const Text('切换日期将放弃本次修改。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('放弃并切换'),
+            ),
+          ],
+        ),
+      );
+      if (discard != true || !mounted) return;
+    }
+    await _loadRecordDate(date);
+  }
+
+  Future<void> _loadRecordDate(DateTime date) async {
+    setState(() => _isSavingRecord = true);
+    try {
+      final record = await _repository.getDailyOutfit(date);
+      if (!mounted) return;
+      setState(() {
+        _recordDate = DateUtils.dateOnly(date);
+        _dailyRecord = record;
+        _isRecording = true;
+        _selectedItemIds = {...?record?.clothingItemIds};
+        _initialRecordIds = {..._selectedItemIds};
+        _confirmedWeather = null;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('无法读取该日穿搭记录')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingRecord = false);
+    }
+  }
+
+  Future<void> _editRecordWeather() async {
+    if (_isSavingRecord) return;
+    final minimum = TextEditingController(
+      text: (_confirmedWeather?.$1 ?? _dailyRecord?.minTemperature)?.toString(),
+    );
+    final maximum = TextEditingController(
+      text: (_confirmedWeather?.$2 ?? _dailyRecord?.maxTemperature)?.toString(),
+    );
+    final form = GlobalKey<FormState>();
+    final value = await showDialog<(double, double)>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('确认 $_recordDateText 的天气'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: form,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('填写当天实际所在城市的最低和最高温。旧值可能受模拟天气影响，请核对后确认；不会替换其他日期。'),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('outfit-weather-min'),
+                  controller: minimum,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  decoration: const InputDecoration(labelText: '最低温（℃）'),
+                  validator: (v) => _temperatureError(v),
+                ),
+                TextFormField(
+                  key: const ValueKey('outfit-weather-max'),
+                  controller: maximum,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  decoration: const InputDecoration(labelText: '最高温（℃）'),
+                  validator: (v) {
+                    final error = _temperatureError(v);
+                    if (error != null) return error;
+                    final min = double.tryParse(minimum.text);
+                    return min != null && min > double.parse(v!)
+                        ? '最高温不得低于最低温'
+                        : null;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) {
+                Navigator.pop(c, (
+                  double.parse(minimum.text),
+                  double.parse(maximum.text),
+                ));
+              }
+            },
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    minimum.dispose();
+    maximum.dispose();
+    if (value != null && mounted) setState(() => _confirmedWeather = value);
+  }
+
+  static String? _temperatureError(String? text) {
+    final n = double.tryParse(text?.trim() ?? '');
+    return n == null || !n.isFinite || n < -100 || n > 70
+        ? '请输入有效温度（-100 至 70℃）'
+        : null;
+  }
 
   @override
   void initState() {
     super.initState();
+    _recordDate = DateUtils.dateOnly(widget.now());
     _repository = widget.repository ?? WardrobeRepository();
     _imageService = widget.imageService ?? DeviceWardrobeImageService();
     _load(showLoading: false);
@@ -248,25 +403,12 @@ class _OutfitPageState extends State<OutfitPage> {
   }
 
   Future<void> _startRecording() async {
-    try {
-      final record = await _repository.getDailyOutfit(DateTime.now());
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isRecording = true;
-        _selectedItemIds = {...?record?.clothingItemIds};
-      });
-    } on Object {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('无法读取今天的穿搭记录')));
-      }
-    }
+    if (_isSavingRecord) return;
+    await _loadRecordDate(DateUtils.dateOnly(widget.now()));
   }
 
   void _cancelRecording() {
+    if (_isSavingRecord) return;
     setState(() {
       _isRecording = false;
       _selectedItemIds = {};
@@ -274,6 +416,7 @@ class _OutfitPageState extends State<OutfitPage> {
   }
 
   void _setSelected(int id, bool selected) {
+    if (_isSavingRecord) return;
     setState(() {
       if (selected) {
         _selectedItemIds.add(id);
@@ -284,18 +427,20 @@ class _OutfitPageState extends State<OutfitPage> {
   }
 
   Future<void> _saveDailyOutfit() async {
-    if (_selectedItemIds.isEmpty || _isSavingRecord) {
+    if (_isSavingRecord) {
       return;
     }
     setState(() => _isSavingRecord = true);
     try {
       await _repository.replaceDailyOutfit(
-        date: DateTime.now(),
+        date: _recordDate,
         clothingItemIds: _selectedItemIds,
+        confirmedMinimum: _confirmedWeather?.$1,
+        confirmedMaximum: _confirmedWeather?.$2,
       );
       var followUpFailed = false;
       try {
-        await widget.onDailyOutfitSaved?.call();
+        await widget.onDailyOutfitSaved?.call(_recordDate);
       } on Object {
         followUpFailed = true;
       }
@@ -310,7 +455,13 @@ class _OutfitPageState extends State<OutfitPage> {
         _selectedItemIds = {};
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(followUpFailed ? '穿搭已保存，天气记忆稍后更新' : '已记录今天的穿搭')),
+        SnackBar(
+          content: Text(
+            followUpFailed
+                ? '$_recordDateText 穿搭已保存，天气记忆稍后更新'
+                : '已保存 $_recordDateText 的穿搭',
+          ),
+        ),
       );
     } on Object {
       if (mounted) {
@@ -378,11 +529,40 @@ class _OutfitPageState extends State<OutfitPage> {
             onClear: _clearFilters,
           ),
           if (_isRecording)
-            _RecordingBar(
-              selectedCount: _selectedItemIds.length,
-              isSaving: _isSavingRecord,
-              onCancel: _cancelRecording,
-              onConfirm: _selectedItemIds.isEmpty ? null : _saveDailyOutfit,
+            Column(
+              children: [
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      key: const ValueKey('outfit-record-date'),
+                      onPressed: _isSavingRecord ? null : _pickRecordDate,
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(_recordDateText),
+                    ),
+                    TextButton(
+                      key: const ValueKey('outfit-record-weather'),
+                      onPressed: _isSavingRecord ? null : _editRecordWeather,
+                      child: Text(
+                        _confirmedWeather != null
+                            ? '温度已确认（待保存）'
+                            : _dailyRecord?.weatherStatus == 'pending'
+                            ? '旧温度待确认'
+                            : _dailyRecord?.weatherStatus == 'verified'
+                            ? '修正当日温度'
+                            : '填写当日温度（可选）',
+                      ),
+                    ),
+                  ],
+                ),
+                _RecordingBar(
+                  selectedCount: _selectedItemIds.length,
+                  isSaving: _isSavingRecord,
+                  onCancel: _cancelRecording,
+                  onConfirm: _saveDailyOutfit,
+                ),
+              ],
             )
           else
             _ActionBar(

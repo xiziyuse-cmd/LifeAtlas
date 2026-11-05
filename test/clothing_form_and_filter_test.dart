@@ -146,6 +146,10 @@ void main() {
         trouserLength: 98,
         parameterValues: const {
           'front_rise': 30,
+          'hip_circumference_min': 96,
+          'hip_circumference_max': 104,
+          'thigh_circumference_min': 50,
+          'thigh_circumference_max': 58,
           'waist_circumference_min': 70,
           'waist_circumference_max': 76,
         },
@@ -198,6 +202,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(parameterService.analyzedPaths, isEmpty);
 
+    tester
+            .widget<TextFormField>(
+              find.byKey(const ValueKey('hip_circumference_min')),
+            )
+            .controller!
+            .text =
+        '90';
     await tester.tap(find.byKey(WardrobeKeys.clothingMeasurementImageAnalyze));
     await tester.pumpAndSettle();
 
@@ -228,6 +239,42 @@ void main() {
     );
     expect(minimumWaist.controller?.text, '70');
     expect(maximumWaist.controller?.text, '76');
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('hip_circumference_min')),
+          )
+          .controller!
+          .text,
+      '90',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('hip_circumference_max')),
+          )
+          .controller!
+          .text,
+      '104',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('thigh_circumference_min')),
+          )
+          .controller!
+          .text,
+      '50',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('thigh_circumference_max')),
+          )
+          .controller!
+          .text,
+      '58',
+    );
   });
 
   testWidgets(
@@ -529,6 +576,98 @@ void main() {
     expect(find.text('腰围最小值'), findsNothing);
     expect(find.text('腰围最大值'), findsNothing);
   });
+
+  testWidgets(
+    'legacy pants scalar becomes an editable range without inventing missing boundary',
+    (tester) async {
+      _useTallViewport(tester);
+      ClothingItem? submitted;
+      final timestamp = DateTime(2026, 8, 1);
+      final initial = ClothingItem(
+        name: '旧长裤',
+        imagePath: 'missing.jpg',
+        category: '长裤',
+        hipCircumference: 100,
+        parameterValues: const {
+          'thigh_circumference': ClothingParameterValue(
+            key: 'thigh_circumference',
+            numberValue: 56,
+          ),
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (c) => TextButton(
+              onPressed: () async {
+                submitted = await Navigator.push<ClothingItem>(
+                  c,
+                  MaterialPageRoute(
+                    builder: (_) => ClothingFormPage(
+                      imageService: _FakeImageService([]),
+                      initialItem: initial,
+                      categories: const ['长裤'],
+                    ),
+                  ),
+                );
+              },
+              child: const Text('编辑'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('编辑'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(WardrobeKeys.clothingSizeToggle),
+        280,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(WardrobeKeys.clothingSizeToggle));
+      await tester.pumpAndSettle();
+      final min = tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('hip_circumference_min')),
+          )
+          .controller!;
+      final max = tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('hip_circumference_max')),
+          )
+          .controller!;
+      expect(min.text, '100');
+      expect(max.text, '100');
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const ValueKey('thigh_circumference_min')),
+            )
+            .controller!
+            .text,
+        '56',
+      );
+      min.text = '104';
+      max.text = '96';
+      await tester.tap(find.byKey(WardrobeKeys.clothingSubmit));
+      await tester.pumpAndSettle();
+      expect(submitted, isNull);
+      max.text = '';
+      min.text = '96';
+      await tester.tap(find.byKey(WardrobeKeys.clothingSubmit));
+      await tester.pumpAndSettle();
+      expect(
+        submitted!.parameterValues['hip_circumference_min']!.numberValue,
+        96,
+      );
+      expect(
+        submitted!.parameterValues.containsKey('hip_circumference_max'),
+        isFalse,
+      );
+      expect(submitted!.hipCircumference, isNull);
+    },
+  );
 
   testWidgets('unconfigured AI leaves manually entered dimensions intact', (
     tester,

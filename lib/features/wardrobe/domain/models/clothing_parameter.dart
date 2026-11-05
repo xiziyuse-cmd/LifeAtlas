@@ -191,6 +191,26 @@ class ClothingParameterCatalog {
       group: '尺寸',
     ),
     ClothingParameterDefinition(
+      key: 'hip_circumference_min',
+      label: '臀围最小值',
+      group: '尺寸',
+    ),
+    ClothingParameterDefinition(
+      key: 'hip_circumference_max',
+      label: '臀围最大值',
+      group: '尺寸',
+    ),
+    ClothingParameterDefinition(
+      key: 'thigh_circumference_min',
+      label: '大腿围最小值',
+      group: '裤装尺寸',
+    ),
+    ClothingParameterDefinition(
+      key: 'thigh_circumference_max',
+      label: '大腿围最大值',
+      group: '裤装尺寸',
+    ),
+    ClothingParameterDefinition(
       key: 'hip_circumference',
       label: '臀围',
       group: '尺寸',
@@ -610,13 +630,15 @@ class ClothingParameterCatalog {
   static const _pants = [
     'waist_circumference_min',
     'waist_circumference_max',
-    'hip_circumference',
+    'hip_circumference_min',
+    'hip_circumference_max',
     'front_rise',
     'back_rise',
     'crotch_width',
     'trouser_length',
     'inseam_length',
-    'thigh_circumference',
+    'thigh_circumference_min',
+    'thigh_circumference_max',
     'knee_circumference',
     'calf_circumference',
     'leg_opening_circumference',
@@ -797,6 +819,9 @@ class ClothingParameterCatalog {
     } else {
       addAll(_common);
       addAll(_top);
+    }
+    if (keys.contains('hip_circumference_min')) {
+      keys.remove('hip_circumference');
     }
     return [
       for (final definition in definitions)

@@ -166,3 +166,13 @@ test('skincare health exposes independent Turbo configuration and disabled route
     assert.equal((await response.json()).code,'FEATURE_DISABLED');
   }
 });
+
+// Range boundaries must survive proxy normalization; no invented boundary.
+test('pants range boundaries survive normalization, including partial ranges and old scalar fields', () => {
+  const result = __test.normalizeResult({category: '长裤', measurements: {hipCircumference: 100}, parameters: {
+    hip_circumference_min: 96, hip_circumference_max: 104,
+    thigh_circumference_min: 50, unknown: 999,
+  }});
+  assert.deepEqual(result.parameters, {hip_circumference_min: 96, hip_circumference_max: 104, thigh_circumference_min: 50});
+  assert.equal(result.measurements.hipCircumference, 100);
+});

@@ -63,3 +63,9 @@ flutter build apk --release --dart-define=LIFEATLAS_AI_PROXY_URL=https://<你的
 护肤包装识别和计划生成统一默认使用 `doubao-seed-2-1-turbo-260628`（Doubao-Seed-2.1-turbo）。可用 `ARK_SKINCARE_MODEL` 覆盖默认模型。
 管理网站「功能与模型」新增「护肤识别与规划」开关；服务端读取 `LIFEATLAS_FEATURE_CONFIG.skincare` 的 `model` 与 `enabled`，关闭时两个接口均返回 `503 / FEATURE_DISABLED`，不会请求模型。旧三项配置升级时保留原配置，补充护肤默认值。
 管理网站已提供代理自动备份及升级流程。使用旧线上代理时，在新版网站保存功能设置才会部署护肤接口及开关逻辑。App 无需因本次模型路由变更重新安装。
+
+## 裤装范围契约（2.5.4）
+
+`worker.js` 新增 `hip_circumference_min/max`、`thigh_circumference_min/max` 白名单和范围识别提示词，保留旧单值键兼容旧版客户端。只出现一端时不生成另一端。18 项本地 Worker 测试通过。
+
+此独立 Worker 不随 Android APK 自动部署。本轮源代码已准备，尚未取得可用的线上部署会话；不能把 APK 发布或健康检查视作新提示词已上线。通过原有 Cloudflare 部署通道更新入口，保留 `kitchen.js`、`skincare.js` 模块及所有已有密钥/功能配置，之后在账号登录状态下验证真实图片返回上下限。
