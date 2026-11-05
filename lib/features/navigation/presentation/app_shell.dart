@@ -15,7 +15,7 @@ import '../../kitchen/data/recipe_cloud_sync.dart';
 import '../../kitchen/data/kitchen_ai_service.dart';
 import '../../kitchen/presentation/kitchen_page.dart';
 import '../../home/data/home_repository.dart';
-import '../../home/data/weather_service.dart';
+import '../../wardrobe/application/outfit_weather_sync.dart';
 import '../../home/presentation/home_page.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../wardrobe/data/clothing_image_parameter_service.dart';
@@ -191,17 +191,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _applyTodayWeatherToOutfit(DateTime date) async {
-    final now = DateTime.now();
-    if (date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day) {
-      // The real weather service validates city/date and synchronizes confirmed
-      // daily snapshots transactionally. Never manufacture historical weather.
-      await QWeatherService().getCurrentWeather();
-    }
-    await _wardrobeRepository.syncPendingTemperatureMemory();
-  }
+  Future<void> _applyTodayWeatherToOutfit(DateTime date) =>
+      OutfitWeatherSync(repository: _wardrobeRepository).sync(date);
 
   Future<void> _openSearch() async {
     final repository = SearchRepository(

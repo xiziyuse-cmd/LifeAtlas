@@ -8,6 +8,7 @@ import '../domain/models/preorder_item.dart';
 import 'preorder_form_page.dart';
 import 'preorder_keys.dart';
 import 'widgets/local_clothing_image.dart';
+import 'widgets/wardrobe_tag.dart';
 
 class PreorderDetailPage extends StatefulWidget {
   const PreorderDetailPage({
@@ -96,20 +97,16 @@ class _PreorderDetailPageState extends State<PreorderDetailPage> {
                             runSpacing: 8,
                             children: [
                               if (_item.brand != null)
-                                Chip(
-                                  avatar: const Icon(
-                                    Icons.sell_outlined,
-                                    size: 18,
-                                  ),
-                                  label: Text(_item.brand!),
+                                WardrobeTag(
+                                  label: _item.brand!,
+                                  kind: WardrobeTagKind.brand,
+                                  icon: Icons.sell_outlined,
                                 ),
                               if (_item.category != null)
-                                Chip(
-                                  avatar: const Icon(
-                                    Icons.category_outlined,
-                                    size: 18,
-                                  ),
-                                  label: Text(_item.category!),
+                                WardrobeTag(
+                                  label: _item.category!,
+                                  kind: WardrobeTagKind.category,
+                                  icon: Icons.category_outlined,
                                 ),
                             ],
                           ),

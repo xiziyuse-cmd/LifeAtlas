@@ -5,6 +5,7 @@ import '../data/body_vault.dart';
 import '../data/body_password_reset.dart';
 import '../../wardrobe/data/wardrobe_repository.dart';
 import '../../wardrobe/domain/models/clothing_item.dart';
+import '../../wardrobe/domain/models/clothing_measurement_display.dart';
 
 class BodyProfilePage extends StatefulWidget {
   const BodyProfilePage({super.key, required this.controller, this.vault});
@@ -424,7 +425,7 @@ class _BodyProfileState extends State<BodyProfilePage>
                         }.entries)
                           Text(_comparison(e.key, body.values[e.key], e.value)),
                         Text(
-                          '身体腰围：${body.values['腰围'] ?? '未填'} cm；衣服腰围范围：${item.parameterValues['waist_circumference_min']?.editableText ?? '未填'}－${item.parameterValues['waist_circumference_max']?.editableText ?? '未填'} cm；仅比较同口径数据。',
+                          '身体腰围：${body.values['腰围'] ?? '未填'} cm；衣服腰围：${clothingCircumferenceDisplay(item, 'waist_circumference') ?? '未填'}；仅比较同口径数据。',
                         ),
                         if (item.parameterValues.containsKey(
                               'hip_circumference_min',
@@ -433,7 +434,7 @@ class _BodyProfileState extends State<BodyProfilePage>
                               'hip_circumference_max',
                             ))
                           Text(
-                            '身体臀围：${body.values['臀围'] ?? '未填'} cm；衣服臀围范围：${item.parameterValues['hip_circumference_min']?.editableText ?? '未填'}－${item.parameterValues['hip_circumference_max']?.editableText ?? '未填'} cm；不按单值计算差值。',
+                            '身体臀围：${body.values['臀围'] ?? '未填'} cm；衣服臀围：${clothingCircumferenceDisplay(item, 'hip_circumference') ?? '未填'}；不按单值计算差值。',
                           ),
                         const Text('请核对整圈/平铺口径、版型与弹性。裤长不与身体腿长直接比较。'),
                       ],

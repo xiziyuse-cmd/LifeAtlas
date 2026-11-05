@@ -504,6 +504,63 @@ class WardrobeRepository {
     return replaceDailyOutfit(date: date, clothingItemIds: const []);
   }
 
+  Future<void> confirmRecordedWeather({
+    required DateTime date,
+    required String cityId,
+    required String zone,
+    required double minimum,
+    required double maximum,
+    required String weatherType,
+    required String fetchedAt,
+  }) async {
+    _validateTemperatureRange(minimum, maximum);
+    if (cityId.isEmpty ||
+        zone.isEmpty ||
+        DateTime.tryParse(fetchedAt) == null) {
+      throw ArgumentError('天气来源无效');
+    }
+    final database = await _database.database;
+    await database.transaction((tx) async {
+      final selected = await tx.query(
+        'app_settings',
+        where: 'setting_key = ?',
+        whereArgs: ['weather_city'],
+      );
+      if (selected.isEmpty) throw StateError('天气城市已清除');
+      final city =
+          jsonDecode(selected.single['setting_value'] as String) as Map;
+      if (city['id'] != cityId || city['tz'] != zone) {
+        throw StateError('天气城市已改变');
+      }
+      final rows = await _dailyRowsForDate(tx, DateKeyCodec.encode(date));
+      for (final row in rows) {
+        if (row['weather_source'] == 'user-confirmed') continue;
+        if (row['weather_status'] == 'verified' &&
+            row['weather_city_id'] != null &&
+            row['weather_city_id'] != cityId) {
+          throw StateError('该日已记录其他城市的天气，请核对后手动修正');
+        }
+        await tx.update(
+          'daily_outfit_records',
+          {
+            'min_temperature': minimum,
+            'max_temperature': maximum,
+            'weather_type': weatherType,
+            'weather_status': 'verified',
+            'weather_source': 'qweather:current+forecast-range',
+            'weather_city_id': cityId,
+            'weather_zone': zone,
+            'weather_fetched_at': fetchedAt,
+            'temperature_applied_at': DateTime.now().toUtc().toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [row['id']],
+        );
+      }
+      await rebuildOutfitTemperatures(tx);
+    });
+  }
+
   Future<void> applyTemperatureForDate({
     required DateTime date,
     required double minTemperature,

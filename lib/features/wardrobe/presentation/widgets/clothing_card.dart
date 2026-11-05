@@ -41,9 +41,6 @@ class ClothingCard extends StatelessWidget {
   }
 
   Widget _buildCompact(BuildContext context) {
-    final tags = _tags(item).join(' · ');
-    final showTags =
-        tags.isNotEmpty && MediaQuery.textScalerOf(context).scale(12) <= 15;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,17 +90,6 @@ class ClothingCard extends StatelessWidget {
                     context,
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                if (showTags) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    tags,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -157,55 +143,10 @@ class ClothingCard extends StatelessWidget {
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
-              if (_tags(item).isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final tag in _tags(item))
-                      Chip(
-                        label: Text(tag),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                      ),
-                  ],
-                ),
-              ],
-              if (_summary(item).isNotEmpty) ...[
-                const SizedBox(height: 9),
-                Text(
-                  _summary(item).join(' · '),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
       ],
     );
   }
-
-  static List<String> _tags(ClothingItem item) => [
-    ...item.seasonTags,
-    if (item.category case final category? when category.isNotEmpty) category,
-    if (item.brand case final brand? when brand.isNotEmpty) brand,
-  ];
-
-  static List<String> _summary(ClothingItem item) => [
-    if (item.material case final material? when material.isNotEmpty)
-      '材质 $material',
-    if (item.size case final size? when size.isNotEmpty) '尺码 $size',
-    if (item.clothingLength case final length?)
-      '衣长 ${_formatNumber(length)} cm',
-    if (item.trouserLength case final length?) '裤长 ${_formatNumber(length)} cm',
-  ];
-
-  static String _formatNumber(double value) => value == value.roundToDouble()
-      ? value.toStringAsFixed(0)
-      : value.toStringAsFixed(1);
 }

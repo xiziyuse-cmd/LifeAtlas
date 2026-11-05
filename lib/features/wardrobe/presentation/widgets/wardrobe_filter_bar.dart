@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../wardrobe_keys.dart';
+import 'wardrobe_tag.dart';
 
 class WardrobeFilterBar extends StatefulWidget {
   const WardrobeFilterBar({
@@ -100,6 +101,7 @@ class _WardrobeFilterBarState extends State<WardrobeFilterBar> {
                   _FilterMenu(
                     key: WardrobeKeys.seasonFilter,
                     label: '季节',
+                    kind: WardrobeTagKind.season,
                     value: widget.selectedSeason,
                     options: widget.seasons,
                     onChanged: widget.onSeasonChanged,
@@ -108,6 +110,7 @@ class _WardrobeFilterBarState extends State<WardrobeFilterBar> {
                   _FilterMenu(
                     key: WardrobeKeys.categoryFilter,
                     label: '品类',
+                    kind: WardrobeTagKind.category,
                     value: widget.selectedCategory,
                     options: widget.categories,
                     onChanged: widget.onCategoryChanged,
@@ -116,6 +119,7 @@ class _WardrobeFilterBarState extends State<WardrobeFilterBar> {
                   _FilterMenu(
                     key: WardrobeKeys.brandFilter,
                     label: '品牌',
+                    kind: WardrobeTagKind.brand,
                     value: widget.selectedBrand,
                     options: widget.brands,
                     onChanged: widget.onBrandChanged,
@@ -134,6 +138,7 @@ class _FilterMenu extends StatelessWidget {
   const _FilterMenu({
     super.key,
     required this.label,
+    required this.kind,
     required this.value,
     required this.options,
     required this.onChanged,
@@ -142,12 +147,14 @@ class _FilterMenu extends StatelessWidget {
   static const _allValue = '__all__';
 
   final String label;
+  final WardrobeTagKind kind;
   final String? value;
   final List<String> options;
   final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final colors = WardrobeTagColors.of(context, kind);
     return PopupMenuButton<String>(
       tooltip: '$label筛选',
       initialValue: value ?? _allValue,
@@ -163,10 +170,17 @@ class _FilterMenu extends StatelessWidget {
           ),
       ],
       child: InputChip(
+        color: WidgetStatePropertyAll(colors.background),
+        labelStyle: TextStyle(color: colors.foreground),
+        side: BorderSide(
+          color: colors.foreground,
+          width: value == null ? .7 : 2,
+        ),
         label: Text(value == null ? label : '$label：$value'),
         avatar: Icon(
           value == null ? Icons.filter_alt_outlined : Icons.filter_alt,
           size: 18,
+          color: colors.foreground,
         ),
         onPressed: null,
         visualDensity: VisualDensity.compact,

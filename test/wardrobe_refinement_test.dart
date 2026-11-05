@@ -397,8 +397,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('尺寸'), findsOneWidget);
       expect(find.text('裤装尺寸'), findsNothing);
-      await tester.scrollUntilVisible(find.text('裤长\n（外长）'), 200);
-      expect(find.text('裤长\n（外长）'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('裤长(外长)'), 200);
+      expect(find.text('裤长(外长)'), findsOneWidget);
       expect(find.text('96 – 104 cm'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

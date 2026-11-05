@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/clothing_item.dart';
+import '../../domain/models/clothing_measurement_display.dart';
+import '../widgets/wardrobe_tag.dart';
 import '../../domain/models/clothing_parameter.dart';
 import '../wardrobe_keys.dart';
 import '../widgets/local_clothing_image.dart';
@@ -14,8 +16,10 @@ class ClothingDetailPage extends StatefulWidget {
     required this.item,
     this.onEdit,
     this.onDelete,
+    this.onReload,
   });
 
+  final Future<ClothingItem?> Function()? onReload;
   final ClothingItem item;
   final ClothingEditor? onEdit;
   final ClothingDeleter? onDelete;
@@ -24,19 +28,56 @@ class ClothingDetailPage extends StatefulWidget {
   State<ClothingDetailPage> createState() => _ClothingDetailPageState();
 }
 
-class _ClothingDetailPageState extends State<ClothingDetailPage> {
+class _ClothingDetailPageState extends State<ClothingDetailPage>
+    with WidgetsBindingObserver {
   late ClothingItem _item;
   bool _isDeleting = false;
+  int _reloadRevision = 0;
 
   @override
   void initState() {
     super.initState();
     _item = widget.item;
+    WidgetsBinding.instance.addObserver(this);
+    _reload();
+  }
+
+  Future<void> _reload() async {
+    final reload = widget.onReload;
+    if (reload == null) return;
+    final revision = ++_reloadRevision;
+    try {
+      final latest = await reload();
+      if (mounted &&
+          revision == _reloadRevision &&
+          latest != null &&
+          latest.id == _item.id) {
+        setState(() => _item = latest);
+      }
+    } catch (_) {
+      if (mounted && revision == _reloadRevision) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('衣服详情更新失败，请重试')));
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _reload();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _edit() async {
     final edited = await widget.onEdit?.call(_item);
     if (mounted && edited != null) {
+      _reloadRevision++;
       setState(() => _item = edited);
     }
   }
@@ -118,7 +159,10 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [for (final tag in _tags) Chip(label: Text(tag))],
+              children: [
+                for (final tag in _tags)
+                  WardrobeTag(label: tag.$1, kind: tag.$2),
+              ],
             ),
           ],
           const SizedBox(height: 16),
@@ -168,10 +212,12 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
     );
   }
 
-  List<String> get _tags => [
-    ..._item.seasonTags,
-    if (_item.category case final category? when category.isNotEmpty) category,
-    if (_item.brand case final brand? when brand.isNotEmpty) brand,
+  List<(String, WardrobeTagKind)> get _tags => [
+    for (final season in _item.seasonTags) (season, WardrobeTagKind.season),
+    if (_item.category case final value? when value.isNotEmpty)
+      (value, WardrobeTagKind.category),
+    if (_item.brand case final value? when value.isNotEmpty)
+      (value, WardrobeTagKind.brand),
   ];
 
   Map<String, List<(String, String?)>> get _parameterGroups {
@@ -186,7 +232,7 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
         'thigh_circumference_min',
       ].contains(definition.key)) {
         final base = definition.key.replaceAll('_min', '');
-        final display = _rangeDisplay(base);
+        final display = clothingCircumferenceDisplay(_item, base);
         if (display != null) {
           groups.putIfAbsent(group, () => []).add((
             definition.label.replaceAll('最小值', ''),
@@ -215,27 +261,6 @@ class _ClothingDetailPageState extends State<ClothingDetailPage> {
       groups.putIfAbsent(group, () => []).add((definition.label, display));
     }
     return groups;
-  }
-
-  String? _rangeDisplay(String base) {
-    final hasRange =
-        _item.parameterValues.containsKey('${base}_min') ||
-        _item.parameterValues.containsKey('${base}_max');
-    final legacy =
-        _item.parameterValues[base]?.numberValue ??
-        (base == 'waist_circumference'
-            ? _item.waistCircumference
-            : base == 'hip_circumference'
-            ? _item.hipCircumference
-            : null);
-    final minimum = hasRange
-        ? _item.parameterValues['${base}_min']?.numberValue
-        : legacy;
-    final maximum = hasRange
-        ? _item.parameterValues['${base}_max']?.numberValue
-        : legacy;
-    if (minimum == null && maximum == null) return null;
-    return '${minimum == null ? '—' : _number(minimum)} – ${maximum == null ? '—' : _number(maximum)} cm';
   }
 
   double? _legacyParameterValue(String key) => switch (key) {
@@ -292,23 +317,60 @@ class _DetailSection extends StatelessWidget {
               )
             else
               for (var index = 0; index < visibleRows.length; index++) ...[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 108,
-                      child: Text(
-                        visibleRows[index].$1 == '裤长（外长）'
-                            ? '裤长\n（外长）'
-                            : visibleRows[index].$1,
-                        style: TextStyle(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final labelStyle = Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(visibleRows[index].$2!)),
-                  ],
+                        );
+                    var labelWidth = 108.0;
+                    for (final row in visibleRows) {
+                      final painter = TextPainter(
+                        text: TextSpan(text: row.$1, style: labelStyle),
+                        textDirection: Directionality.of(context),
+                        textScaler: MediaQuery.textScalerOf(context),
+                        maxLines: 1,
+                      )..layout();
+                      if (painter.width > labelWidth) {
+                        labelWidth = painter.width;
+                      }
+                      painter.dispose();
+                    }
+                    final label = Text(
+                      visibleRows[index].$1,
+                      style: labelStyle,
+                      maxLines: 1,
+                      softWrap: false,
+                    );
+                    final value = Text(visibleRows[index].$2!);
+                    if (labelWidth +
+                            12 +
+                            MediaQuery.textScalerOf(context).scale(64) >
+                        constraints.maxWidth) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (labelWidth > constraints.maxWidth)
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: label,
+                            )
+                          else
+                            label,
+                          const SizedBox(height: 6),
+                          value,
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(width: labelWidth, child: label),
+                        const SizedBox(width: 12),
+                        Expanded(child: value),
+                      ],
+                    );
+                  },
                 ),
                 if (index != visibleRows.length - 1) const Divider(height: 20),
               ],

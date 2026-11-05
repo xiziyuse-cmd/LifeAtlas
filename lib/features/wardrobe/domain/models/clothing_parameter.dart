@@ -271,7 +271,7 @@ class ClothingParameterCatalog {
     ),
     ClothingParameterDefinition(
       key: 'trouser_length',
-      label: '裤长（外长）',
+      label: '裤长(外长)',
       group: '裤装尺寸',
     ),
     ClothingParameterDefinition(
